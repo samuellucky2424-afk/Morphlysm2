@@ -115,7 +115,7 @@ export default async function handler(req, res) {
         role: userData.role || 'user',
         status: userData.status || 'active',
         balance: walletData.balance || 0,
-        is_activated: userData.role === 'admin'
+        is_activated: userData.is_activated === true || userData.role === 'admin'
       }
     });
   } catch (error) {

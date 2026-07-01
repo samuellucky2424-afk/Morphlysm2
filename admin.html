@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morphly — Admin Panel</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06060e;--s1:#0b0b18;--s2:#10101f;--s3:#161627;
+  --b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.13);
+  --text:#f0f0fa;--dim:rgba(240,240,250,.5);--dim2:rgba(240,240,250,.25);
+  --g1:#5BEE8B;--g2:#3CD070;--g3:#1E9447;
+  --grad:linear-gradient(135deg,#5BEE8B 0%,#3CD070 48%,#1E9447 100%);
+  --gradt:linear-gradient(135deg,#5BEE8B 0%,#3CD070 55%,#157334 100%);
+  --red:#ff4d6d;--red-d:rgba(255,77,109,.12);--red-b:rgba(255,77,109,.3);
+  --teal:#3fe8b8;--teal-d:rgba(63,232,184,.1);--teal-b:rgba(63,232,184,.3);
+  --font:'Syne',sans-serif;--mono:'JetBrains Mono',monospace;--body:'DM Sans',sans-serif;
+  --gold:#3CD070;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;-webkit-font-smoothing:antialiased}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── MAIN LAYOUT ── */
+#adminApp{display:none;flex-direction:column;min-height:100vh}
+
+/* topbar */
+.topbar{
+  height:54px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;background:var(--s1);border-bottom:1px solid var(--b);
+  position:sticky;top:0;z-index:50;
+}
+.tb-logo{display:flex;align-items:center;gap:8px}
+.tb-gem{background:#ffffff; color:#3CD070; padding:4px 12px; border-radius:6px; font-family:var(--font); font-size:13px; font-weight:800; letter-spacing:1px; border: 1px solid #3CD070; display:flex; align-items:center; justify-content:center; box-shadow: 0 2px 8px rgba(60, 208, 112, 0.2); text-transform:uppercase}
+.tb-name{font-family:var(--font);font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.tb-right{display:flex;align-items:center;gap:12px}
+.tb-badge{font-family:var(--mono);font-size:8px;letter-spacing:2px;padding:3px 10px;border-radius:100px;background:var(--red-d);border:1px solid var(--red-b);color:var(--red);text-transform:uppercase}
+.tb-out{background:transparent;border:1px solid var(--b);border-radius:100px;color:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:4px 12px;cursor:pointer;transition:all .2s}
+.tb-out:hover{border-color:var(--red-b);color:var(--red)}
+
+/* main content */
+.main{margin:0 auto;padding:28px 24px;width:100%}
+
+/* stats row */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:18px 20px}
+.stat-label{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--dim2);text-transform:uppercase;margin-bottom:6px}
+.stat-val{font-family:var(--font);font-size:28px;font-weight:800;background:var(--gradt);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-sub{font-family:var(--mono);font-size:8px;color:var(--dim2);margin-top:3px;letter-spacing:.5px}
+
+/* grid layout */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px}
+
+/* cards */
+.card{background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:22px 24px;margin-bottom:16px}
+.card-title{font-family:var(--mono);font-size:8.5px;letter-spacing:2.5px;color:var(--dim2);text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.card-title .dot{width:6px;height:6px;border-radius:50%;background:var(--g2);flex-shrink:0}
+
+/* form elements */
+.f-label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:1.5px;color:var(--dim2);margin-bottom:5px;text-transform:uppercase}
+.f-input{width:100%;background:var(--s2);border:1px solid var(--b);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:12px;padding:9px 12px;outline:none;transition:all .2s;margin-bottom:12px}
+.f-input:focus{border-color:rgba(60,208,112,.35);box-shadow:0 0 0 2px rgba(60,208,112,.07)}
+.f-input.red:focus{border-color:var(--red-b);box-shadow:0 0 0 2px var(--red-d)}
+.f-select{width:100%;background:var(--s2);border:1px solid var(--b);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:12px;padding:9px 12px;outline:none;transition:all .2s;margin-bottom:12px;cursor:pointer;appearance:none}
+.f-select:focus{border-color:rgba(60,208,112,.35)}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f-err{font-family:var(--mono);font-size:9px;color:var(--red);min-height:14px;margin-bottom:8px;letter-spacing:.5px}
+
+/* buttons */
+.btn{padding:10px 20px;border-radius:8px;border:none;font-family:var(--font);font-size:13px;font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:all .2s;text-transform:uppercase;display:inline-flex;align-items:center;gap:7px}
+.btn-gold{background:var(--grad);color:#ffffff}
+.btn-gold:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn-ghost{background:transparent;border:1px solid var(--b2);color:var(--dim)}
+.btn-ghost:hover{border-color:rgba(60,208,112,.4);color:var(--g1)}
+.btn-red{background:var(--red-d);border:1px solid var(--red-b);color:var(--red)}
+.btn-red:hover{background:rgba(255,77,109,.2)}
+.btn-teal{background:var(--teal-d);border:1px solid var(--teal-b);color:var(--teal)}
+.btn-teal:hover{background:rgba(63,232,184,.2)}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-full{width:100%;justify-content:center}
+
+/* key result display */
+.key-result{
+  background:linear-gradient(135deg,rgba(63,232,184,.06),rgba(60,208,112,.04));
+  border:1px solid var(--teal-b);border-radius:10px;
+  padding:20px;margin-top:14px;display:none;
+  animation:slideUp .35s ease;
+}
+.key-result.show{display:block}
+.kr-label{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--teal);text-transform:uppercase;margin-bottom:8px}
+.kr-key{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text);letter-spacing:2px;word-break:break-all;margin-bottom:10px}
+.kr-meta{font-family:var(--mono);font-size:9px;color:var(--dim2);line-height:1.8}
+.kr-meta b{color:var(--dim)}
+.kr-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.copy-btn{padding:7px 16px;border-radius:6px;background:rgba(63,232,184,.1);border:1px solid var(--teal-b);color:var(--teal);font-family:var(--mono);font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .2s}
+.copy-btn:hover{background:rgba(63,232,184,.2)}
+.wa-btn{padding:7px 16px;border-radius:6px;background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.35);color:#25d366;font-family:var(--mono);font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .2s}
+.wa-btn:hover{background:rgba(37,211,102,.2)}
+.em-btn{padding:7px 16px;border-radius:6px;background:rgba(60,208,112,.07);border:1px solid rgba(60,208,112,.2);color:var(--g2);font-family:var(--mono);font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .2s}
+.em-btn:hover{background:rgba(60,208,112,.15)}
+
+/* users table */
+.table-wrap{overflow-x:auto}
+.users-pagination{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:16px;padding-top:14px;border-top:1px solid var(--b)}
+.users-pagination button{padding:8px 16px;background:var(--s2);border:1px solid var(--b);border-radius:8px;color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .2s}
+.users-pagination button:hover:not(:disabled){border-color:rgba(60,208,112,.4);color:var(--g1)}
+.users-pagination button:disabled{opacity:.35;cursor:not-allowed}
+.users-pagination span{font-family:var(--mono);font-size:10px;color:var(--dim2);letter-spacing:1px}
+table{width:100%;border-collapse:collapse}
+th{font-family:var(--mono);font-size:8.5px;letter-spacing:1.5px;color:var(--dim2);text-transform:uppercase;padding:10px 14px;border-bottom:1px solid var(--b);text-align:left;white-space:nowrap}
+td{font-family:var(--mono);font-size:11px;color:var(--dim);padding:11px 14px;border-bottom:1px solid var(--b);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.td-name{color:var(--text);font-weight:500}
+.td-key{color:var(--g2);letter-spacing:1px;font-size:10px}
+.td-badge{display:inline-block;padding:2px 9px;border-radius:100px;font-size:7.5px;letter-spacing:1px;font-weight:700;text-transform:uppercase}
+.badge-active{background:var(--teal-d);border:1px solid var(--teal-b);color:var(--teal)}
+.badge-expired{background:var(--red-d);border:1px solid var(--red-b);color:var(--red)}
+.badge-free{background:rgba(60,208,112,.08);border:1px solid rgba(60,208,112,.2);color:var(--g2)}
+.badge-none{background:var(--s3);border:1px solid var(--b);color:var(--dim2)}
+.td-action{display:flex;gap:6px}
+.td-btn{padding:4px 10px;border-radius:5px;font-family:var(--mono);font-size:8px;letter-spacing:.8px;cursor:pointer;transition:all .2s;border:1px solid var(--b);background:transparent;color:var(--dim)}
+.td-btn:hover{border-color:rgba(60,208,112,.3);color:var(--g2)}
+.td-btn.red:hover{border-color:var(--red-b);color:var(--red)}
+
+/* credit adjust */
+.credit-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.credit-row .f-input{margin-bottom:0;flex:1}
+
+/* spinner */
+.spinner{width:16px;height:16px;border:2px solid rgba(60,208,112,.2);border-top-color:var(--g2);border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0}
+
+/* toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--s2);border:1px solid var(--b);color:var(--text);padding:8px 20px;border-radius:8px;font-family:var(--mono);font-size:10px;z-index:9999;transition:transform .3s;white-space:nowrap;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.ok{border-color:var(--teal-b);color:var(--teal)}
+.toast.err{border-color:var(--red-b);color:var(--red)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* section tabs */
+.tabs{display:flex;gap:0;border:1px solid var(--b);border-radius:9px;overflow:hidden;margin-bottom:22px;background:var(--s2)}
+.tab-btn{flex:1;padding:9px 6px;background:transparent;border:none;color:var(--dim);font-family:var(--mono);font-size:9.5px;letter-spacing:1px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.tab-btn.on{background:var(--grad);color:#06060e;font-weight:700}
+.tab-content{display:none}
+.tab-content.on{display:block}
+
+/* mass email */
+.mass-email-card{max-width:820px;width:100%}
+.me-section{margin-bottom:12px}
+.me-label{font-weight:600;display:block;margin-bottom:6px}
+.me-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.me-radio{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.me-input,.me-textarea{
+  width:100%;padding:10px;border:1px solid #333;background:#111;color:#eee;
+  border-radius:6px;font-size:13px
+}
+.me-textarea{resize:vertical;min-height:96px}
+.me-actions{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.me-result{
+  display:none;background:#0d1f17;border:1px solid #1a3a28;border-radius:6px;
+  padding:12px;font-size:13px;white-space:pre-wrap;font-family:var(--mono);
+  overflow-wrap:anywhere
+}
+
+/* empty state */
+.empty{text-align:center;padding:40px 20px;font-family:var(--mono);font-size:10px;color:var(--dim2);letter-spacing:1px}
+
+/* responsive */
+@media(max-width:768px){
+  .stats-row{grid-template-columns:1fr 1fr}
+  .grid-2{grid-template-columns:1fr}
+  .f-row{grid-template-columns:1fr}
+  .main{padding:16px}
+  .topbar{padding:0 16px}
+  .tabs{overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin}
+  .tab-btn{flex:0 0 auto;min-width:132px}
+  .me-row{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .stats-row{grid-template-columns:1fr}
+  .login-box{padding:24px 20px}
+  .mass-email-card{max-width:100%}
+  .me-actions .btn{width:100%;justify-content:center}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SECTION ══ -->
+<div id="loginSection" style="display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; background:var(--bg)">
+  <div class="card" style="max-width:400px; width:100%; padding:32px; text-align:center; animation:fadeIn .5s ease; border: 1px solid var(--b);">
+    <div style="background:#ffffff; color:#3CD070; padding:6px 16px; border-radius:6px; font-family:var(--font); font-size:18px; font-weight:800; letter-spacing:2px; border: 1px solid #3CD070; display:inline-block; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(60, 208, 112, 0.25);">MORPHLY</div>
+    <div class="tb-name" style="font-size:18px; font-weight:700; margin-bottom:24px; letter-spacing:1px;">ADMIN PORTAL</div>
+    
+    <label class="f-label" style="text-align:left;">Admin Secret Key</label>
+    <input class="f-input" type="password" id="adminPass" placeholder="Enter secret key..." style="text-align:center; font-size:14px; margin-bottom:16px;">
+    
+    <div class="f-err" id="loginErr" style="margin-bottom:16px;"></div>
+    
+    <button class="btn btn-gold btn-full" onclick="doAdminLogin()">SIGN IN</button>
+  </div>
+</div>
+
+<!-- ══ ADMIN APP ══ -->
+<div id="adminApp" style="display:none;flex-direction:column">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="tb-logo">
+      <div class="tb-gem">MORPHLY</div>
+      <div class="tb-name">Admin Panel</div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-badge">⚠ RESTRICTED</div>
+      <button class="tb-out" onclick="doLogout()">SIGN OUT</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-val" id="statUsers">—</div>
+        <div class="stat-sub">Registered accounts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Licenses</div>
+        <div class="stat-val" id="statLic">—</div>
+        <div class="stat-sub">Valid access keys</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Credits Issued</div>
+        <div class="stat-val" id="statIssued">—</div>
+        <div class="stat-sub">Total across all users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Credits Used</div>
+        <div class="stat-val" id="statUsed">—</div>
+        <div class="stat-sub">Total consumed</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn on" onclick="showTab('generate')">🔑 GENERATE KEY</button>
+      <button class="tab-btn" onclick="showTab('credits')">💳 MANAGE CREDITS</button>
+      <button class="tab-btn" onclick="showTab('users')">👥 USERS</button>
+      <button class="tab-btn" onclick="showTab('keys')">📋 KEY LOG</button>
+      <button class="tab-btn" onclick="showTab('engine')">⚙️ ENGINE KEY</button>
+      <button class="tab-btn" onclick="showTab('referral')">🎁 REFERRAL</button>
+      <button class="tab-btn" onclick="showTab('creators')">👥 CREATORS</button>
+      <button class="tab-btn" onclick="showTab('plans')">📦 PLANS</button>
+      <button class="tab-btn" onclick="showTab('payments')">💰 PAYMENTS</button>
+      <button class="tab-btn" onclick="showTab('crypto')">₿ CRYPTO</button>
+      <button class="tab-btn" onclick="showTab('backgrounds')">🎬 BACKGROUNDS</button>
+      <button class="tab-btn" onclick="showTab('monitor')">🔴 LIVE MONITOR</button>
+      <button class="tab-btn" onclick="showTab('support')">🛟 SUPPORT</button>
+      <button class="tab-btn" onclick="showTab('branding')">⚙️ SETTINGS</button>
+      <button class="tab-btn" onclick="showTab('massemail')">✉️ MASS EMAIL</button>
+    </div>
+
+    <!-- ══ TAB: GENERATE ACCESS KEY ══ -->
+    <div class="tab-content on" id="tab-generate">
+      <div class="grid-2">
+
+        <!-- Form -->
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Generate Annual Access Key</div>
+
+          <label class="f-label">Customer Email *</label>
+          <input class="f-input" type="email" id="genEmail" placeholder="customer@email.com">
+
+          <label class="f-label">Device ID *</label>
+          <input class="f-input" type="text" id="genDevice" placeholder="MP-XXXX-XXXX-XXXX" oninput="this.value=this.value.toUpperCase()">
+
+          <label class="f-label">Customer Name</label>
+          <input class="f-input" type="text" id="genName" placeholder="Full name (optional)">
+
+          <label class="f-label">Notes (internal)</label>
+          <input class="f-input" type="text" id="genNotes" placeholder="Payment ref, date, etc.">
+
+          <div class="f-err" id="genErr"></div>
+
+          <button class="btn btn-gold btn-full" id="genBtn" onclick="generateKey()">
+            <span>⚡</span> GENERATE ACCESS KEY
+          </button>
+        </div>
+
+        <!-- Result -->
+        <div>
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Generated Key</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--dim2);line-height:1.8;margin-bottom:4px">
+              Fill in the form and click Generate.<br>
+              The key will appear here, ready to copy and send.
+            </div>
+            <div class="key-result" id="keyResult">
+              <div class="kr-label">✓ Access Key Generated</div>
+              <div class="kr-key" id="krKey">—</div>
+              <div class="kr-meta">
+                <span><b>Customer:</b> <span id="krEmail">—</span></span><br>
+                <span><b>Device ID:</b> <span id="krDevice">—</span></span><br>
+                <span><b>Activated:</b> <span id="krActivated">—</span></span><br>
+                <span><b>Expires:</b> <span id="krExpires">—</span></span>
+              </div>
+              <div class="kr-actions">
+                <button class="copy-btn" onclick="copyKey()">📋 COPY KEY</button>
+                <button class="wa-btn" onclick="sendKeyIG()" style="background:rgba(60,208,112,.1);border-color:rgba(60,208,112,.4);color:#3cd070">📸 SEND VIA INSTAGRAM</button>
+                <button class="em-btn" onclick="sendKeyEmail()">✉️ SEND VIA EMAIL</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick instructions -->
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>How to Use</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--dim2);line-height:2;letter-spacing:.5px">
+              1. Customer installs Morphly desktop app<br>
+              2. App shows their <b style="color:var(--dim)">Device ID</b> on first launch<br>
+              3. Customer signs up on morphlysm2.vercel.app<br>
+              4. Customer sends you their <b style="color:var(--dim)">Device ID</b> + pays fee<br>
+              5. You enter their email + device ID above<br>
+              6. Click Generate → copy key → send to customer<br>
+              7. Customer enters key in the desktop app → unlocked ✓
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: MANAGE CREDITS ══ -->
+    <div class="tab-content" id="tab-credits">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Top Up User Credits</div>
+          <p style="font-family:var(--mono);font-size:9px;color:var(--dim2);line-height:1.8;margin-bottom:16px">Use this to manually add credits to a user's account after they pay for a credit plan.</p>
+
+          <label class="f-label">Customer Email *</label>
+          <input class="f-input" type="email" id="creditEmail" placeholder="customer@email.com">
+
+          <label class="f-label">Credit Plan *</label>
+          <select class="f-select" id="creditPlan">
+            <option value="">— Select plan —</option>
+            <option value="50">Test — 50 credits ($0.50)</option>
+            <option value="1500">Free Gift — 1,500 credits</option>
+            <option value="1000">Starter — 1,000 credits ($20)</option>
+            <option value="5000">Pro — 5,000 credits ($60)</option>
+            <option value="10000">Premium — 10,000 credits ($150)</option>
+            <option value="50000">Elite — 50,000 credits ($550)</option>
+            <option value="custom">Custom amount…</option>
+          </select>
+
+          <div id="customCreditRow" style="display:none">
+            <label class="f-label">Action</label>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <label style="display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--dim);cursor:pointer">
+                <input type="radio" name="creditAction" value="credit" checked style="accent-color:#3cd070"> ➕ Credit (Add)
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--dim);cursor:pointer">
+                <input type="radio" name="creditAction" value="debit" style="accent-color:#ff4466"> ➖ Debit (Remove)
+              </label>
+            </div>
+            <label class="f-label">Amount</label>
+            <input class="f-input" type="number" id="customCredits" placeholder="e.g. 5000" min="1">
+          </div>
+
+          <label class="f-label">Payment Reference (optional)</label>
+          <input class="f-input" type="text" id="creditRef" placeholder="Paystack ref, transfer ID, etc.">
+
+          <div class="f-err" id="creditErr"></div>
+          <button class="btn btn-gold btn-full" onclick="addCredits()">💳 ADD CREDITS</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Check User Balance</div>
+          <label class="f-label">Customer Email</label>
+          <input class="f-input" type="email" id="balEmail" placeholder="customer@email.com">
+          <button class="btn btn-ghost btn-full" onclick="checkBalance()" style="margin-bottom:14px">CHECK BALANCE</button>
+
+          <div id="balResult" style="display:none;background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:14px">
+            <div style="font-family:var(--mono);font-size:9px;line-height:2.2;color:var(--dim2)">
+              <div>Plan: <b id="balPlan" style="color:var(--dim)">—</b></div>
+              <div>Total Credits: <b id="balTotal" style="color:var(--g2)">—</b></div>
+              <div>Used: <b id="balUsed" style="color:var(--red)">—</b></div>
+              <div>Remaining: <b id="balRemain" style="color:var(--teal)">—</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: USERS ══ -->
+    <div class="tab-content" id="tab-users">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>All Registered Users <span id="usersCountLabel" style="color:var(--dim2);font-weight:400"></span></div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <input class="f-input" style="margin-bottom:0;flex:1;min-width:200px;max-width:320px" type="text" id="userSearch" placeholder="Search name, email, phone, or device…" oninput="onUserSearchInput()">
+          <button class="btn btn-ghost" onclick="loadUsers()">↻ REFRESH</button>
+          <button class="btn btn-ghost" type="button" onclick="clearUserSearch()">✕ CLEAR</button>
+          <button class="btn btn-ghost" type="button" onclick="lookupUserByEmail()">🔍 LOOKUP / DELETED</button>
+        </div>
+        <div id="userLookupPanel" style="display:none;margin-bottom:16px;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:10px;line-height:1.7;color:var(--dim)"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Device ID</th>
+                <th>License</th>
+                <th>Credits</th>
+                <th>Joined</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody">
+              <tr><td colspan="9" class="empty">Loading users…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="users-pagination" id="usersPagination" style="display:none">
+          <button type="button" id="usersPrevBtn" onclick="loadUsers(usersPage - 1)">← Previous</button>
+          <span id="usersPageInfo">Page 1 of 1</span>
+          <button type="button" id="usersNextBtn" onclick="loadUsers(usersPage + 1)">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: KEY LOG ══ -->
+    <div class="tab-content" id="tab-keys">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Key Generation Log <span id="keyLogCountLabel" style="color:var(--dim2);font-weight:400"></span></div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <input class="f-input" style="margin-bottom:0;flex:1;min-width:200px;max-width:320px" type="text" id="keyLogSearch" placeholder="Search email, key, device, source…" oninput="onKeyLogSearchInput()">
+          <button class="btn btn-ghost" onclick="loadKeyLog()">↻ REFRESH</button>
+          <button class="btn btn-ghost" type="button" onclick="clearKeyLogSearch()">✕ CLEAR</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Access Key</th>
+                <th>Customer Email</th>
+                <th>Device ID</th>
+                <th>Generated</th>
+                <th>Expires</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="keysBody">
+              <tr><td colspan="7" class="empty">Loading key history…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="users-pagination" id="keyLogPagination" style="display:none">
+          <button type="button" id="keyLogPrevBtn" onclick="loadKeyLog(keyLogPage - 1)">← Previous</button>
+          <span id="keyLogPageInfo">Page 1 of 1</span>
+          <button type="button" id="keyLogNextBtn" onclick="loadKeyLog(keyLogPage + 1)">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: ENGINE KEY ══ -->
+    <div class="tab-content" id="tab-engine">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Decart Engine Key</div>
+        <p style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-bottom:16px;line-height:1.7">
+          This is the Decart API key used by Morphly to connect to the AI engine.<br>
+          Changing it here updates it in the database for all users instantly — no rebuild needed.
+        </p>
+
+        <label class="f-label">Key Mode</label>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="btn" id="modeSingleBtn" onclick="setKeyMode('single')" style="flex:1;border-color:var(--teal);color:var(--teal)">🔑 SINGLE KEY</button>
+          <button class="btn" id="modeMultiBtn" onclick="setKeyMode('multi')" style="flex:1">🔄 MULTI KEY (Auto-Rotate)</button>
+        </div>
+
+        <!-- Single Key Mode -->
+        <div id="singleKeySection">
+          <label class="f-label">Engine Key</label>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input class="f-input" type="password" id="engineKeyInput" placeholder="dct_... or sk-decart-..." style="margin-bottom:0;flex:1">
+            <button onclick="toggleKeyVisibility()" style="padding:6px 12px;background:var(--s2);border:1px solid var(--b);border-radius:8px;color:var(--dim);font-family:var(--mono);font-size:9px;cursor:pointer;white-space:nowrap;transition:all .2s" id="toggleKeyBtn">👁 SHOW</button>
+          </div>
+        </div>
+
+        <!-- Multi Key Mode -->
+        <div id="multiKeySection" style="display:none">
+          <label class="f-label">Engine Keys (one per line) — auto-rotates when a key runs out of credits</label>
+          <textarea class="f-input" id="multiKeyInput" rows="12" placeholder="Paste all Decart API keys here, one per line..." style="margin-bottom:8px;font-family:var(--mono);font-size:9px;resize:vertical;line-height:1.6"></textarea>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:12px">
+            <span id="multiKeyCount" style="color:var(--teal);font-weight:700">0</span> keys detected
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <button class="btn btn-gold" onclick="saveEngineKey()" style="flex:1">💾 SAVE KEY(S)</button>
+          <button class="btn" onclick="clearEngineKey()" style="flex:1;background:var(--red-d);border-color:var(--red-b);color:var(--red)">🗑 CLEAR</button>
+          <button class="btn" id="resetExhaustedBtn" onclick="resetExhaustedKeys()" style="display:none;flex:1;background:#1a3025;border-color:#2a4035;color:var(--teal)">♻ RESET ALL KEYS</button>
+        </div>
+
+        <div style="background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:14px 16px">
+          <div style="font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--dim2);text-transform:uppercase;margin-bottom:8px">KEY STATUS</div>
+          <div id="engineKeyStatus" style="font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px">Checking...</div>
+          <div id="engineKeyPreview" style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:6px;word-break:break-all"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: REFERRAL SETTINGS ══ -->
+    <div class="tab-content" id="tab-referral">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Referral Program Settings</div>
+          <p style="font-family:var(--mono);font-size:9px;color:var(--dim2);line-height:1.8;margin-bottom:16px">
+            Control whether the referral code field appears on the signup form.
+            Per-creator activation bonuses are managed under the Creators tab.
+          </p>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--s2);border:1px solid var(--b);border-radius:8px;margin-bottom:16px">
+            <div>
+              <div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--text);font-weight:700">REFERRAL PROGRAM</div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:2px">Show referral code field on signup form</div>
+            </div>
+            <label style="position:relative;width:42px;height:22px;flex-shrink:0;cursor:pointer">
+              <input type="checkbox" id="refEnabledToggle" onchange="toggleReferralProgram()" style="display:none">
+              <span style="position:absolute;inset:0;background:var(--s3);border:1px solid var(--b);border-radius:100px;transition:all .3s"></span>
+              <span id="refToggleKnob" style="position:absolute;width:14px;height:14px;border-radius:50%;background:var(--dim);top:3px;left:3px;transition:all .3s"></span>
+            </label>
+          </div>
+          <div style="font-family:var(--mono);font-size:8px;letter-spacing:1px;text-align:center;margin-bottom:14px" id="refToggleStatus">Loading...</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>How Referrals Work</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--dim);line-height:2.2">
+            <div>1. User signs up with a creator referral code</div>
+            <div>2. Referred user pays the one-time activation fee</div>
+            <div>3. Creator earns commission on the activation payment</div>
+            <div>4. Referred user may receive a creator-specific activation bonus</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: CREATORS ══ -->
+    <div class="tab-content" id="tab-creators">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px">
+        <button class="btn" id="cst-overview" onclick="showCreatorSubTab('overview')">📊 OVERVIEW</button>
+        <button class="btn" id="cst-manage" onclick="showCreatorSubTab('manage')">👤 CREATORS</button>
+        <button class="btn" id="cst-referrals" onclick="showCreatorSubTab('referrals')">🔗 REFERRALS</button>
+        <button class="btn" id="cst-commissions" onclick="showCreatorSubTab('commissions')">💰 COMMISSIONS</button>
+        <button class="btn" id="cst-payouts" onclick="showCreatorSubTab('payouts')">📤 PAYOUTS</button>
+        <button class="btn" id="cst-fraud" onclick="showCreatorSubTab('fraud')">🚨 FRAUD</button>
+      </div>
+
+      <!-- Overview Sub Tab -->
+      <div id="csub-overview">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Global Commission Settings</div>
+            <label class="f-label">Default Commission %</label>
+            <input class="f-input" type="number" id="globalCommPct" min="0" max="100" placeholder="30">
+            <label class="f-label">Minimum Payout Amount (₦)</label>
+            <input class="f-input" type="number" id="globalMinPayout" placeholder="5000">
+            <div class="f-err" id="globalCommErr"></div>
+            <button class="btn btn-gold btn-full" onclick="saveGlobalCommission()">💾 SAVE GLOBAL Settings</button>
+            <div style="background:var(--s2);padding:12px;margin-top:14px;border-radius:8px;font-size:10px;">
+              <div>Current rate: <b id="globalCommCurrent">Loading…</b></div>
+              <div>Min payout: <b id="globalMinPayoutCurrent">Loading…</b></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Creator Leaderboard</div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>#</th><th>Creator</th><th>Conversions</th><th>Earnings (₦)</th></tr></thead>
+                <tbody id="leaderboardBody"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manage Creators Sub Tab -->
+      <div id="csub-manage" style="display:none">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Add New Creator</div>
+          <div class="grid-2">
+            <div>
+              <label class="f-label">Email *</label>
+              <input class="f-input" type="email" id="newCreatorEmail">
+              <label class="f-label">Display Name *</label>
+              <input class="f-input" type="text" id="newCreatorName">
+            </div>
+            <div>
+              <label class="f-label">Commission %</label>
+              <input class="f-input" type="number" id="newCreatorComm" value="30">
+              <label class="f-label">Referral Bonus Credits</label>
+              <input class="f-input" type="number" id="newCreatorBonusCredits" value="500">
+            </div>
+          </div>
+          <div style="margin:8px 0 14px;">
+            <input type="checkbox" id="newCreatorBonusEnabled" checked> Enable referral bonus
+          </div>
+          <label class="f-label">Custom Referral Code (Optional)</label>
+          <input class="f-input" type="text" id="newCreatorCode">
+          <div class="f-err" id="newCreatorErr"></div>
+          <button class="btn btn-gold" id="newCreatorBtn" onclick="createCreator()">➕ CREATE CREATOR</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>All Creators</div>
+          <input class="f-input" type="text" id="creatorSearch" placeholder="Filter..." oninput="filterCreatorsList()" style="max-width:280px">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>Code</th><th>Comm%</th><th>Referral Bonus</th><th>Referrals</th><th>Earnings</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="creatorsListBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Referrals Sub Tab -->
+      <div id="csub-referrals" style="display:none">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>All Referrals</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Referral Code</th><th>Referred User ID</th><th>Status</th><th>Signed Up</th><th>Converted</th></tr></thead>
+              <tbody id="referralsListBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commissions Sub Tab -->
+      <div id="csub-commissions" style="display:none">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Commission Records</div>
+          <button class="btn" onclick="approveAllPendingCommissions()" style="margin-bottom:10px">✅ APPROVE ALL PENDING</button>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Creator ID</th><th>Activation (₦)</th><th>Commission (₦)</th><th>Rate</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody id="commissionsListBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payouts Sub Tab -->
+      <div id="csub-payouts" style="display:none">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Create Payout Batch</div>
+          <div class="f-row">
+            <input class="f-input" type="date" id="payoutPeriodStart">
+            <input class="f-input" type="date" id="payoutPeriodEnd">
+          </div>
+          <button class="btn btn-gold" id="payoutBatchBtn" onclick="createPayoutBatch()">📤 CREATE PAYOUT BATCH</button>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>All Payouts</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Creator ID</th><th>Amount (₦)</th><th>Status</th><th>Period</th><th>Created</th><th>Actions</th></tr></thead>
+              <tbody id="payoutsListBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fraud Sub Tab -->
+      <div id="csub-fraud" style="display:none">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Suspicious Activity Monitor</div>
+          <button class="btn btn-red" onclick="loadSuspiciousActivity()">🔍 RUN FRAUD SCAN</button>
+          <div id="fraudScanStatus" style="margin-top:10px;font-size:12px"></div>
+          <div class="grid-2" style="margin-top:10px">
+            <div>
+              <h3>Suspicious IPs</h3>
+              <table>
+                <thead><tr><th>IP Hash</th><th>Signups</th><th>Flag</th></tr></thead>
+                <tbody id="suspiciousIpBody"></tbody>
+              </table>
+            </div>
+            <div>
+              <h3>Low Conversion Creators</h3>
+              <table>
+                <thead><tr><th>Creator</th><th>Referrals</th><th>Rate</th></tr></thead>
+                <tbody id="suspiciousCreatorsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: PLANS ══ -->
+    <div class="tab-content" id="tab-plans">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Pricing Plans</div>
+        <div id="planToggles"></div>
+        <button class="btn btn-gold btn-full" onclick="saveAllPlans()" style="margin-top:16px">💾 SAVE ALL PLANS</button>
+        <div class="f-err" id="planSaveErr"></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: PAYMENTS ══ -->
+    <div class="tab-content" id="tab-payments">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Payment History</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Date</th><th>Email</th><th>Plan</th><th>Credits</th><th>Amount (₦)</th><th>Gateway</th><th>Reference</th></tr></thead>
+            <tbody id="payTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: CRYPTO ══ -->
+    <div class="tab-content" id="tab-crypto">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Crypto Payment Requests</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Date</th><th>Email</th><th>Amount</th><th>Coin</th><th>Tx ID</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="cryptoPayTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: BACKGROUNDS ══ -->
+    <div class="tab-content" id="tab-backgrounds">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Background Presets</div>
+        <textarea id="bgPresetsJson" class="f-input" style="min-height:300px;font-family:var(--mono)" spellcheck="false"></textarea>
+        <button class="btn btn-gold" onclick="saveBackgroundPresetsAdmin()">💾 SAVE BACKGROUND PRESETS</button>
+        <div class="f-err" id="bgPresetsErr"></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: LIVE MONITOR ══ -->
+    <div class="tab-content" id="tab-monitor">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Live Streaming Monitor</div>
+        <button class="btn btn-gold" onclick="loadStreamingMonitor()">🔄 REFRESH NOW</button>
+        <div class="table-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr><th>Email</th><th>Device ID</th><th>Duration</th><th>Credits</th><th>Status</th></tr></thead>
+            <tbody id="monitorTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: SUPPORT ══ -->
+    <div class="tab-content" id="tab-support">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Support Tickets</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Date</th><th>User</th><th>Category</th><th>Subject</th><th>Message</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="supportTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: SETTINGS ══ -->
+    <div class="tab-content" id="tab-branding">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Branding & Configuration</div>
+        <div class="grid-2">
+          <div>
+            <h3>Free Credits on Activation</h3>
+            <button class="btn" id="freeCreditsToggle" onclick="toggleFreeCredits()">Toggle</button>
+            <span id="freeCreditsLabel"></span>
+            <input class="f-input" type="number" id="freeCreditsAmount" placeholder="Amount" style="margin-top:10px">
+            <button class="btn btn-gold" onclick="saveFreeCreditsSettings()">Save</button>
+          </div>
+          <div>
+            <h3>Streaming Availability</h3>
+            <button class="btn" id="streamingAvailabilityToggle" onclick="toggleStreamingAvailability()">Toggle</button>
+            <span id="streamingAvailabilityLabel"></span>
+            <button class="btn btn-gold" onclick="saveStreamingAvailabilitySettings()" style="margin-top:10px">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB: MASS EMAIL ══ -->
+    <div class="tab-content" id="tab-massemail">
+      <div class="card mass-email-card">
+        <div class="card-title"><span class="dot"></span>Mass Email Dispatcher</div>
+        <input type="text" id="me_subject" class="f-input" placeholder="Subject">
+        <textarea id="me_body_text" class="f-input" placeholder="Message body..." style="min-height:200px"></textarea>
+        <button class="btn btn-gold" onclick="sendMassEmail()">✉️ DISPATCH EMAILS</button>
+        <div id="me_result" class="me-result" style="margin-top:10px"></div>
+        <div class="f-err" id="me_err"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Proof Image Modal -->
+<div id="cryptoProofModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;padding:24px" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--s1);border:1px solid var(--b);border-radius:12px;padding:20px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <span style="font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--gold)">₿ PAYMENT PROOF</span>
+      <button onclick="document.getElementById('cryptoProofModal').style.display='none'" style="background:transparent;border:none;color:var(--dim);font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div id="cryptoProofContent" style="text-align:center"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end" id="cryptoProofActions"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  ADMIN SESSION & VERIFICATION
+// ════════════════════════════════════════════════════
+let API_URL = window.location.origin + '/api';
+let ADMIN_SECRET = sessionStorage.getItem('ss_admin_secret') || localStorage.getItem('ss_admin_secret') || '';
+
+async function verifyAdminSecret(secret) {
+  try {
+    const r = await fetch(`${API_URL}/admin/overview`, {
+      headers: { 'x-admin-secret': secret }
+    });
+    if (r.status === 403) {
+      throw new Error('Invalid Secret');
+    }
+    return true;
+  } catch (e) {
+    if (e.message === 'Invalid Secret') throw e;
+    // Network/startup error: let it pass for offline preview
+    return true;
+  }
+}
+
+async function doAdminLogin() {
+  const pass = document.getElementById('adminPass').value.trim();
+  const err = document.getElementById('loginErr');
+  if (!pass) {
+    err.textContent = 'Please enter the admin secret key';
+    return;
+  }
+  err.textContent = 'Verifying...';
+  try {
+    await verifyAdminSecret(pass);
+    ADMIN_SECRET = pass;
+    sessionStorage.setItem('ss_admin_secret', ADMIN_SECRET);
+    localStorage.setItem('ss_admin_secret', ADMIN_SECRET);
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'flex';
+    initAdmin();
+    showTab('generate');
+  } catch (e) {
+    err.textContent = 'Verification failed: invalid admin secret';
+    ADMIN_SECRET = '';
+  }
+}
+
+function doLogout() {
+  ADMIN_SECRET = '';
+  sessionStorage.removeItem('ss_admin_secret');
+  localStorage.removeItem('ss_admin_secret');
+  document.getElementById('adminApp').style.display = 'none';
+  document.getElementById('loginSection').style.display = 'flex';
+  document.getElementById('adminPass').value = '';
+  document.getElementById('loginErr').textContent = '';
+}
+
+function restoreAdminSessionIfLoggedIn() {
+  if (ADMIN_SECRET) {
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'flex';
+    initAdmin();
+    showTab('generate');
+  } else {
+    document.getElementById('loginSection').style.display = 'flex';
+    document.getElementById('adminApp').style.display = 'none';
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  CORE OPERATIONS & FETCHES
+// ════════════════════════════════════════════════════
+async function initAdmin() {
+  loadStats();
+  refreshEngineKeyStatus();
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch(`${API_URL}/admin/overview`, { headers: { 'x-admin-secret': ADMIN_SECRET } });
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    document.getElementById('statUsers').textContent = d.users || 0;
+    document.getElementById('statLic').textContent = d.active_licenses || 0;
+    document.getElementById('statIssued').textContent = fmtCred(d.credits_issued || 0);
+    document.getElementById('statUsed').textContent = fmtCred(d.credits_used || 0);
+  } catch {
+    document.getElementById('statUsers').textContent = '—';
+    document.getElementById('statLic').textContent = '—';
+    document.getElementById('statIssued').textContent = '—';
+    document.getElementById('statUsed').textContent = '—';
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  GENERATE ANNUAL ACCESS KEY
+// ════════════════════════════════════════════════════
+let lastGeneratedKey = null;
+let lastGeneratedEmail = null;
+let lastGeneratedDevice = null;
+
+async function generateKey() {
+  const email = document.getElementById('genEmail').value.trim().toLowerCase();
+  const deviceId = document.getElementById('genDevice').value.trim().toUpperCase();
+  const name = document.getElementById('genName').value.trim();
+  const notes = document.getElementById('genNotes').value.trim();
+  const errEl = document.getElementById('genErr');
+  const btn = document.getElementById('genBtn');
+  errEl.textContent = '';
+
+  if (!email || !deviceId) { errEl.textContent = 'Email and Device ID are required.'; return; }
+  if (!deviceId.startsWith('MP-')) {
+    errEl.textContent = 'Device ID must start with MP-';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> GENERATING…';
+
+  try {
+    const r = await fetch(`${API_URL}/keys/activate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+      body: JSON.stringify({ user_email: email, device_id: deviceId, user_name: name, notes })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Server error');
+    
+    lastGeneratedKey = d.key;
+    lastGeneratedEmail = email;
+    lastGeneratedDevice = deviceId;
+
+    document.getElementById('krKey').textContent = d.key;
+    document.getElementById('krEmail').textContent = email;
+    document.getElementById('krDevice').textContent = deviceId;
+    document.getElementById('krActivated').textContent = fmtDate(new Date());
+    document.getElementById('krExpires').textContent = fmtDate(d.expires_at);
+    document.getElementById('keyResult').classList.add('show');
+
+    document.getElementById('genEmail').value = '';
+    document.getElementById('genDevice').value = '';
+    document.getElementById('genName').value = '';
+    document.getElementById('genNotes').value = '';
+
+    toast('Key generated successfully!', 'ok');
+    loadStats();
+  } catch(e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>⚡</span> GENERATE ACCESS KEY';
+  }
+}
+
+function copyKey() {
+  if (lastGeneratedKey) {
+    navigator.clipboard.writeText(lastGeneratedKey).then(() => toast('Key copied!', 'ok'));
+  }
+}
+function sendKeyIG() {
+  window.open('https://instagram.com', '_blank');
+}
+function sendKeyEmail() {
+  if (lastGeneratedKey && lastGeneratedEmail) {
+    const sub = encodeURIComponent('Your Morphly Access Key');
+    const body = encodeURIComponent(`Hi,\n\nYour Morphly access key is: ${lastGeneratedKey}\n\nEnter this in the app.`);
+    window.location.href = `mailto:${lastGeneratedEmail}?subject=${sub}&body=${body}`;
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  CREDITS TOP UP & TOPICS
+// ════════════════════════════════════════════════════
+document.getElementById('creditPlan').addEventListener('change', function() {
+  document.getElementById('customCreditRow').style.display = this.value === 'custom' ? 'block' : 'none';
+});
+
+async function addCredits() {
+  const email = document.getElementById('creditEmail').value.trim().toLowerCase();
+  const plan = document.getElementById('creditPlan').value;
+  const errEl = document.getElementById('creditErr');
+  errEl.textContent = '';
+
+  if (!email || !plan) { errEl.textContent = 'Email and Plan are required.'; return; }
+
+  let credits = parseInt(plan, 10);
+  if (plan === 'custom') {
+    credits = parseInt(document.getElementById('customCredits').value, 10);
+    const isDebit = document.querySelector('input[name="creditAction"]:checked').value === 'debit';
+    if (isDebit) credits = -credits;
+  }
+
+  try {
+    const r = await fetch(`${API_URL}/credits/add`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+      body: JSON.stringify({ user_email: email, credits })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Server error');
+    toast(`Credits adjusted successfully. New balance: ${d.new_total}`, 'ok');
+    document.getElementById('creditEmail').value = '';
+    document.getElementById('creditPlan').value = '';
+    document.getElementById('customCreditRow').style.display = 'none';
+  } catch(e) {
+    errEl.textContent = e.message;
+  }
+}
+
+async function checkBalance() {
+  const email = document.getElementById('balEmail').value.trim().toLowerCase();
+  if (!email) return;
+  try {
+    const r = await fetch(`${API_URL}/credits/email/${encodeURIComponent(email)}`, {
+      headers: { 'x-admin-secret': ADMIN_SECRET }
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'User not found');
+    document.getElementById('balPlan').textContent = d.plan || '—';
+    document.getElementById('balTotal').textContent = fmtCred(d.total);
+    document.getElementById('balUsed').textContent = fmtCred(d.used);
+    document.getElementById('balRemain').textContent = fmtCred(d.remaining);
+    document.getElementById('balResult').style.display = 'block';
+  } catch(e) {
+    toast(e.message, 'err');
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  USERS & LOGS
+// ════════════════════════════════════════════════════
+let usersPage = 1;
+let keyLogPage = 1;
+
+async function loadUsers(page = 1) {
+  usersPage = page;
+  const tbody = document.getElementById('usersBody');
+  const search = document.getElementById('userSearch').value.trim();
+  tbody.innerHTML = '<tr><td colspan="9" class="empty">Loading...</td></tr>';
+  try {
+    const r = await fetch(`${API_URL}/admin/users?page=${page}&q=${encodeURIComponent(search)}`, {
+      headers: { 'x-admin-secret': ADMIN_SECRET }
+    });
+    const d = await r.json();
+    if (d.users && d.users.length) {
+      tbody.innerHTML = d.users.map(u => `
+        <tr>
+          <td class="td-name">${esc(u.name || '—')}</td>
+          <td>${esc(u.email)}</td>
+          <td>${esc(u.phone || '—')}</td>
+          <td>${esc(u.device_id || '—')}</td>
+          <td><span class="td-badge badge-active">${esc(u.license_status || 'active')}</span></td>
+          <td>${fmtCred(u.credits_remaining)}</td>
+          <td>${fmtDate(u.created_at)}</td>
+          <td>${fmtDate(u.last_login)}</td>
+          <td>
+            <div class="td-action">
+              <button class="td-btn" onclick="quickActivate('${esc(u.email)}','${esc(u.device_id)}')">ACTIVATE</button>
+              <button class="td-btn" onclick="quickCredit('${esc(u.email)}')">CREDITS</button>
+              <button class="td-btn red" onclick="deleteUser('${esc(u.email)}')">DELETE</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+      document.getElementById('usersPagination').style.display = 'flex';
+      document.getElementById('usersPageInfo').textContent = `Page ${page}`;
+    } else {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty">No users found.</td></tr>';
+    }
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">Error loading users.</td></tr>';
+  }
+}
+
+function quickActivate(email, device) {
+  showTab('generate');
+  document.getElementById('genEmail').value = email;
+  document.getElementById('genDevice').value = device;
+}
+function quickCredit(email) {
+  showTab('credits');
+  document.getElementById('creditEmail').value = email;
+}
+
+async function deleteUser(email) {
+  if (!confirm(`Delete user ${email}?`)) return;
+  try {
+    const r = await fetch(`${API_URL}/admin/users?email=${encodeURIComponent(email)}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-secret': ADMIN_SECRET }
+    });
+    if (r.ok) {
+      toast('User deleted successfully', 'ok');
+      loadUsers(1);
+    }
+  } catch(e) {
+    toast('Delete failed', 'err');
+  }
+}
+
+async function loadKeyLog(page = 1) {
+  keyLogPage = page;
+  const tbody = document.getElementById('keysBody');
+  tbody.innerHTML = '<tr><td colspan="7" class="empty">Loading...</td></tr>';
+  try {
+    const r = await fetch(`${API_URL}/admin/key-logs?page=${page}`, {
+      headers: { 'x-admin-secret': ADMIN_SECRET }
+    });
+    const d = await r.json();
+    if (d.logs && d.logs.length) {
+      tbody.innerHTML = d.logs.map(k => `
+        <tr>
+          <td class="td-key">${esc(k.access_key)}</td>
+          <td>${esc(k.email)}</td>
+          <td>${esc(k.device_id)}</td>
+          <td>${fmtDate(k.activated_at)}</td>
+          <td>${fmtDate(k.expires_at)}</td>
+          <td><span class="td-badge badge-active">${esc(k.status || 'ACTIVE')}</span></td>
+          <td><button class="td-btn red" onclick="deleteKeyLog('${k.id}')">DELETE</button></td>
+        </tr>
+      `).join('');
+      document.getElementById('keyLogPagination').style.display = 'flex';
+      document.getElementById('keyLogPageInfo').textContent = `Page ${page}`;
+    } else {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">No keys logged.</td></tr>';
+    }
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Error loading key logs.</td></tr>';
+  }
+}
+
+async function deleteKeyLog(id) {
+  if (!confirm('Remove key log?')) return;
+  try {
+    await fetch(`${API_URL}/admin/key-logs?id=${id}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-secret': ADMIN_SECRET }
+    });
+    loadKeyLog(1);
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════
+//  ENGINE KEY ROTATION
+// ════════════════════════════════════════════════════
+let _currentKeyMode = 'single';
+function setKeyMode(mode) {
+  _currentKeyMode = mode;
+  document.getElementById('singleKeySection').style.display = mode === 'single' ? '' : 'none';
+  document.getElementById('multiKeySection').style.display = mode === 'multi' ? '' : 'none';
+}
+
+async function saveEngineKey() {
+  const body = { mode: _currentKeyMode };
+  if (_currentKeyMode === 'single') {
+    body.single_key = document.getElementById('engineKeyInput').value.trim();
+  } else {
+    body.keys = document.getElementById('multiKeyInput').value.split('\n').map(k => k.trim()).filter(Boolean);
+  }
+  try {
+    await fetch(`${API_URL}/admin/engine-key`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+      body: JSON.stringify(body)
+    });
+    toast('Engine settings saved', 'ok');
+    refreshEngineKeyStatus();
+  } catch(e) {
+    toast('Save failed', 'err');
+  }
+}
+
+async function refreshEngineKeyStatus() {
+  try {
+    const r = await fetch(`${API_URL}/admin/engine-key`, {
+      headers: { 'x-admin-secret': ADMIN_SECRET }
+    });
+    const d = await r.json();
+    document.getElementById('engineKeyStatus').textContent = d.mode === 'multi' ? '✓ MULTI KEY MODE' : '✓ SINGLE KEY MODE';
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════
+//  UTILITIES & TABS
+// ════════════════════════════════════════════════════
+const fmtDate = d => d ? new Date(d).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—';
+const fmtCred = n => typeof n === 'number' ? n.toLocaleString() : '—';
+const esc = s => s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
+
+let tt;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast '+type+' show';
+  clearTimeout(tt); tt = setTimeout(() => el.className = 'toast '+type, 4000);
+}
+
+function showTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('on', b.getAttribute('onclick').includes(id));
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('on'));
+  document.getElementById('tab-'+id).classList.add('on');
+
+  if (id === 'users') loadUsers();
+  if (id === 'keys') loadKeyLog();
+}
+
+document.addEventListener('DOMContentLoaded', restoreAdminSessionIfLoggedIn);
+</script>
+</body>
+</html>

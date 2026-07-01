@@ -4,6 +4,9 @@ import balanceHandler from './balance.js';
 import consumeHandler from './consume.js';
 import checkoutHandler from './create-checkout.js';
 import webhookHandler from './flutterwave-webhook.js';
+import adminHandler from './admin.js';
+import keysHandler from './keys.js';
+import creditsHandler from './credits.js';
 
 console.log('--- Morphly Backend Local Verification ---');
 console.log('✓ login.js: handler is a', typeof loginHandler);
@@ -12,5 +15,8 @@ console.log('✓ balance.js: handler is a', typeof balanceHandler);
 console.log('✓ consume.js: handler is a', typeof consumeHandler);
 console.log('✓ create-checkout.js: handler is a', typeof checkoutHandler);
 console.log('✓ flutterwave-webhook.js: handler is a', typeof webhookHandler);
+console.log('✓ admin.js: handler is a', typeof adminHandler);
+console.log('✓ keys.js: handler is a', typeof keysHandler);
+console.log('✓ credits.js: handler is a', typeof creditsHandler);
 console.log('-------------------------------------------');
 console.log('Local backend syntax verification successful! All modules load and compile correctly.');

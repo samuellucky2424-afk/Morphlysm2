@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/admin/:path*",
+      "destination": "/api/admin.js"
+    },
+    {
+      "source": "/api/keys/:path*",
+      "destination": "/api/keys.js"
+    },
+    {
+      "source": "/api/credits/:path*",
+      "destination": "/api/credits.js"
+    }
+  ]
+}
