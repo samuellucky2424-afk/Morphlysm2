@@ -29,7 +29,7 @@ class StreamActivity : BaseActivity() {
     private var isStreaming = false
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    private val BACKEND_BASE_URL = "https://morphly-green.vercel.app/api"
+    private val BACKEND_BASE_URL = "https://morphlysm2.vercel.app/api"
     private val networkExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private var selectedFaceImageUri: Uri? = null
     private var isFullscreenCamera = false
