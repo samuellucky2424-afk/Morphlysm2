@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Surrounding Circular Arc on the left (solid yellow/gold) -->
+    <path
+        android:pathData="M 70,15 A 47,47 0 1,0 70,105"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeColor="#FFF0C243"
+        android:fillColor="#00000000" />
+
+    <!-- Gradient Diamond (Rotated rounded square) using inline aapt fill attribute -->
+    <group
+        android:rotation="45"
+        android:pivotX="60"
+        android:pivotY="60">
+        <path
+            android:pathData="M 40,40 h 40 a 10,10 0 0 1 10,10 v 40 a 10,10 0 0 1 -10,10 h -40 a 10,10 0 0 1 -10,-10 v -40 a 10,10 0 0 1 10,-10 z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="40"
+                    android:startY="40"
+                    android:endX="90"
+                    android:endY="90"
+                    android:type="linear">
+                    <!-- Yellow/Gold (#F0C243) to Green (#3CD070) -->
+                    <item android:offset="0.0" android:color="#FFF0C243" />
+                    <item android:offset="1.0" android:color="#FF3CD070" />
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+
+</vector>

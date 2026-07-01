@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+
+    <!-- TV Frame in Primary Gold/Yellow -->
+    <path
+        android:pathData="M 3,9 h 26 a 2,2 0 0 1 2,2 v 14 a 2,2 0 0 1 -2,2 H 3 a 2,2 0 0 1 -2,-2 V 11 a 2,2 0 0 1 2,-2 z"
+        android:strokeWidth="1.5"
+        android:strokeColor="#FFF0C243"
+        android:fillColor="#00000000" />
+
+    <!-- Screen Inner Divider -->
+    <path
+        android:pathData="M 23,9 v 18"
+        android:strokeWidth="1.5"
+        android:strokeColor="#FFF0C243" />
+
+    <!-- TV Dials/Knobs -->
+    <path
+        android:pathData="M 26,13 h 2 M 26,17 h 2 M 27,21 a 1,1 0 1 0 0,2 1,1 0 1 0 0,-2"
+        android:strokeWidth="1.5"
+        android:strokeColor="#FFF0C243"
+        android:strokeLineCap="round" />
+
+    <!-- TV Stand Legs -->
+    <path
+        android:pathData="M 10,27 L 7,30 M 22,27 L 25,30"
+        android:strokeWidth="2"
+        android:strokeColor="#FFF0C243"
+        android:strokeLineCap="round" />
+
+    <!-- Wavy Smoke/Wavelength Lines inside screen -->
+    <path
+        android:pathData="M 7,23 c 1,-2 -1,-4 0,-6 c 1,-2 -1,-4 0,-6
+                          M 13,23 c 1,-2 -1,-4 0,-6 c 1,-2 -1,-4 0,-6
+                          M 19,23 c 1,-2 -1,-4 0,-6 c 1,-2 -1,-4 0,-6"
+        android:strokeWidth="1.5"
+        android:strokeColor="#FFF0C243"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+</vector>

@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Morphly | Developer Dashboard & Virtualization Core</title>
+  
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS Variables & Base Styles -->
+  <style>
+    :root {
+      --bg-dark: #09080e;
+      --bg-panel: rgba(18, 16, 26, 0.7);
+      --border-panel: rgba(255, 255, 255, 0.06);
+      --border-panel-glow: rgba(139, 92, 246, 0.2);
+      --accent-primary: #8b5cf6;
+      --accent-secondary: #06b6d4;
+      --accent-success: #10b981;
+      --accent-warning: #f59e0b;
+      --accent-error: #ef4444;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --font-sans: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.15);
+      --shadow-cyan: 0 0 20px rgba(6, 118, 212, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      overflow-x: hidden;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Ambient Background Glows */
+    body::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: -200px;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: absolute;
+      bottom: 200px;
+      right: -200px;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      backdrop-filter: blur(12px);
+      background-color: rgba(9, 8, 14, 0.8);
+      border-bottom: 1px solid var(--border-panel);
+      padding: 1.25rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-icon {
+      width: 2.2rem;
+      height: 2.2rem;
+      fill: var(--accent-primary);
+      filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.5));
+    }
+
+    .logo-text {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, var(--text-main) 30%, var(--accent-primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s, text-shadow 0.2s;
+    }
+
+    .nav-link:hover, .nav-link.active {
+      color: var(--text-main);
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    }
+
+    .btn-github {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-panel);
+      color: var(--text-main);
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .btn-github:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      color: #c084fc;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, #a78bfa 0%, #06b6d4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.2));
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto 2.5rem;
+      font-weight: 400;
+    }
+
+    /* Cards Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      margin-bottom: 4rem;
+    }
+
+    @media (min-width: 1024px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 1rem;
+      padding: 2rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+      transition: border-color 0.3s, box-shadow 0.3s;
+      position: relative;
+    }
+
+    .card:hover {
+      border-color: var(--border-panel-glow);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .card-icon {
+      width: 1.5rem;
+      height: 1.5rem;
+      fill: var(--accent-primary);
+    }
+
+    .card-description {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    /* Interactive DB Explorer */
+    .tab-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border-panel);
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 1rem;
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 0.35rem;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      color: #c084fc;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+    }
+
+    .schema-content {
+      display: none;
+    }
+
+    .schema-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .schema-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .schema-table th, .schema-table td {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-panel);
+    }
+
+    .schema-table th {
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    .schema-table td {
+      font-family: var(--font-sans);
+    }
+
+    .schema-table td.col-name {
+      font-family: var(--font-mono);
+      color: #f472b6;
+    }
+
+    .schema-table td.col-type {
+      font-family: var(--font-mono);
+      color: var(--accent-secondary);
+    }
+
+    .schema-table td.col-key {
+      color: var(--accent-warning);
+    }
+
+    .rls-banner {
+      background: rgba(6, 182, 212, 0.05);
+      border: 1px solid rgba(6, 182, 212, 0.15);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .rls-banner h4 {
+      color: var(--accent-secondary);
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .rls-banner p {
+      color: var(--text-muted);
+    }
+
+    /* Live Sandbox Simulator */
+    .sandbox-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn-action {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(6, 182, 212, 0.05) 100%);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      color: var(--text-main);
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: border-color 0.2s, background 0.2s, transform 0.1s;
+    }
+
+    .btn-action:hover {
+      border-color: rgba(139, 92, 246, 0.4);
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(6, 182, 212, 0.1) 100%);
+    }
+
+    .btn-action:active {
+      transform: scale(0.98);
+    }
+
+    .btn-action.btn-danger {
+      border-color: rgba(239, 68, 68, 0.2);
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    .btn-action.btn-danger:hover {
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .console-viewer {
+      background: #020204;
+      border: 1px solid var(--border-panel);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      height: 280px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 0.5rem;
+    }
+
+    .console-line {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.25rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    }
+
+    .console-time {
+      color: #6b7280;
+      flex-shrink: 0;
+    }
+
+    .console-tag {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      padding: 0.05rem 0.35rem;
+      border-radius: 0.25rem;
+      flex-shrink: 0;
+    }
+
+    .console-tag.info {
+      background: rgba(139, 92, 246, 0.15);
+      color: #c084fc;
+    }
+
+    .console-tag.success {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+    }
+
+    .console-tag.warning {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+    }
+
+    .console-tag.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+
+    .console-msg {
+      word-break: break-all;
+    }
+
+    /* Live Data States Viewer Grid */
+    .db-state-section {
+      grid-column: 1 / -1;
+      margin-top: 2rem;
+    }
+
+    .db-state-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .db-state-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .db-state-grid {
+        grid-template-columns: 1fr 1fr 1.2fr;
+      }
+    }
+
+    .db-table-viewer {
+      background: rgba(10, 8, 16, 0.5);
+      border: 1px solid var(--border-panel);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+
+    .db-table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.5rem;
+    }
+
+    .db-table-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: #c084fc;
+    }
+
+    .db-table-count {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-panel);
+      font-size: 0.75rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 9999px;
+      color: var(--text-muted);
+    }
+
+    .db-table-rows {
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .db-row {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 0.5rem;
+      border-radius: 0.35rem;
+      animation: highlightRow 0.5s ease-out;
+    }
+
+    @keyframes highlightRow {
+      0% { border-color: var(--accent-primary); background: rgba(139, 92, 246, 0.1); }
+      100% { border-color: rgba(255, 255, 255, 0.04); background: rgba(255, 255, 255, 0.02); }
+    }
+
+    .db-empty {
+      color: #4b5563;
+      text-align: center;
+      padding: 2rem 0;
+      font-style: italic;
+    }
+
+    /* Edge Functions spec */
+    .edge-functions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .endpoint-item {
+      border-left: 2px solid var(--accent-primary);
+      padding-left: 1rem;
+    }
+
+    .endpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .method-badge {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      padding: 0.1rem 0.4rem;
+      border-radius: 0.25rem;
+    }
+
+    .endpoint-path {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .endpoint-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .code-block {
+      background: #020204;
+      border: 1px solid var(--border-panel);
+      padding: 0.75rem;
+      border-radius: 0.35rem;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: #e5e7eb;
+      overflow-x: auto;
+    }
+
+    /* Virtualization Architecture */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .arch-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .arch-item {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      padding: 1.25rem;
+      border-radius: 0.75rem;
+    }
+
+    .arch-item-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #c084fc;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .arch-item-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    footer {
+      border-top: 1px solid var(--border-panel);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background-color: #050408;
+      position: relative;
+      z-index: 1;
+    }
+
+    footer a {
+      color: var(--accent-primary);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation bar -->
+  <header>
+    <div class="logo-container">
+      <!-- Custom SVG Logo representing virtualized container overlay -->
+      <svg class="logo-icon" viewBox="0 0 24 24">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      <div class="logo-text">MORPHLY</div>
+    </div>
+    <div class="nav-links">
+      <a href="#overview" class="nav-link active">Overview</a>
+      <a href="#database" class="nav-link">Firebase DB</a>
+      <a href="#sandbox" class="nav-link">DB Sandbox</a>
+      <a href="#edge-functions" class="nav-link">Edge APIs</a>
+    </div>
+    <a href="https://github.com/samuellucky2424-afk/morphly.git" target="_blank" class="btn-github">
+      <!-- Github Icon -->
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+      </svg>
+      GitHub
+    </a>
+  </header>
+
+  <main>
+    <!-- Hero Header -->
+    <section class="hero" id="overview">
+      <div class="hero-tag">Deployment Successful</div>
+      <h1>Android Virtualization & <span>Firebase Backend</span></h1>
+      <p>Morphly creates robust virtual environments on Android with process isolation, customizable UID spoofing, WebView security sandboxing, and a credit-metered Firebase backend schema.</p>
+    </section>
+
+    <!-- Main Grid Content -->
+    <div class="dashboard-grid">
+      
+      <!-- Virtualization core specifications -->
+      <div class="card">
+        <div class="card-title">
+          <!-- Icon representing android/gears -->
+          <svg class="card-icon" viewBox="0 0 24 24">
+            <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
+          </svg>
+          Android Virtualization Engine
+        </div>
+        <div class="card-description">
+          Morphly integrates an isolated virtualization layout built on the BlackBox core to load client apps securely.
+        </div>
+        <div class="arch-grid">
+          <div class="arch-item">
+            <div class="arch-item-title">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+              Process Isolation
+            </div>
+            <div class="arch-item-desc">Allocates separate data directory suffixes and cookies to prevent multi-app state leaks.</div>
+          </div>
+          <div class="arch-item">
+            <div class="arch-item-title">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+              UID Spoofing
+            </div>
+            <div class="arch-item-desc">Dynamically overrides app UIDs to bypass native Android OS safety constraints during API calls.</div>
+          </div>
+          <div class="arch-item">
+            <div class="arch-item-title">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/></svg>
+              WorkManager Fallback
+            </div>
+            <div class="arch-item-desc">Safeguards background sync execution against UID validation exceptions automatically.</div>
+          </div>
+          <div class="arch-item">
+            <div class="arch-item-title">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
+              GMS Proxy Simulation
+            </div>
+            <div class="arch-item-desc">Mocks Google Play Services calls to support OAuth and token synchronization seamlessly.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supabase Backend Schema Explorer -->
+      <div class="card" id="database">
+        <div class="card-title">
+          <svg class="card-icon" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 5.58 2 10c0 4.42 4.48 8 10 8s10-3.58 10-8c0-4.42-4.48-8-10-8zm0 14c-4.42 0-8-2.69-8-6s3.58-6 8-6 8 2.69 8 6-3.58 6-8 6zM4 14c0 3.31 3.58 6 8 6s8-2.69 8-6h-2c0 2.21-2.69 4-6 4s-6-1.79-6-4H4z"/>
+          </svg>
+          Supabase Database Schema (`_sm` Tables)
+        </div>
+        <div class="card-description">
+          Explore columns, relations, and RLS policies for each of the new backend tables configured under the `_sm` database schema.
+        </div>
+
+        <div class="tab-container">
+          <button class="tab-btn active" onclick="switchTab(event, 'user_sm')">user_sm</button>
+          <button class="tab-btn" onclick="switchTab(event, 'profile_sm')">profile_sm</button>
+          <button class="tab-btn" onclick="switchTab(event, 'wallet_sm')">wallet_sm</button>
+          <button class="tab-btn" onclick="switchTab(event, 'credit_package_sm')">credit_package_sm</button>
+          <button class="tab-btn" onclick="switchTab(event, 'transaction_sm')">transaction_sm</button>
+          <button class="tab-btn" onclick="switchTab(event, 'usage_sm')">usage_sm</button>
+          <button class="tab-btn" onclick="switchTab(event, 'applogs_sm')">applogs_sm</button>
+        </div>
+
+        <!-- user_sm tab -->
+        <div id="user_sm" class="schema-content active">
+          <table class="schema-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Constraint / Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-name">id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">PRIMARY KEY, references auth.users(id)</td>
+              </tr>
+              <tr>
+                <td class="col-name">email</td>
+                <td class="col-type">TEXT</td>
+                <td>Cached email</td>
+              </tr>
+              <tr>
+                <td class="col-name">phone</td>
+                <td class="col-type">TEXT</td>
+                <td>Optional contact number</td>
+              </tr>
+              <tr>
+                <td class="col-name">role</td>
+                <td class="col-type">TEXT</td>
+                <td>Default: 'user' (user, admin, moderator)</td>
+              </tr>
+              <tr>
+                <td class="col-name">status</td>
+                <td class="col-type">TEXT</td>
+                <td>Default: 'active' (active, suspended)</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="rls-banner">
+            <h4>Row Level Security (RLS) Policy</h4>
+            <p><strong>SELECT</strong>: Authenticated user matches row ID (`id = auth.uid()`). No direct updates/inserts allowed.</p>
+          </div>
+        </div>
+
+        <!-- profile_sm tab -->
+        <div id="profile_sm" class="schema-content">
+          <table class="schema-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Constraint / Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-name">id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">PRIMARY KEY, references public.user_sm(id)</td>
+              </tr>
+              <tr>
+                <td class="col-name">display_name</td>
+                <td class="col-type">TEXT</td>
+                <td>User nickname</td>
+              </tr>
+              <tr>
+                <td class="col-name">avatar_url</td>
+                <td class="col-type">TEXT</td>
+                <td>Profile image location</td>
+              </tr>
+              <tr>
+                <td class="col-name">bio</td>
+                <td class="col-type">TEXT</td>
+                <td>User custom biography</td>
+              </tr>
+              <tr>
+                <td class="col-name">country</td>
+                <td class="col-type">TEXT</td>
+                <td>ISO-2 country identifier</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="rls-banner">
+            <h4>Row Level Security (RLS) Policy</h4>
+            <p><strong>SELECT & UPDATE</strong>: Permitted only for the profile owner (`id = auth.uid()`).</p>
+          </div>
+        </div>
+
+        <!-- wallet_sm tab -->
+        <div id="wallet_sm" class="schema-content">
+          <table class="schema-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Constraint / Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-name">id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">PRIMARY KEY, default gen_random_uuid()</td>
+              </tr>
+              <tr>
+                <td class="col-name">user_id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">UNIQUE, references public.user_sm(id)</td>
+              </tr>
+              <tr>
+                <td class="col-name">balance</td>
+                <td class="col-type">INTEGER</td>
+                <td>Must be >= 0. Default: 0</td>
+              </tr>
+              <tr>
+                <td class="col-name">currency</td>
+                <td class="col-type">TEXT</td>
+                <td>Default: 'USD', regex pattern ^[A-Z]{3}$</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="rls-banner">
+            <h4>Row Level Security (RLS) Policy</h4>
+            <p><strong>SELECT</strong>: Permitted for the wallet owner (`user_id = auth.uid()`). Updates must proceed via triggers or security-defined ledger functions.</p>
+          </div>
+        </div>
+
+        <!-- credit_package_sm tab -->
+        <div id="credit_package_sm" class="schema-content">
+          <table class="schema-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Constraint / Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-name">id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">PRIMARY KEY, default gen_random_uuid()</td>
+              </tr>
+              <tr>
+                <td class="col-name">name</td>
+                <td class="col-type">TEXT</td>
+                <td>Required. e.g., 'Core Plan'</td>
+              </tr>
+              <tr>
+                <td class="col-name">credits</td>
+                <td class="col-type">INTEGER</td>
+                <td>Must be > 0</td>
+              </tr>
+              <tr>
+                <td class="col-name">price</td>
+                <td class="col-type">NUMERIC</td>
+                <td>Must be >= 0.00</td>
+              </tr>
+              <tr>
+                <td class="col-name">is_active</td>
+                <td class="col-type">BOOLEAN</td>
+                <td>Default: true</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="rls-banner">
+            <h4>Row Level Security (RLS) Policy</h4>
+            <p><strong>SELECT</strong>: Public visibility for active rows (`is_active = true`). Mutations restricted to `service_role` (admins).</p>
+          </div>
+        </div>
+
+        <!-- transaction_sm tab -->
+        <div id="transaction_sm" class="schema-content">
+          <table class="schema-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Constraint / Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-name">id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">PRIMARY KEY</td>
+              </tr>
+              <tr>
+                <td class="col-name">wallet_id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">references public.wallet_sm(id)</td>
+              </tr>
+              <tr>
+                <td class="col-name">user_id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">references public.user_sm(id)</td>
+              </tr>
+              <tr>
+                <td class="col-name">credits</td>
+                <td class="col-type">INTEGER</td>
+                <td>Change value (positive/negative), non-zero</td>
+              </tr>
+              <tr>
+                <td class="col-name">type</td>
+                <td class="col-type">TEXT</td>
+                <td>purchase, refund, usage, bonus, adjustment</td>
+              </tr>
+              <tr>
+                <td class="col-name">status</td>
+                <td class="col-type">TEXT</td>
+                <td>pending, completed, failed, refunded</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="rls-banner">
+            <h4>Row Level Security (RLS) Policy</h4>
+            <p><strong>SELECT</strong>: visible to owner (`user_id = auth.uid()`). Direct modifications disabled.</p>
+          </div>
+        </div>
+
+        <!-- usage_sm tab -->
+        <div id="usage_sm" class="schema-content">
+          <table class="schema-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Constraint / Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-name">id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">PRIMARY KEY</td>
+              </tr>
+              <tr>
+                <td class="col-name">user_id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">references public.user_sm(id)</td>
+              </tr>
+              <tr>
+                <td class="col-name">feature_name</td>
+                <td class="col-type">TEXT</td>
+                <td>Feature tag consumed</td>
+              </tr>
+              <tr>
+                <td class="col-name">credits_used</td>
+                <td class="col-type">INTEGER</td>
+                <td>Amount of credits consumed (>= 0)</td>
+              </tr>
+              <tr>
+                <td class="col-name">status</td>
+                <td class="col-type">TEXT</td>
+                <td>success, failed, in_progress</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="rls-banner">
+            <h4>Row Level Security (RLS) Policy</h4>
+            <p><strong>SELECT</strong>: Visible to user (`user_id = auth.uid()`). Write operations restricted to service functions.</p>
+          </div>
+        </div>
+
+        <!-- applogs_sm tab -->
+        <div id="applogs_sm" class="schema-content">
+          <table class="schema-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Constraint / Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-name">id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">PRIMARY KEY</td>
+              </tr>
+              <tr>
+                <td class="col-name">user_id</td>
+                <td class="col-type">UUID</td>
+                <td class="col-key">references public.user_sm(id)</td>
+              </tr>
+              <tr>
+                <td class="col-name">log_level</td>
+                <td class="col-type">TEXT</td>
+                <td>debug, info, warn, error</td>
+              </tr>
+              <tr>
+                <td class="col-name">message</td>
+                <td class="col-type">TEXT</td>
+                <td>Raw message detail</td>
+              </tr>
+              <tr>
+                <td class="col-name">created_at</td>
+                <td class="col-type">TIMESTAMPTZ</td>
+                <td>Default: now()</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="rls-banner">
+            <h4>Row Level Security (RLS) Policy</h4>
+            <p><strong>SELECT</strong>: Owners read their logs. <strong>INSERT</strong>: authenticated user can push logs matching their own ID.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Sandbox Simulator -->
+      <div class="card" id="sandbox">
+        <div class="card-title">
+          <svg class="card-icon" viewBox="0 0 24 24">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-2V7h-2v2H9v2h2v2h2v-2h2V9zM19 17H5v-2h14v2zm0-4H5v-1h14v1z"/>
+          </svg>
+          Live Database Simulator (Sandbox)
+        </div>
+        <div class="card-description">
+          Simulate database modifications in real-time. Trigger auth signups, add credits, register usage, or generate logs to see updates flow into the mock schema states below.
+        </div>
+
+        <div class="sandbox-actions">
+          <button class="btn-action" onclick="simulateSignup()">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            Simulate User Signup
+          </button>
+          <button class="btn-action" onclick="simulatePurchase()">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+            Buy Credit Package
+          </button>
+          <button class="btn-action" onclick="simulateUsage()">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+            Consume Credits (Usage)
+          </button>
+          <button class="btn-action btn-danger" onclick="simulateErrorLog()">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            Generate Error Log
+          </button>
+        </div>
+
+        <div class="console-viewer" id="console">
+          <div class="console-line">
+            <span class="console-time">07:38:00</span>
+            <span class="console-tag info">System</span>
+            <span class="console-msg">Database sandbox initialized. Press actions above to interact.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edge Functions API Documentation -->
+      <div class="card" id="edge-functions">
+        <div class="card-title">
+          <svg class="card-icon" viewBox="0 0 24 24">
+            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/>
+          </svg>
+          Edge Functions API Specs
+        </div>
+        <div class="card-description">
+          Reference payloads for calls between the Android client and the Supabase Edge Functions.
+        </div>
+        <div class="edge-functions-list">
+          <div class="endpoint-item">
+            <div class="endpoint-header">
+              <span class="method-badge">POST</span>
+              <span class="endpoint-path">/functions/v1/create-checkout</span>
+            </div>
+            <div class="endpoint-desc">Initiates transaction validation via Flutterwave and inserts a pending checkout record.</div>
+            <pre class="code-block"><code>// Request
+{
+  "packageId": "starter-credits-uuid",
+  "redirectUrl": "morphly://payment-return"
+}
+
+// Response
+{
+  "txRef": "mph_0251ff936_a10f-d225f...",
+  "checkoutUrl": "https://checkout.flutterwave.com/pay/..."
+}</code></pre>
+          </div>
+
+          <div class="endpoint-item">
+            <div class="endpoint-header">
+              <span class="method-badge">POST</span>
+              <span class="endpoint-path">/functions/v1/create-stream-session</span>
+            </div>
+            <div class="endpoint-desc">Locks credit reservations and registers virtual stream instances dynamically.</div>
+            <pre class="code-block"><code>// Request
+{
+  "sourceAssetId": "media-asset-uuid",
+  "cloneSlot": 12,
+  "prompt": "Synthesized virtual environment background stream",
+  "reservedCredits": 5
+}
+
+// Response
+{
+  "sessionId": "stream-session-uuid",
+  "status": "starting",
+  "reservedCredits": 5
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Database State Viewer Section -->
+      <div class="db-state-section">
+        <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;">Live Simulated Database States</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Visual representation of the rows inside the local memory database state. Watch columns adapt to actions.</p>
+        
+        <div class="db-state-grid">
+          <!-- User & profile visual list -->
+          <div class="db-table-viewer">
+            <div class="db-table-header">
+              <span class="db-table-title">user_sm + profile_sm</span>
+              <span class="db-table-count" id="count-users">0 rows</span>
+            </div>
+            <div class="db-table-rows" id="rows-users">
+              <div class="db-empty">No users signed up yet.</div>
+            </div>
+          </div>
+
+          <!-- Wallet balance visual list -->
+          <div class="db-table-viewer">
+            <div class="db-table-header">
+              <span class="db-table-title">wallet_sm</span>
+              <span class="db-table-count" id="count-wallets">0 rows</span>
+            </div>
+            <div class="db-table-rows" id="rows-wallets">
+              <div class="db-empty">No active wallets.</div>
+            </div>
+          </div>
+
+          <!-- Transactions and logs -->
+          <div class="db-table-viewer">
+            <div class="db-table-header">
+              <span class="db-table-title">transaction_sm + usage_sm + applogs_sm</span>
+              <span class="db-table-count" id="count-logs">0 rows</span>
+            </div>
+            <div class="db-table-rows" id="rows-logs">
+              <div class="db-empty">No activity records.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <p>Morphly Developer Portal &bull; Designed and developed with Firebase backend schema integrity. View on <a href="https://github.com/samuellucky2424-afk/morphly.git" target="_blank">GitHub</a>.</p>
+  </footer>
+
+  <!-- Javascript Logic for Tabs and Simulator -->
+  <script>
+    // Tab switching logic
+    function switchTab(evt, tableName) {
+      const contents = document.getElementsByClassName("schema-content");
+      for (let i = 0; i < contents.length; i++) {
+        contents[i].classList.remove("active");
+      }
+      const buttons = document.getElementsByClassName("tab-btn");
+      for (let i = 0; i < buttons.length; i++) {
+        buttons[i].classList.remove("active");
+      }
+      document.getElementById(tableName).classList.add("active");
+      evt.currentTarget.classList.add("active");
+    }
+
+    // Logger Utility
+    const consoleEl = document.getElementById("console");
+    function logToConsole(tag, level, message) {
+      const timestamp = new Date().toLocaleTimeString();
+      const line = document.createElement("div");
+      line.className = "console-line";
+      line.innerHTML = `
+        <span class="console-time">${timestamp}</span>
+        <span class="console-tag ${level}">${tag}</span>
+        <span class="console-msg">${message}</span>
+      `;
+      consoleEl.insertBefore(line, consoleEl.firstChild);
+    }
+
+    // In-memory Database Mock State
+    let dbUsers = [];
+    let dbWallets = {};
+    let dbLogs = [];
+
+    const namesPool = ["Alex Rivera", "Jordan Croft", "Taylor Bennett", "Morgan Chen", "Avery Vance", "Skyler Cruz"];
+    const countriesPool = ["US", "CA", "GB", "DE", "NG", "ZA", "JP", "IN"];
+
+    function updateUiTables() {
+      // 1. Update user_sm + profile_sm
+      const usersContainer = document.getElementById("rows-users");
+      const countUsersEl = document.getElementById("count-users");
+      countUsersEl.innerText = `${dbUsers.length} row${dbUsers.length === 1 ? '' : 's'}`;
+      
+      if (dbUsers.length === 0) {
+        usersContainer.innerHTML = '<div class="db-empty">No users signed up yet.</div>';
+      } else {
+        usersContainer.innerHTML = dbUsers.map(u => `
+          <div class="db-row">
+            <strong>ID:</strong> ${u.id.substring(0, 8)}...<br>
+            <strong>Email:</strong> ${u.email}<br>
+            <strong>Role:</strong> ${u.role} | <strong>Status:</strong> ${u.status}<br>
+            <span style="color:#a78bfa">profile_sm:</span> [${u.display_name}, ${u.country}]
+          </div>
+        `).join('');
+      }
+
+      // 2. Update wallet_sm
+      const walletsContainer = document.getElementById("rows-wallets");
+      const countWalletsEl = document.getElementById("count-wallets");
+      const walletKeys = Object.keys(dbWallets);
+      countWalletsEl.innerText = `${walletKeys.length} row${walletKeys.length === 1 ? '' : 's'}`;
+      
+      if (walletKeys.length === 0) {
+        walletsContainer.innerHTML = '<div class="db-empty">No active wallets.</div>';
+      } else {
+        walletsContainer.innerHTML = walletKeys.map(k => {
+          const w = dbWallets[k];
+          return `
+            <div class="db-row">
+              <strong>User ID:</strong> ${w.user_id.substring(0, 8)}...<br>
+              <strong>Balance:</strong> <span style="color:#34d399;font-weight:bold;">${w.balance} Credits</span><br>
+              <strong>Currency:</strong> ${w.currency}<br>
+              <strong>Updated:</strong> ${w.updated_at.split('T')[1].substring(0, 8)}
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 3. Update logs/transactions/usage
+      const logsContainer = document.getElementById("rows-logs");
+      const countLogsEl = document.getElementById("count-logs");
+      countLogsEl.innerText = `${dbLogs.length} row${dbLogs.length === 1 ? '' : 's'}`;
+      
+      if (dbLogs.length === 0) {
+        logsContainer.innerHTML = '<div class="db-empty">No activity records.</div>';
+      } else {
+        logsContainer.innerHTML = dbLogs.map(l => {
+          let badge = '';
+          let details = '';
+          if (l.table === 'transaction_sm') {
+            badge = '<span style="color:#fbbf24;font-weight:bold;">[TX]</span>';
+            details = `Amt: ${l.amount} ${l.currency} | Net: ${l.credits > 0 ? '+' : ''}${l.credits} cr | Type: ${l.type}`;
+          } else if (l.table === 'usage_sm') {
+            badge = '<span style="color:#60a5fa;font-weight:bold;">[USE]</span>';
+            details = `Feature: ${l.feature} | Cost: -${l.credits_used} cr | Status: ${l.status}`;
+          } else {
+            badge = '<span style="color:#f87171;font-weight:bold;">[LOG]</span>';
+            details = `Lvl: ${l.level} | Msg: ${l.message}`;
+          }
+          return `
+            <div class="db-row">
+              ${badge} <strong>User:</strong> ${l.user_id.substring(0, 8)}...<br>
+              <span style="color:#9ca3af">${details}</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // SIMULATOR FUNCTIONS
+
+    // 1. Simulate Auth Signup and automatic Trigger creations
+    function simulateSignup() {
+      const id = crypto.randomUUID();
+      const randomName = namesPool[Math.floor(Math.random() * namesPool.length)];
+      const email = randomName.toLowerCase().replace(" ", "") + "@example.com";
+      const country = countriesPool[Math.floor(Math.random() * countriesPool.length)];
+
+      const user = {
+        id: id,
+        email: email,
+        phone: "+1 " + Math.floor(1000000000 + Math.random() * 9000000000),
+        role: "user",
+        status: "active",
+        display_name: randomName,
+        country: country
+      };
+
+      // Push user row
+      dbUsers.push(user);
+
+      logToConsole("auth.users", "info", `New signup detected: ${email}`);
+      logToConsole("trigger", "success", `Trigger handle_new_user_sm() executed: created public.user_sm & public.profile_sm row`);
+
+      // Trigger wallet creation
+      dbWallets[id] = {
+        id: crypto.randomUUID(),
+        user_id: id,
+        balance: 0,
+        currency: "USD",
+        updated_at: new Date().toISOString()
+      };
+      logToConsole("trigger", "success", `Trigger handle_new_user_sm() executed: created public.wallet_sm for user (0 credits)`);
+
+      updateUiTables();
+    }
+
+    // 2. Buy Credits
+    function simulatePurchase() {
+      if (dbUsers.length === 0) {
+        logToConsole("checkout", "error", "No users exist! Click 'Simulate User Signup' first.");
+        return;
+      }
+      // Pick random user
+      const user = dbUsers[Math.floor(Math.random() * dbUsers.length)];
+      const packs = [
+        { name: "Starter credits", credits: 10, price: 10.00 },
+        { name: "Pro bundle", credits: 50, price: 45.00 },
+        { name: "Enterprise volume", credits: 200, price: 150.00 }
+      ];
+      const pack = packs[Math.floor(Math.random() * packs.length)];
+      const txId = crypto.randomUUID();
+
+      // Add credits to wallet
+      dbWallets[user.id].balance += pack.credits;
+      dbWallets[user.id].updated_at = new Date().toISOString();
+
+      // Log transaction
+      dbLogs.unshift({
+        table: 'transaction_sm',
+        user_id: user.id,
+        amount: pack.price,
+        currency: 'USD',
+        credits: pack.credits,
+        type: 'purchase',
+        status: 'completed'
+      });
+
+      logToConsole("flutterwave", "success", `Verified payment for ${user.email} of $${pack.price}`);
+      logToConsole("db_service", "success", `Added ${pack.credits} credits to wallet_sm. New balance: ${dbWallets[user.id].balance}`);
+      logToConsole("db_service", "info", `Inserted completed row in transaction_sm`);
+
+      updateUiTables();
+    }
+
+    // 3. Consume Credits
+    function simulateUsage() {
+      if (dbUsers.length === 0) {
+        logToConsole("usage", "error", "No users exist! Click 'Simulate User Signup' first.");
+        return;
+      }
+      const user = dbUsers[Math.floor(Math.random() * dbUsers.length)];
+      const features = [
+        { name: "stream_reservation", cost: 5 },
+        { name: "webview_isolated_session", cost: 1 },
+        { name: "google_sync_auth", cost: 2 }
+      ];
+      const feature = features[Math.floor(Math.random() * features.length)];
+
+      const wallet = dbWallets[user.id];
+      if (wallet.balance < feature.cost) {
+        logToConsole("usage_check", "warning", `Blocked ${feature.name} for ${user.email}: Insufficient Credits (${wallet.balance}/${feature.cost})`);
+        
+        // Log failed usage
+        dbLogs.unshift({
+          table: 'usage_sm',
+          user_id: user.id,
+          feature: feature.name,
+          credits_used: 0,
+          status: 'failed'
+        });
+
+        // Insert warning log
+        dbLogs.unshift({
+          table: 'applogs_sm',
+          user_id: user.id,
+          level: 'warn',
+          message: `Attempted to use feature ${feature.name} but wallet has insufficient credits (${wallet.balance})`
+        });
+      } else {
+        wallet.balance -= feature.cost;
+        wallet.updated_at = new Date().toISOString();
+
+        // Log successful usage
+        dbLogs.unshift({
+          table: 'usage_sm',
+          user_id: user.id,
+          feature: feature.name,
+          credits_used: feature.cost,
+          status: 'success'
+        });
+
+        logToConsole("engine", "success", `User ${user.email} consumed ${feature.cost} credits for ${feature.name}`);
+        logToConsole("db_service", "info", `Deducted ${feature.cost} credits. New balance: ${wallet.balance}`);
+      }
+
+      updateUiTables();
+    }
+
+    // 4. Generate Error Log
+    function simulateErrorLog() {
+      const user = dbUsers.length > 0 ? dbUsers[Math.floor(Math.random() * dbUsers.length)] : null;
+      const errors = [
+        "WebView directory locked by sibling virtual process: com.whatsapp:clone_1",
+        "UID Spoofing validation failed on service binder transaction",
+        "Failed to refresh Google Play Services OAuth token on background sync attempt",
+        "WorkManager JobScheduler scheduling timeout on SDK API 34"
+      ];
+      const errMsg = errors[Math.floor(Math.random() * errors.length)];
+      const uId = user ? user.id : '00000000-0000-0000-0000-000000000000';
+
+      dbLogs.unshift({
+        table: 'applogs_sm',
+        user_id: uId,
+        level: 'error',
+        message: errMsg
+      });
+
+      logToConsole("client_logger", "error", `Logged error: ${errMsg}`);
+      updateUiTables();
+    }
+  </script>
+</body>
+</html>

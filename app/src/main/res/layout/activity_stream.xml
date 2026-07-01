@@ -1,0 +1,3710 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B0C10"
+    tools:context=".view.main.StreamActivity">
+
+    <!-- 1. SPLASH / INITIALIZING SCREEN STATE -->
+    <RelativeLayout
+        android:id="@+id/layoutSplash"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0B0C10"
+        android:visibility="visible">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <!-- Logo -->
+            <FrameLayout
+                android:layout_width="120dp"
+                android:layout_height="120dp">
+
+                <ImageView
+                    android:id="@+id/ivSplashArc"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_morphly_arc"
+                    android:contentDescription="Rotating Arc" />
+
+                <ImageView
+                    android:id="@+id/ivSplashDiamond"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_morphly_diamond"
+                    android:contentDescription="Static Diamond" />
+
+            </FrameLayout>
+
+            <!-- Title -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SMOKE "
+                    android:textColor="#FFFFFF"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SCREEN"
+                    android:textColor="#FFF0C243"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1" />
+
+            </LinearLayout>
+
+            <!-- Small loading dots simulated with circular progress bar -->
+            <ProgressBar
+                android:id="@+id/progressBarSplash"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginTop="32dp"
+                android:indeterminate="true"
+                android:indeterminateTint="#FFF0C243" />
+
+            <!-- Subtitle -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:text="INITIALIZING..."
+                android:textColor="#6F7380"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.25" />
+
+        </LinearLayout>
+
+    </RelativeLayout>
+
+    <!-- 2. AUTHENTICATION (SIGN IN & CREATE ACCOUNT) SCREEN STATE -->
+    <RelativeLayout
+        android:id="@+id/layoutAuth"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0B0C10"
+        android:visibility="gone">
+
+        <!-- Scrollable Auth forms -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@+id/layoutBottomActions"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <!-- Header block -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="24dp"
+                    android:background="#131520"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/ic_morphly_tv_smoke"
+                        android:contentDescription="Stream Icon" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="MORPHLY 1.6"
+                            android:textColor="#FFF0C243"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="REAL-TIME AI VIDEO TRANSFORMATION"
+                            android:textColor="#888D9B"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Tab switching bar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="#161928"
+                    android:orientation="horizontal"
+                    android:padding="2dp">
+
+                    <TextView
+                        android:id="@+id/tvTabSignIn"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:background="#FFF0C243"
+                        android:gravity="center"
+                        android:text="SIGN IN"
+                        android:textColor="#0B0C10"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <TextView
+                        android:id="@+id/tvTabCreateAccount"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:background="@android:color/transparent"
+                        android:gravity="center"
+                        android:text="CREATE ACCOUNT"
+                        android:textColor="#888D9B"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                </LinearLayout>
+
+                <!-- SIGN IN FORM -->
+                <LinearLayout
+                    android:id="@+id/formSignIn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="visible"
+                    android:layout_marginTop="20dp">
+
+                    <!-- Email Field -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="EMAIL ADDRESS"
+                        android:textColor="#888D9B"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginBottom="8dp" />
+
+                    <EditText
+                        android:id="@+id/etSignInEmail"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:background="#181B29"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:hint="User@gmail.com"
+                        android:textColorHint="#3A3F55"
+                        android:inputType="textEmailAddress"
+                        android:importantForAutofill="no" />
+
+                    <!-- Password Field -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PASSWORD"
+                        android:textColor="#888D9B"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginTop="20dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <EditText
+                        android:id="@+id/etSignInPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:background="#181B29"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:hint="........"
+                        android:textColorHint="#3A3F55"
+                        android:inputType="textPassword"
+                        android:importantForAutofill="no" />
+
+                    <!-- Forgot Password Link -->
+                    <TextView
+                        android:id="@+id/tvForgotPassword"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="32dp"
+                        android:text="Forgot password?"
+                        android:textColor="#FFF0C243"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <!-- Sign In Submit Button -->
+                    <Button
+                        android:id="@+id/btnSignInSubmit"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:layout_marginTop="32dp"
+                        android:backgroundTint="#FFF0C243"
+                        android:text="SIGN IN"
+                        android:textColor="#0B0C10"
+                        android:textSize="15sp"
+                        android:textStyle="bold"  app:cornerRadius="2dp"/>
+
+                </LinearLayout>
+
+                <!-- CREATE ACCOUNT FORM -->
+                <LinearLayout
+                    android:id="@+id/formCreateAccount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:layout_marginTop="20dp">
+
+                    <!-- Full Name -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="FULL NAME"
+                        android:textColor="#888D9B"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginBottom="8dp" />
+
+                    <EditText
+                        android:id="@+id/etSignUpName"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:background="#181B29"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:hint="Your Name"
+                        android:textColorHint="#3A3F55"
+                        android:inputType="textPersonName"
+                        android:importantForAutofill="no" />
+
+                    <!-- Email Address -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="EMAIL ADDRESS"
+                        android:textColor="#888D9B"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <EditText
+                        android:id="@+id/etSignUpEmail"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:background="#181B29"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:hint="your@email.com"
+                        android:textColorHint="#3A3F55"
+                        android:inputType="textEmailAddress"
+                        android:importantForAutofill="no" />
+
+                    <!-- Phone Number (Optional) -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PHONE NUMBER (OPTIONAL)"
+                        android:textColor="#888D9B"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <EditText
+                        android:id="@+id/etSignUpPhone"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:background="#181B29"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:hint="e.g. 08012345678"
+                        android:textColorHint="#3A3F55"
+                        android:inputType="phone"
+                        android:importantForAutofill="no" />
+
+                    <!-- Password -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PASSWORD"
+                        android:textColor="#888D9B"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <EditText
+                        android:id="@+id/etSignUpPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:background="#181B29"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:hint="Min. 6 characters"
+                        android:textColorHint="#3A3F55"
+                        android:inputType="textPassword"
+                        android:importantForAutofill="no" />
+
+                    <!-- Confirm Password -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CONFIRM PASSWORD"
+                        android:textColor="#888D9B"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <EditText
+                        android:id="@+id/etSignUpConfirmPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:background="#181B29"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:hint="Repeat password"
+                        android:textColorHint="#3A3F55"
+                        android:inputType="textPassword"
+                        android:importantForAutofill="no" />
+
+                    <!-- Referral Code -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="REFERRAL CODE (OPTIONAL)"
+                        android:textColor="#888D9B"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <EditText
+                        android:id="@+id/etSignUpReferral"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:background="#181B29"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:hint="ENTER FRIEND'S REFERRAL CODE"
+                        android:textColorHint="#3A3F55"
+                        android:inputType="textCapCharacters"
+                        android:importantForAutofill="no" />
+
+                    <!-- Terms & Conditions Checkbox -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <CheckBox
+                            android:id="@+id/cbTerms"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:buttonTint="#FFF0C243" />
+
+                        <TextView
+                            android:id="@+id/tvTermsLink"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:text="I ACCEPT THE TERMS &amp; CONDITIONS"
+                            android:textColor="#FFF0C243"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                    </LinearLayout>
+
+                    <!-- Create Account Submit Button -->
+                    <Button
+                        android:id="@+id/btnSignUpSubmit"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:layout_marginTop="24dp"
+                        android:layout_marginBottom="24dp"
+                        android:backgroundTint="#FFF0C243"
+                        android:text="CREATE ACCOUNT"
+                        android:textColor="#0B0C10"
+                        android:textSize="15sp"
+                        android:textStyle="bold"  app:cornerRadius="2dp"/>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </ScrollView>
+
+        <!-- Bottom bar (Minimize / Cloned Apps) -->
+        <LinearLayout
+            android:id="@+id/layoutBottomActions"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_alignParentBottom="true"
+            android:background="#08080C"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:elevation="8dp">
+
+            <Button
+                android:id="@+id/btnMinimize"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.3"
+                android:backgroundTint="#FFF0C243"
+                android:text="MINIMIZE FOR VIDEO CALL"
+                android:textColor="#0B0C10"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
+
+            <Button
+                android:id="@+id/btnClonedApps"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.0"
+                android:background="@drawable/outlined_button_bg"
+                android:text="CLONED APPS"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"  app:cornerRadius="2dp"/>
+
+        </LinearLayout>
+
+        <!-- Floating action button for Telegram -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabTelegram"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginBottom="88dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_telegram"
+            app:backgroundTint="#32A3E0"
+            app:tint="#FFFFFF"
+            android:contentDescription="Telegram Contact" />
+
+    </RelativeLayout>
+
+    <!-- 3. LOGGED IN USER DASHBOARD STATE (AI Live Transformation) -->
+    <RelativeLayout
+        android:id="@+id/layoutDashboard"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0B0C10"
+        android:visibility="gone">
+
+        <!-- Scrollable Dashboard Panel -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@+id/layoutDashboardBottomActions"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Header Navigation Bar -->
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="16dp">
+
+                    <!-- Logo and App Title -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_morphly_tv_smoke"
+                            android:contentDescription="Stream Icon" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="MORPH"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="SCREEN"
+                            android:textColor="#FFF0C243"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05" />
+
+                    </LinearLayout>
+
+                    <!-- Header Nav Hamburger Menu Button -->
+                    <LinearLayout
+                        android:id="@+id/btnHamburgerMenu"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:background="@drawable/bg_nav_pill"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="14dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="MENU ☰"
+                            android:textColor="#FFF0C243"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                </RelativeLayout>
+
+                <!-- AI LIVE Status Badge -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/bg_dark_teal_outline"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:layout_marginBottom="12dp">
+
+                    <View
+                        android:layout_width="6dp"
+                        android:layout_height="6dp"
+                        android:background="#FF3CD070"
+                        android:layout_marginEnd="6dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="AI LIVE"
+                        android:textColor="#FF3CD070"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                </LinearLayout>
+
+                <!-- Main Camera Screen View Box -->
+                <RelativeLayout
+                    android:id="@+id/panelCameraFeed"
+                    android:layout_width="match_parent"
+                    android:layout_height="340dp"
+                    android:background="#050608"
+                    android:layout_marginBottom="16dp">
+
+                    <!-- Center Text Placeholder -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerInParent="true"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="◆"
+                            android:textColor="#1E2338"
+                            android:textSize="44sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="AI OUTPUT WILL APPEAR HERE"
+                            android:textColor="#2D334D"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1" />
+
+                    </LinearLayout>
+
+                    <!-- Fullscreen Action Overlay -->
+                    <TextView
+                        android:id="@+id/btnFullscreenCamera"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_alignParentTop="true"
+                        android:padding="16dp"
+                        android:text="⛶"
+                        android:textColor="#3A3F55"
+                        android:textSize="20sp"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <!-- Floating Mini CAM Preview Container -->
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="120dp"
+                        android:layout_height="80dp"
+                        android:layout_alignParentStart="true"
+                        android:layout_alignParentBottom="true"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginBottom="12dp"
+                        app:cardCornerRadius="8dp"
+                        app:cardBackgroundColor="#000000"
+                        app:cardElevation="4dp">
+
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent">
+
+                            <!-- TextureView for Camera preview -->
+                            <TextureView
+                                android:id="@+id/textureViewUserCam"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent" />
+
+                            <!-- Fallback Mock Profile Layout when Camera is blocked -->
+                            <TextView
+                                android:id="@+id/tvUserCamFallback"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="#1E2235"
+                                android:gravity="center"
+                                android:text="👤"
+                                android:textSize="32sp"
+                                android:visibility="gone" />
+
+                            <!-- Mini label "YOUR CAM" -->
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentStart="true"
+                                android:layout_alignParentTop="true"
+                                android:layout_marginStart="6dp"
+                                android:layout_marginTop="6dp"
+                                android:background="#66000000"
+                                android:paddingHorizontal="4dp"
+                                android:paddingVertical="2dp"
+                                android:text="YOUR CAM"
+                                android:textColor="#FFF0C243"
+                                android:textSize="8sp"
+                                android:textStyle="bold" />
+
+                        </RelativeLayout>
+
+                    </androidx.cardview.widget.CardView>
+
+                </RelativeLayout>
+
+                <LinearLayout
+                    android:id="@+id/layoutDashboardControls"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                <!-- CAMERA Dropdown -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📷 CAMERA"
+                    android:textColor="#888D9B"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="8dp" />
+
+                <!-- Simple Spinner Dropdown -->
+                <Spinner
+                    android:id="@+id/spinnerCameraSelect"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="#131520"
+                    android:layout_marginBottom="16dp"
+                    android:spinnerMode="dropdown" />
+
+                <!-- MODE Selector Header -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎭 MODE"
+                    android:textColor="#888D9B"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="8dp" />
+
+                <!-- Dual Pills MODE Selector -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:orientation="horizontal"
+                    android:background="#131520"
+                    android:padding="2dp"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:id="@+id/btnModeStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:background="#FFF0C243"
+                        android:gravity="center"
+                        android:text="STYLE"
+                        android:textColor="#0B0C10"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <TextView
+                        android:id="@+id/btnModeFaceSwap"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:background="@android:color/transparent"
+                        android:gravity="center"
+                        android:text="FACE SWAP"
+                        android:textColor="#888D9B"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                </LinearLayout>
+
+                <!-- FACE SWAP Upload Image Box (Visible only when Face Swap mode is active) -->
+                <LinearLayout
+                    android:id="@+id/layoutFaceSwapUpload"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#131520"
+                    android:padding="12dp"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SWAP TARGET IMAGE"
+                        android:textColor="#888D9B"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <RelativeLayout
+                        android:id="@+id/btnUploadFaceImage"
+                        android:layout_width="match_parent"
+                        android:layout_height="80dp"
+                        android:background="@drawable/bg_nav_pill"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <LinearLayout
+                            android:id="@+id/layoutUploadPlaceholder"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:gravity="center"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="📤"
+                                android:textSize="18sp"
+                                android:layout_marginEnd="8dp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="CHOOSE FACE IMAGE"
+                                android:textColor="#FFF0C243"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                        </LinearLayout>
+
+                        <!-- Thumbnail Preview -->
+                        <ImageView
+                            android:id="@+id/ivUploadedFacePreview"
+                            android:layout_width="72dp"
+                            android:layout_height="match_parent"
+                            android:layout_alignParentStart="true"
+                            android:layout_margin="4dp"
+                            android:scaleType="centerCrop"
+                            android:visibility="gone"
+                            android:contentDescription="Face Preview" />
+
+                        <TextView
+                            android:id="@+id/tvUploadedFileName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:layout_toEndOf="@id/ivUploadedFacePreview"
+                            android:layout_marginStart="12dp"
+                            android:text="No file selected"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
+
+                    </RelativeLayout>
+
+                </LinearLayout>
+
+                <!-- Primary Connect & Actions Panel -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <!-- CONNECT Button -->
+                    <Button
+                        android:id="@+id/btnConnectStream"
+                        android:layout_width="0dp"
+                        android:layout_height="42dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="#FFF0C243"
+                        android:text="▶ CONNECT"
+                        android:textColor="#0B0C10"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
+
+                    <!-- STOP Button -->
+                    <Button
+                        android:id="@+id/btnStopStream"
+                        android:layout_width="0dp"
+                        android:layout_height="42dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="#1D2030"
+                        android:text="■ STOP"
+                        android:textColor="#3A3F55"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:enabled="false"  app:cornerRadius="2dp"/>
+
+                </LinearLayout>
+
+                <!-- Secondary Action Buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="20dp">
+
+                    <!-- BACKGROUND Button -->
+                    <Button
+                        android:id="@+id/btnBackground"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="42dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/outlined_button_bg"
+                        android:text="🖼️ BACKGROUND"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
+
+                    <!-- ABUSE Button -->
+                    <Button
+                        android:id="@+id/btnAbuse"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="42dp"
+                        android:layout_weight="0.8"
+                        android:background="@drawable/outlined_button_bg"
+                        android:backgroundTint="#2C121A"
+                        android:text="🚨 ABUSE"
+                        android:textColor="#FF5252"
+                        android:textSize="11sp"
+                        android:textStyle="bold"  app:cornerRadius="2dp"/>
+
+                </LinearLayout>
+
+                <!-- PROMPT Toggle & Text Input Box -->
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✍️ PROMPT"
+                        android:textColor="#888D9B"
+                        android:textSize="9.5sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="LIVE UPDATE"
+                            android:textColor="#FFF0C243"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:layout_marginEnd="6dp" />
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/switchLiveUpdate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            app:thumbTint="#FFF0C243"
+                            app:trackTint="#3A3F55" />
+
+                    </LinearLayout>
+
+                </RelativeLayout>
+
+                <EditText
+                    android:id="@+id/etPromptDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:background="#131520"
+                    android:gravity="top|start"
+                    android:hint="Describe the AI transformation..."
+                    android:importantForAutofill="no"
+                    android:inputType="textMultiLine"
+                    android:padding="12dp"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#3A3F55"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="20dp" />
+
+                <!-- PRESETS Section Header -->
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚡ PRESETS"
+                        android:textColor="#888D9B"
+                        android:textSize="9.5sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="ENHANCE"
+                            android:textColor="#FFF0C243"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:layout_marginEnd="6dp" />
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/switchEnhance"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            app:thumbTint="#FFF0C243"
+                            app:trackTint="#3A3F55" />
+
+                    </LinearLayout>
+
+                </RelativeLayout>
+
+                <!-- Preset Options Selector Pills (3 Rows Grid) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="24dp">
+
+                    <!-- Row 1 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:id="@+id/presetAnime"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="🌊 Anime"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:layout_marginEnd="4dp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <TextView
+                            android:id="@+id/presetCyberpunk"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="🔮 Cyberpunk"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:layout_marginEnd="4dp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <TextView
+                            android:id="@+id/presetFire"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="🔥 Fire"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:layout_marginEnd="4dp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <TextView
+                            android:id="@+id/presetIce"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="🧊 Ice"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                    </LinearLayout>
+
+                    <!-- Row 2 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:id="@+id/presetAndroid"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="🤖 Android"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:layout_marginEnd="4dp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <TextView
+                            android:id="@+id/presetCosmos"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="🌌 Cosmos"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:layout_marginEnd="4dp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <TextView
+                            android:id="@+id/presetHorror"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="👻 Horror"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:layout_marginEnd="4dp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <TextView
+                            android:id="@+id/presetPainting"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="🎨 Painting"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                    </LinearLayout>
+
+                    <!-- Row 3 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/presetNature"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="🌿 Nature"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:layout_marginEnd="4dp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <TextView
+                            android:id="@+id/presetWarrior"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="⚔️ Warrior"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:layout_marginEnd="4dp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <TextView
+                            android:id="@+id/presetNoir"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="🕵️ Noir"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:layout_marginEnd="4dp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <TextView
+                            android:id="@+id/presetWizard"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_preset_pill"
+                            android:gravity="center"
+                            android:text="🧙 Wizard"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- RECENT tag -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📜 RECENT"
+                    android:textColor="#888D9B"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- SESSION BALANCE CARD -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#131520"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="24dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="💳 "
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="SESSION BALANCE"
+                            android:textColor="#888D9B"
+                            android:textSize="10.5sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05" />
+
+                    </LinearLayout>
+
+                    <!-- Plan Total -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="PLAN TOTAL"
+                            android:textColor="#888D9B"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvSessionPlanTotal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:text="17,302 CR"
+                            android:textColor="#FFF0C243"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                    </RelativeLayout>
+
+                    <!-- Used -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="USED"
+                            android:textColor="#888D9B"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvSessionUsed"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:text="16,983 CR"
+                            android:textColor="#FF5252"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                    </RelativeLayout>
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#2E334D"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Remaining -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="REMAINING"
+                            android:textColor="#888D9B"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvSessionRemaining"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:text="319 CR"
+                            android:textColor="#FF3CD070"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                    </RelativeLayout>
+
+                    <!-- Auditing Auditing Checkbox -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="16dp">
+
+                        <CheckBox
+                            android:id="@+id/cbAuditConsent"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:buttonTint="#FFF0C243"
+                            android:padding="0dp"
+                            android:layout_marginTop="-4dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:text="I consent to AI transformation auditing, capture, and session logging. Consent is required before connecting to the live engine."
+                            android:textColor="#888D9B"
+                            android:textSize="11sp" />
+
+                    </LinearLayout>
+
+                    <!-- Progress Bar representing Remaining Credits ratio -->
+                    <ProgressBar
+                        android:id="@+id/progressSessionRemaining"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="6dp"
+                        android:max="100"
+                        android:progress="60"
+                        android:progressTint="#FF5252"
+                        android:progressBackgroundTint="#2E334D" />
+
+                </LinearLayout>
+
+                <!-- QUALITY Label -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚙ QUALITY"
+                    android:textColor="#888D9B"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="8dp" />
+
+                <!-- Spinner Quality Select -->
+                <Spinner
+                    android:id="@+id/spinnerQualitySelect"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="#131520"
+                    android:layout_marginBottom="32dp"
+                    android:spinnerMode="dropdown" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </ScrollView>
+
+        <!-- Bottom Actions (Consistent Footer) -->
+        <LinearLayout
+            android:id="@+id/layoutDashboardBottomActions"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_alignParentBottom="true"
+            android:background="#08080C"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:elevation="8dp">
+
+            <Button
+                android:id="@+id/btnDashboardMinimize"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.3"
+                android:backgroundTint="#FFF0C243"
+                android:text="MINIMIZE FOR VIDEO CALL"
+                android:textColor="#0B0C10"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
+
+            <Button
+                android:id="@+id/btnDashboardClonedApps"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.0"
+                android:background="@drawable/outlined_button_bg"
+                android:text="CLONED APPS"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"  app:cornerRadius="2dp"/>
+
+        </LinearLayout>
+
+        <!-- FAB Telegram -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabDashboardTelegram"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginBottom="88dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_telegram"
+            app:backgroundTint="#32A3E0"
+            app:tint="#FFFFFF"
+            android:contentDescription="Telegram Contact" />
+
+    </RelativeLayout>
+
+    <!-- 7. ACCOUNT STATE (Screen 3 Bottom Card Overlay) -->
+    <RelativeLayout
+        android:id="@+id/layoutAccount"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0E1017"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@+id/layoutAccountBottomActions"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <!-- Header Profile User Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="16dp"
+                    android:background="#131520"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="24dp">
+
+                    <!-- Avatar Icon -->
+                    <TextView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_nav_pill"
+                        android:backgroundTint="#FFF0C243"
+                        android:gravity="center"
+                        android:text="U"
+                        android:textColor="#0B0C10"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginStart="16dp">
+
+                        <TextView
+                            android:id="@+id/tvAccountName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="user"
+                            android:textColor="#FFFFFF"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvAccountEmail"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="user@gmail.com"
+                            android:textColor="#888D9B"
+                            android:textSize="13sp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Properties Details List Box -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#131520"
+                    android:padding="16dp"
+                    android:layout_marginBottom="20dp">
+
+                    <!-- Device ID -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginVertical="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="DEVICE ID"
+                            android:textColor="#888D9B"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvAccountDeviceId"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:text="SS-C468-A726-0788"
+                            android:textColor="#FFF0C243"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                    </RelativeLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1E2338" />
+
+                    <!-- License Status -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginVertical="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="LICENSE STATUS"
+                            android:textColor="#888D9B"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvAccountLicenseStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:text="ACTIVE"
+                            android:textColor="#FF3CD070"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                    </RelativeLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1E2338" />
+
+                    <!-- License Expires -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginVertical="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="LICENSE EXPIRES"
+                            android:textColor="#888D9B"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvAccountLicenseExpires"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:text="30 May 2027"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp" />
+
+                    </RelativeLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1E2338" />
+
+                    <!-- Credits Remaining -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginVertical="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CREDITS REMAINING"
+                            android:textColor="#888D9B"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvAccountCreditsRemaining"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:text="319 CR"
+                            android:textColor="#FF3CD070"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                    </RelativeLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1E2338" />
+
+                    <!-- Credits Used -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginVertical="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CREDITS USED"
+                            android:textColor="#888D9B"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvAccountCreditsUsed"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:text="16,983 CR"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp" />
+
+                    </RelativeLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1E2338" />
+
+                    <!-- Member Since -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginVertical="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="MEMBER SINCE"
+                            android:textColor="#888D9B"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:text="-"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp" />
+
+                    </RelativeLayout>
+
+                </LinearLayout>
+
+                <!-- Referral Card Box -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#131520"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="24dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🎁 "
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="REFERRAL PROGRAM"
+                            android:textColor="#FF3CD070"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05" />
+
+                    </LinearLayout>
+
+                    <!-- Referral Code Row -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:id="@+id/tvAccountReferralCode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_centerVertical="true"
+                            android:text="YOUR CODE: SS-USER-FVD9"
+                            android:textColor="#FFF0C243"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btnCopyReferral"
+                            style="?android:attr/borderlessButtonStyle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="42dp"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true"
+                            android:background="#1D2030"
+                            android:text="COPY"
+                            android:textColor="#FFFFFF"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:paddingHorizontal="12dp"  app:cornerRadius="2dp"/>
+
+                    </RelativeLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Share your code with friends. When they sign up &amp; buy credits, you both earn 500 free credits.\nReferral credits earned: 0"
+                        android:textColor="#888D9B"
+                        android:textSize="11sp" />
+
+                </LinearLayout>
+
+                <!-- Actions List Buttons -->
+                <!-- Back Button -->
+                <Button
+                    android:id="@+id/btnAccountBack"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:background="@drawable/outlined_button_bg"
+                    android:text="← BACK"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
+
+                <!-- Buy Credits Button -->
+                <Button
+                    android:id="@+id/btnAccountBuyCredits"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:background="@drawable/outlined_button_bg"
+                    android:text="💳 BUY CREDITS"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
+
+                <!-- Replay Tour Button -->
+                <Button
+                    android:id="@+id/btnAccountReplayTour"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:background="@drawable/outlined_button_bg"
+                    android:text="📖 REPLAY TOUR"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="24dp"  app:cornerRadius="2dp"/>
+
+                <!-- Sign Out Button -->
+                <Button
+                    android:id="@+id/btnAccountSignOut"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:background="@drawable/outlined_button_bg"
+                    android:backgroundTint="#2C121A"
+                    android:text="⏏ SIGN OUT"
+                    android:textColor="#FF5252"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="32dp"  app:cornerRadius="2dp"/>
+
+            </LinearLayout>
+
+        </ScrollView>
+
+        <!-- Bottom Actions -->
+        <LinearLayout
+            android:id="@+id/layoutAccountBottomActions"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_alignParentBottom="true"
+            android:background="#08080C"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:elevation="8dp">
+
+            <Button
+                android:id="@+id/btnAccountMinimize"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.3"
+                android:backgroundTint="#FFF0C243"
+                android:text="MINIMIZE FOR VIDEO CALL"
+                android:textColor="#0B0C10"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
+
+            <Button
+                android:id="@+id/btnAccountClonedApps"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.0"
+                android:background="@drawable/outlined_button_bg"
+                android:text="CLONED APPS"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"  app:cornerRadius="2dp"/>
+
+        </LinearLayout>
+
+        <!-- FAB Telegram -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabAccountTelegram"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginBottom="88dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_telegram"
+            app:backgroundTint="#32A3E0"
+            app:tint="#FFFFFF"
+            android:contentDescription="Telegram Contact" />
+
+    </RelativeLayout>
+
+    <!-- 4. WELCOME / GET STARTED STATE (Screen 1) -->
+    <RelativeLayout
+        android:id="@+id/layoutWelcome"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0B0C10"
+        android:visibility="gone">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@+id/layoutWelcomeBottomActions"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:padding="24dp">
+
+                <!-- Rocket Icon -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:text="🚀"
+                    android:textSize="50sp" />
+
+                <!-- Welcome Text -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="WELCOME TO SMOKE"
+                    android:textColor="#FFFFFF"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:gravity="center" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SCREEN"
+                    android:textColor="#FFF0C243"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:gravity="center" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="32dp"
+                    android:text="CHOOSE HOW YOU WANT TO GET STARTED"
+                    android:textColor="#6F7380"
+                    android:textSize="10.5sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15" />
+
+                <!-- Option 1: Activate Now (Gold Gradient Card) -->
+                <LinearLayout
+                    android:id="@+id/cardActivateNow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@drawable/bg_gold_gradient"
+                    android:padding="20dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <!-- Lock Emoji -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🔓"
+                        android:textSize="36sp"
+                        android:layout_marginEnd="16dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="ACTIVATE NOW"
+                            android:textColor="#0B0C10"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Pay $75 one-time activation fee – unlock full permanent access + buy credits"
+                            android:textColor="#2D303A"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="24dp"
+                    android:gravity="center"
+                    android:text="Recommended for serious users. One-time fee, lifetime access to all features."
+                    android:textColor="#6F7380"
+                    android:textSize="11sp" />
+
+                <!-- Option 2: Try First - $10 (Dark bordered Card) -->
+                <LinearLayout
+                    android:id="@+id/cardTryFirst"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@drawable/bg_dark_teal_outline"
+                    android:padding="20dp"
+                    android:gravity="center_vertical"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <!-- Test Tube Emoji -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🧪"
+                        android:textSize="36sp"
+                        android:layout_marginEnd="16dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="TRY FIRST – $10"
+                            android:textColor="#3CD070"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Purchase a Starter Pack with 500 credits and test the platform before activating"
+                            android:textColor="#888D9B"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="Starter credits let you stream for ~4 minutes. Once exhausted, you'll need to activate your license to continue."
+                    android:textColor="#6F7380"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+        </ScrollView>
+
+        <!-- Bottom Actions -->
+        <LinearLayout
+            android:id="@+id/layoutWelcomeBottomActions"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_alignParentBottom="true"
+            android:background="#08080C"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:elevation="8dp">
+
+            <Button
+                android:id="@+id/btnWelcomeMinimize"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.3"
+                android:backgroundTint="#FFF0C243"
+                android:text="MINIMIZE FOR VIDEO CALL"
+                android:textColor="#0B0C10"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
+
+            <Button
+                android:id="@+id/btnWelcomeClonedApps"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.0"
+                android:background="@drawable/outlined_button_bg"
+                android:text="CLONED APPS"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"  app:cornerRadius="2dp"/>
+
+        </LinearLayout>
+
+        <!-- FAB Telegram -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabWelcomeTelegram"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginBottom="88dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_telegram"
+            app:backgroundTint="#32A3E0"
+            app:tint="#FFFFFF"
+            android:contentDescription="Telegram Contact" />
+
+    </RelativeLayout>
+
+    <!-- 5. SELECT A CREDIT PLAN STATE (Screen 2) -->
+    <RelativeLayout
+        android:id="@+id/layoutStarterPack"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0B0C10"
+        android:visibility="gone">
+
+        <!-- Plan Selection Header Bar -->
+        <RelativeLayout
+            android:id="@+id/layoutPlanSelectionHeader"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:paddingHorizontal="16dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_morphly_tv_smoke"
+                    android:contentDescription="Stream Icon" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="MORPHLY"
+                    android:textColor="#FFF0C243"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05" />
+
+            </LinearLayout>
+
+            <!-- Close cross button -->
+            <TextView
+                android:id="@+id/btnPlanSelectionClose"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/bg_nav_pill"
+                android:backgroundTint="#1D2030"
+                android:gravity="center"
+                android:text="✕"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+
+        </RelativeLayout>
+
+        <!-- Scrollable Plans Content -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/layoutPlanSelectionHeader"
+            android:layout_above="@+id/layoutStarterBottomActions"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingBottom="24dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="SELECT A CREDIT PLAN"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="Credits power your live AI sessions at 120 credits/minute.\nPurchase once, use anytime - credits never expire."
+                    android:textColor="#888D9B"
+                    android:textSize="11sp"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="24dp" />
+
+                <!-- Grid of Plans: 2 Columns Layout -->
+                
+                <!-- Row 1: TEST & STARTER -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <!-- TEST Plan Card -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:background="#131520"
+                        android:padding="12dp"
+                        android:layout_marginEnd="6dp"
+                        android:minHeight="295dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="#FF5252"
+                            android:textColor="#FFFFFF"
+                            android:text="TEST"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp"
+                            android:layout_marginBottom="12dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="TEST"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="$10 USD"
+                            android:textColor="#FF5252"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="500 Credits"
+                            android:textColor="#FF3CD070"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="≈ 4 min streaming"
+                            android:textColor="#6F7380"
+                            android:textSize="10.5sp"
+                            android:layout_marginTop="2dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#222538"
+                            android:layout_marginVertical="10dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ Full AI engine access"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ OBS / Theatre mode"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="- Priority support"
+                            android:textColor="#6F7380"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="12dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1" />
+
+                        <Button
+                            android:id="@+id/btnSelectPlanTest"
+                            android:layout_width="match_parent"
+                            android:layout_height="36dp"
+                            android:backgroundTint="#FF5252"
+                            android:text="SELECT"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="2dp"
+                            android:padding="0dp" />
+
+                    </LinearLayout>
+
+                    <!-- STARTER Plan Card -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:background="#131520"
+                        android:padding="12dp"
+                        android:layout_marginStart="6dp"
+                        android:minHeight="295dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="invisible"
+                            android:text="SPACER"
+                            android:textSize="9sp"
+                            android:paddingVertical="3dp"
+                            android:layout_marginBottom="12dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="STARTER"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="$20 USD"
+                            android:textColor="#FFF0C243"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="1,000 Credits"
+                            android:textColor="#FF3CD070"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="≈ 8 min streaming"
+                            android:textColor="#6F7380"
+                            android:textSize="10.5sp"
+                            android:layout_marginTop="2dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#222538"
+                            android:layout_marginVertical="10dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ Full AI engine access"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ All presets included"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ OBS / Theatre mode"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="- Priority support"
+                            android:textColor="#6F7380"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="12dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1" />
+
+                        <Button
+                            android:id="@+id/btnSelectPlanStarter"
+                            android:layout_width="match_parent"
+                            android:layout_height="36dp"
+                            android:backgroundTint="#FFF0C243"
+                            android:text="SELECT"
+                            android:textColor="#0B0C10"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="2dp"
+                            android:padding="0dp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Row 2: PRO & PREMIUM -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <!-- PRO Plan Card -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:background="#131520"
+                        android:padding="12dp"
+                        android:layout_marginEnd="6dp"
+                        android:minHeight="295dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="#FF3CD070"
+                            android:textColor="#0B0C10"
+                            android:text="MOST POPULAR"
+                            android:textSize="8sp"
+                            android:textStyle="bold"
+                            android:paddingHorizontal="6dp"
+                            android:paddingVertical="3dp"
+                            android:layout_marginBottom="12dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="PRO"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="$60 USD"
+                            android:textColor="#FF3CD070"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="5,000 Credits"
+                            android:textColor="#FF3CD070"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="≈ 38 min streaming"
+                            android:textColor="#6F7380"
+                            android:textSize="10.5sp"
+                            android:layout_marginTop="2dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#222538"
+                            android:layout_marginVertical="10dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ Full AI engine access"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ All presets included"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ OBS / Theatre mode"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ Priority support"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="12dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1" />
+
+                        <Button
+                            android:id="@+id/btnSelectPlanPro"
+                            android:layout_width="match_parent"
+                            android:layout_height="36dp"
+                            android:backgroundTint="#FF3CD070"
+                            android:text="SELECT"
+                            android:textColor="#0B0C10"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="2dp"
+                            android:padding="0dp" />
+
+                    </LinearLayout>
+
+                    <!-- PREMIUM Plan Card -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:background="#131520"
+                        android:padding="12dp"
+                        android:layout_marginStart="6dp"
+                        android:minHeight="295dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="invisible"
+                            android:text="SPACER"
+                            android:textSize="9sp"
+                            android:paddingVertical="3dp"
+                            android:layout_marginBottom="12dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="PREMIUM"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="$150 USD"
+                            android:textColor="#FFF0C243"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="10,000 Credits"
+                            android:textColor="#FF3CD070"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="≈ 76 min streaming"
+                            android:textColor="#6F7380"
+                            android:textSize="10.5sp"
+                            android:layout_marginTop="2dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#222538"
+                            android:layout_marginVertical="10dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ Full AI engine access"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ All presets included"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ OBS / Theatre mode"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ Priority support"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="12dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1" />
+
+                        <Button
+                            android:id="@+id/btnSelectPlanPremium"
+                            android:layout_width="match_parent"
+                            android:layout_height="36dp"
+                            android:backgroundTint="#FFF0C243"
+                            android:text="SELECT"
+                            android:textColor="#0B0C10"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="2dp"
+                            android:padding="0dp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Row 3: ELITE & Spacer -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="24dp">
+
+                    <!-- ELITE Plan Card -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:background="#131520"
+                        android:padding="12dp"
+                        android:layout_marginEnd="6dp"
+                        android:minHeight="295dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="invisible"
+                            android:text="SPACER"
+                            android:textSize="9sp"
+                            android:paddingVertical="3dp"
+                            android:layout_marginBottom="12dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="ELITE"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="$550 USD"
+                            android:textColor="#FFF0C243"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="50,000 Credits"
+                            android:textColor="#FF3CD070"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="≈ 379 min streaming"
+                            android:textColor="#6F7380"
+                            android:textSize="10.5sp"
+                            android:layout_marginTop="2dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#222538"
+                            android:layout_marginVertical="10dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ Full AI engine access"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ All presets included"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ OBS / Theatre mode"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ Priority support"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="12dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1" />
+
+                        <Button
+                            android:id="@+id/btnSelectPlanElite"
+                            android:layout_width="match_parent"
+                            android:layout_height="36dp"
+                            android:backgroundTint="#FFF0C243"
+                            android:text="SELECT"
+                            android:textColor="#0B0C10"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="2dp"
+                            android:padding="0dp" />
+
+                    </LinearLayout>
+
+                    <!-- Spacer View for grid alignment -->
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp" />
+
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#2E334D"
+                    android:layout_marginVertical="16dp" />
+
+                <!-- Manual Credit Key Input Section -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="After purchase via WhatsApp or email, you will receive a Credit Key to enter below."
+                    android:textColor="#888D9B"
+                    android:textSize="11.5sp"
+                    android:layout_marginBottom="12dp" />
+
+                <EditText
+                    android:id="@+id/etPlanCreditKey"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:background="#181B29"
+                    android:paddingHorizontal="16dp"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:hint="SS-XXXX-XXXX-XXXX-XXXX"
+                    android:textColorHint="#3A3F55"
+                    android:inputType="textCapCharacters"
+                    android:gravity="center"
+                    android:importantForAutofill="no"
+                    android:layout_marginBottom="12dp" />
+
+                <Button
+                    android:id="@+id/btnPlanRedeemKey"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:backgroundTint="#1D2030"
+                    android:text="REDEEM CREDIT KEY"
+                    android:textColor="#FFF0C243"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="2dp" />
+
+            </LinearLayout>
+
+        </ScrollView>
+
+        <!-- Bottom Actions (Consistent Footer) -->
+        <LinearLayout
+            android:id="@+id/layoutStarterBottomActions"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_alignParentBottom="true"
+            android:background="#08080C"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:elevation="8dp">
+
+            <Button
+                android:id="@+id/btnStarterMinimize"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.3"
+                android:backgroundTint="#FFF0C243"
+                android:text="MINIMIZE FOR VIDEO CALL"
+                android:textColor="#0B0C10"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="8dp"
+                app:cornerRadius="2dp" />
+
+            <Button
+                android:id="@+id/btnStarterClonedApps"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.0"
+                android:background="@drawable/outlined_button_bg"
+                android:text="CLONED APPS"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                app:cornerRadius="2dp" />
+
+        </LinearLayout>
+
+        <!-- FAB Telegram -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabStarterTelegram"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginBottom="88dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_telegram"
+            app:backgroundTint="#32A3E0"
+            app:tint="#FFFFFF"
+            android:contentDescription="Telegram Contact" />
+
+    </RelativeLayout>
+
+    <!-- 5b. CHECKOUT & PAYMENT METHOD STATE (Screen 3) [NEW] -->
+    <RelativeLayout
+        android:id="@+id/layoutPlanPayment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0B0C10"
+        android:visibility="gone">
+
+        <!-- Checkout Header -->
+        <RelativeLayout
+            android:id="@+id/layoutCheckoutHeader"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:paddingHorizontal="16dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_morphly_tv_smoke"
+                    android:contentDescription="Stream Icon" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="CHECKOUT SECURE"
+                    android:textColor="#FFF0C243"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05" />
+
+            </LinearLayout>
+
+        </RelativeLayout>
+
+        <!-- Scrollable Checkout Panel -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/layoutCheckoutHeader"
+            android:layout_above="@+id/layoutPaymentBottomActions"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="24dp"
+                android:paddingBottom="24dp">
+
+                <!-- Ticket Icon -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="🎟️"
+                    android:textSize="56sp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Checkout Plan Title -->
+                <TextView
+                    android:id="@+id/tvCheckoutPlanTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="TEST PLAN"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05" />
+
+                <TextView
+                    android:id="@+id/tvCheckoutPlanSubtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="$10 • 500 CREDITS"
+                    android:textColor="#888D9B"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="20dp" />
+
+                <!-- Details Summary Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#131520"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="24dp">
+
+                    <!-- Plan Row -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Plan"
+                            android:textColor="#888D9B"
+                            android:textSize="12.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvCheckoutDetailPlan"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:text="Test"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12.5sp"
+                            android:textStyle="bold" />
+
+                    </RelativeLayout>
+
+                    <!-- Credits Row -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Credits"
+                            android:textColor="#888D9B"
+                            android:textSize="12.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvCheckoutDetailCredits"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:text="500 credits"
+                            android:textColor="#FF3CD070"
+                            android:textSize="12.5sp"
+                            android:textStyle="bold" />
+
+                    </RelativeLayout>
+
+                    <!-- Stream Time Row -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Stream time"
+                            android:textColor="#888D9B"
+                            android:textSize="12.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvCheckoutDetailStreamTime"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:text="~4 min"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12.5sp" />
+
+                    </RelativeLayout>
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#2E334D"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Total Row -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Total"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvCheckoutDetailTotal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:text="$10.00"
+                            android:textColor="#FFF0C243"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                    </RelativeLayout>
+
+                </LinearLayout>
+
+                <!-- Payment Option 1: Flutterwave -->
+                <Button
+                    android:id="@+id/btnCheckoutFlutterwave"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:backgroundTint="#FFF0C243"
+                    android:text="🦋 PAY NOW – FLUTTERWAVE"
+                    android:textColor="#0B0C10"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"
+                    app:cornerRadius="2dp" />
+
+                <!-- Payment Option 2: Crypto -->
+                <Button
+                    android:id="@+id/btnCheckoutCrypto"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:backgroundTint="#FFF0C243"
+                    android:text="₿ PAY WITH CRYPTO"
+                    android:textColor="#0B0C10"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="20dp"
+                    app:cornerRadius="2dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="OR CONTACT US DIRECTLY"
+                    android:textColor="#6F7380"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Direct Contact Buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="24dp">
+
+                    <Button
+                        android:id="@+id/btnCheckoutWhatsApp"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="#0C5A30"
+                        android:text="💬 WhatsApp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11.5sp"
+                        android:textStyle="bold"
+                        android:layout_marginEnd="6dp"
+                        app:cornerRadius="2dp"
+                        android:padding="0dp" />
+
+                    <Button
+                        android:id="@+id/btnCheckoutEmail"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="#1D2030"
+                        android:text="✉ Email"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11.5sp"
+                        android:textStyle="bold"
+                        android:layout_marginStart="6dp"
+                        app:cornerRadius="2dp"
+                        android:padding="0dp" />
+
+                </LinearLayout>
+
+                <!-- Hidden/Expandable Manual Key Section -->
+                <TextView
+                    android:id="@+id/tvCheckoutManualKeyToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:text="Already have a manual credit key?"
+                    android:textColor="#FFF0C243"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <LinearLayout
+                    android:id="@+id/layoutCheckoutManualKeyContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone">
+
+                    <EditText
+                        android:id="@+id/etCheckoutManualKey"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:background="#181B29"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:hint="SS-XXXX-XXXX-XXXX-XXXX"
+                        android:textColorHint="#3A3F55"
+                        android:inputType="textCapCharacters"
+                        android:gravity="center"
+                        android:importantForAutofill="no"
+                        android:layout_marginBottom="8dp" />
+
+                    <Button
+                        android:id="@+id/btnCheckoutRedeemKey"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
+                        android:backgroundTint="#FFF0C243"
+                        android:text="REDEEM MANUAL KEY"
+                        android:textColor="#0B0C10"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="2dp"
+                        android:padding="0dp" />
+
+                </LinearLayout>
+
+                <!-- Back to plans selection -->
+                <Button
+                    android:id="@+id/btnCheckoutBack"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:background="@drawable/outlined_button_bg"
+                    android:text="← BACK TO PLANS"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="24dp"
+                    app:cornerRadius="2dp" />
+
+            </LinearLayout>
+
+        </ScrollView>
+
+        <!-- Checkout Bottom Actions Bar -->
+        <LinearLayout
+            android:id="@+id/layoutPaymentBottomActions"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_alignParentBottom="true"
+            android:background="#08080C"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:elevation="8dp">
+
+            <Button
+                android:id="@+id/btnPaymentMinimize"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.3"
+                android:backgroundTint="#FFF0C243"
+                android:text="MINIMIZE FOR VIDEO CALL"
+                android:textColor="#0B0C10"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="8dp"
+                app:cornerRadius="2dp" />
+
+            <Button
+                android:id="@+id/btnPaymentClonedApps"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.0"
+                android:background="@drawable/outlined_button_bg"
+                android:text="CLONED APPS"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                app:cornerRadius="2dp" />
+
+        </LinearLayout>
+
+        <!-- Floating action button for Telegram in Payment Options Screen -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabPaymentTelegram"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginBottom="88dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_telegram"
+            app:backgroundTint="#32A3E0"
+            app:tint="#FFFFFF"
+            android:contentDescription="Telegram Contact" />
+
+    </RelativeLayout>
+
+    <!-- 6. ANNUAL LICENSE ACTIVATION STATE (Screen 3) -->
+    <RelativeLayout
+        android:id="@+id/layoutActivation"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0B0C10"
+        android:visibility="gone">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@+id/layoutActivationBottomActions"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="24dp">
+
+                <!-- Header Title -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="24dp"
+                    android:gravity="center"
+                    android:text="ANNUAL LICENSE ACTIVATION"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05" />
+
+                <!-- Card 1: Your Device ID -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#131520"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="24dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="💻 "
+                            android:textSize="18sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="YOUR DEVICE ID"
+                            android:textColor="#888D9B"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvActivationDeviceId"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="SS-C468-A726-0788"
+                        android:textColor="#FFF0C243"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05" />
+
+                    <Button
+                        android:id="@+id/btnCopyDeviceId"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="42dp"
+                        android:layout_marginTop="8dp"
+                        android:background="#1D2030"
+                        android:text="COPY"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="16dp"  app:cornerRadius="2dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="This ID is unique to your device."
+                        android:textColor="#6F7380"
+                        android:textSize="11sp" />
+
+                </LinearLayout>
+
+                <!-- Section: Pay to Activate -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#131520"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="24dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="PAY $75 TO ACTIVATE YOUR LICENSE"
+                        android:textColor="#888D9B"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginBottom="16dp" />
+
+                    <Button
+                        android:id="@+id/btnActivationPayFlutterwave"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:backgroundTint="#FFF0C243"
+                        android:text="🦋 PAY $75 – FLUTTERWAVE"
+                        android:textColor="#0B0C10"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
+
+                    <Button
+                        android:id="@+id/btnActivationPayCrypto"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:backgroundTint="#FFF0C243"
+                        android:text="₿ PAY $75 • CRYPTO"
+                        android:textColor="#0B0C10"
+                        android:textSize="13sp"
+                        android:textStyle="bold"  app:cornerRadius="2dp"/>
+
+                </LinearLayout>
+
+                <!-- Section: Enter Existing Key -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#131520"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="24dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="OR ENTER EXISTING KEY"
+                        android:textColor="#888D9B"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.05"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Input Key -->
+                    <EditText
+                        android:id="@+id/etActivationKey"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:background="#181B29"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:hint="SS-XXXX-XXXX-XXXX-XXXX"
+                        android:textColorHint="#3A3F55"
+                        android:inputType="textCapCharacters"
+                        android:gravity="center"
+                        android:importantForAutofill="no" />
+
+                    <!-- Status Msg -->
+                    <TextView
+                        android:id="@+id/tvActivationStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="✗ Key not found"
+                        android:textColor="#FF5252"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:visibility="gone" />
+
+                    <!-- Activate Button -->
+                    <Button
+                        android:id="@+id/btnActivateLicense"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:layout_marginTop="16dp"
+                        android:backgroundTint="#FFF0C243"
+                        android:text="ACTIVATE LICENSE"
+                        android:textColor="#0B0C10"
+                        android:textSize="14sp"
+                        android:textStyle="bold"  app:cornerRadius="2dp"/>
+
+                </LinearLayout>
+
+                <!-- Help Support link -->
+                <TextView
+                    android:id="@+id/tvActivationSupport"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:text="Having trouble? Contact support on Telegram"
+                    android:textColor="#FFF0C243"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <!-- Back to Options -->
+                <Button
+                    android:id="@+id/btnActivationBackToOptions"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:background="@drawable/outlined_button_bg"
+                    android:text="← BACK TO OPTIONS"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
+
+                <!-- Logout Link -->
+                <TextView
+                    android:id="@+id/tvActivationSignOut"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="32dp"
+                    android:text="Sign out"
+                    android:textColor="#6F7380"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+            </LinearLayout>
+
+        </ScrollView>
+
+        <!-- Bottom Actions -->
+        <LinearLayout
+            android:id="@+id/layoutActivationBottomActions"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_alignParentBottom="true"
+            android:background="#08080C"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:elevation="8dp">
+
+            <Button
+                android:id="@+id/btnActivationMinimize"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.3"
+                android:backgroundTint="#FFF0C243"
+                android:text="MINIMIZE FOR VIDEO CALL"
+                android:textColor="#0B0C10"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
+
+            <Button
+                android:id="@+id/btnActivationClonedApps"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1.0"
+                android:background="@drawable/outlined_button_bg"
+                android:text="CLONED APPS"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"  app:cornerRadius="2dp"/>
+
+        </LinearLayout>
+
+        <!-- FAB Telegram -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabActivationTelegram"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginBottom="88dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_telegram"
+            app:backgroundTint="#32A3E0"
+            app:tint="#FFFFFF"
+            android:contentDescription="Telegram Contact" />
+
+    </RelativeLayout>
+
+</FrameLayout>

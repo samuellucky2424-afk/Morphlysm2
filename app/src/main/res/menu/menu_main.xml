@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+            android:id="@+id/menu_stream"
+            android:title="@string/menu_stream"
+            app:showAsAction="never" />
+
+    <item
+            android:id="@+id/menu_privacy_policy"
+            android:title="@string/menu_privacy_policy"
+            app:showAsAction="never" />
+
+    <item
+            android:id="@+id/menu_contact"
+            android:title="@string/menu_contact"
+            app:showAsAction="never" />
+</menu>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#161928"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🎉 REGISTRATION SUCCESSFUL!"
+        android:textColor="#FFF0C243"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.05"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Your account has been created. Use the activation key below to activate permanent access."
+        android:textColor="#888D9B"
+        android:textSize="12sp"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Device ID Display -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="YOUR DEVICE ID"
+        android:textColor="#888D9B"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.05" />
+
+    <TextView
+        android:id="@+id/tvDialogDeviceId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="16dp"
+        android:text="SS-XXXX-XXXX-XXXX"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <!-- Activation Key Display -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="YOUR ACTIVATION KEY"
+        android:textColor="#888D9B"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.05" />
+
+    <TextView
+        android:id="@+id/tvDialogActivationKey"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="24dp"
+        android:text="SS-XXXX-XXXX-XXXX-XXXX"
+        android:textColor="#FFF0C243"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <!-- Copy & Close Actions -->
+    <Button
+        android:id="@+id/btnCopyKey"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:backgroundTint="#FFF0C243"
+        android:text="COPY ACTIVATION KEY"
+        android:textColor="#0B0C10"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
+
+    <Button
+        android:id="@+id/btnDialogClose"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:background="@drawable/outlined_button_bg"
+        android:text="CLOSE"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"  app:cornerRadius="2dp"/>
+
+</LinearLayout>
