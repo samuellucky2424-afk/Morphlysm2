@@ -20,8 +20,8 @@
                     android:endX="90"
                     android:endY="90"
                     android:type="linear">
-                    <!-- Yellow/Gold (#F0C243) to Green (#3CD070) -->
-                    <item android:offset="0.0" android:color="#FFF0C243" />
+                    <!-- Light Green (#5BEE8B) to Green (#3CD070) -->
+                    <item android:offset="0.0" android:color="#FF5BEE8B" />
                     <item android:offset="1.0" android:color="#FF3CD070" />
                 </gradient>
             </aapt:attr>

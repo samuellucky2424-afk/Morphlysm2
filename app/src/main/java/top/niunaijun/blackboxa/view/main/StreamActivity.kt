@@ -510,7 +510,7 @@ class StreamActivity : BaseActivity() {
         selectedPresetView?.setBackgroundResource(R.drawable.bg_preset_pill)
         selectedPresetView?.setTextColor(Color.parseColor("#FFFFFF"))
 
-        textView.setBackgroundColor(Color.parseColor("#FFF0C243"))
+        textView.setBackgroundColor(Color.parseColor("#FF3CD070"))
         textView.setTextColor(Color.parseColor("#0B0C10"))
 
         selectedPresetView = textView
@@ -549,7 +549,7 @@ class StreamActivity : BaseActivity() {
         mainHandler.removeCallbacks(creditUsageRunnable)
         
         binding.btnConnectStream.isEnabled = true
-        binding.btnConnectStream.setBackgroundColor(Color.parseColor("#FFF0C243"))
+        binding.btnConnectStream.setBackgroundColor(Color.parseColor("#FF3CD070"))
         binding.btnConnectStream.setTextColor(Color.parseColor("#0B0C10"))
         
         binding.btnStopStream.isEnabled = false
@@ -1082,7 +1082,7 @@ class StreamActivity : BaseActivity() {
 
         // Mode Style / Face Swap toggle
         binding.btnModeStyle.setOnClickListener {
-            binding.btnModeStyle.setBackgroundColor(Color.parseColor("#FFF0C243"))
+            binding.btnModeStyle.setBackgroundColor(Color.parseColor("#FF3CD070"))
             binding.btnModeStyle.setTextColor(Color.parseColor("#0B0C10"))
             binding.btnModeFaceSwap.setBackgroundColor(Color.TRANSPARENT)
             binding.btnModeFaceSwap.setTextColor(Color.parseColor("#888D9B"))
@@ -1090,7 +1090,7 @@ class StreamActivity : BaseActivity() {
             Toast.makeText(this, "Style mode selected", Toast.LENGTH_SHORT).show()
         }
         binding.btnModeFaceSwap.setOnClickListener {
-            binding.btnModeFaceSwap.setBackgroundColor(Color.parseColor("#FFF0C243"))
+            binding.btnModeFaceSwap.setBackgroundColor(Color.parseColor("#FF3CD070"))
             binding.btnModeFaceSwap.setTextColor(Color.parseColor("#0B0C10"))
             binding.btnModeStyle.setBackgroundColor(Color.TRANSPARENT)
             binding.btnModeStyle.setTextColor(Color.parseColor("#888D9B"))

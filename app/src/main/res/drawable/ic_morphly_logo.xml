@@ -6,12 +6,12 @@
     android:viewportWidth="120"
     android:viewportHeight="120">
 
-    <!-- Surrounding Circular Arc on the left (solid yellow/gold) -->
+    <!-- Surrounding Circular Arc on the left (solid green) -->
     <path
         android:pathData="M 70,15 A 47,47 0 1,0 70,105"
         android:strokeWidth="3.5"
         android:strokeLineCap="round"
-        android:strokeColor="#FFF0C243"
+        android:strokeColor="#FF3CD070"
         android:fillColor="#00000000" />
 
     <!-- Gradient Diamond (Rotated rounded square) using inline aapt fill attribute -->
@@ -28,8 +28,8 @@
                     android:endX="90"
                     android:endY="90"
                     android:type="linear">
-                    <!-- Yellow/Gold (#F0C243) to Green (#3CD070) -->
-                    <item android:offset="0.0" android:color="#FFF0C243" />
+                    <!-- Light Green (#5BEE8B) to Green (#3CD070) -->
+                    <item android:offset="0.0" android:color="#FF5BEE8B" />
                     <item android:offset="1.0" android:color="#FF3CD070" />
                 </gradient>
             </aapt:attr>

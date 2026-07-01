@@ -48,22 +48,16 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="28dp"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:background="@drawable/bg_white_badge"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="SMOKE "
-                    android:textColor="#FFFFFF"
-                    android:textSize="28sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.1" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="SCREEN"
-                    android:textColor="#FFF0C243"
+                    android:text="MORPHLY"
+                    android:textColor="#FF3CD070"
                     android:textSize="28sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.1" />
@@ -78,7 +72,7 @@
                 android:layout_height="24dp"
                 android:layout_marginTop="32dp"
                 android:indeterminate="true"
-                android:indeterminateTint="#FFF0C243" />
+                android:indeterminateTint="#FF3CD070" />
 
             <!-- Subtitle -->
             <TextView
@@ -140,14 +134,25 @@
                         android:layout_weight="1"
                         android:orientation="vertical">
 
-                        <TextView
+                        <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="MORPHLY 1.6"
-                            android:textColor="#FFF0C243"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.05" />
+                            android:orientation="horizontal"
+                            android:background="@drawable/bg_white_badge"
+                            android:paddingHorizontal="10dp"
+                            android:paddingVertical="4dp"
+                            android:layout_marginBottom="4dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="MORPHLY 1.6"
+                                android:textColor="#FF3CD070"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.05" />
+
+                        </LinearLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -175,7 +180,7 @@
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:background="#FFF0C243"
+                        android:background="#FF3CD070"
                         android:gravity="center"
                         android:text="SIGN IN"
                         android:textColor="#0B0C10"
@@ -266,7 +271,7 @@
                         android:layout_gravity="center_horizontal"
                         android:layout_marginTop="32dp"
                         android:text="Forgot password?"
-                        android:textColor="#FFF0C243"
+                        android:textColor="#FF3CD070"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:clickable="true"
@@ -278,7 +283,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="42dp"
                         android:layout_marginTop="32dp"
-                        android:backgroundTint="#FFF0C243"
+                        android:backgroundTint="#FF3CD070"
                         android:text="SIGN IN"
                         android:textColor="#0B0C10"
                         android:textSize="15sp"
@@ -456,7 +461,7 @@
                             android:id="@+id/cbTerms"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:buttonTint="#FFF0C243" />
+                            android:buttonTint="#FF3CD070" />
 
                         <TextView
                             android:id="@+id/tvTermsLink"
@@ -464,7 +469,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
                             android:text="I ACCEPT THE TERMS &amp; CONDITIONS"
-                            android:textColor="#FFF0C243"
+                            android:textColor="#FF3CD070"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             android:letterSpacing="0.05"
@@ -480,7 +485,7 @@
                         android:layout_height="42dp"
                         android:layout_marginTop="24dp"
                         android:layout_marginBottom="24dp"
-                        android:backgroundTint="#FFF0C243"
+                        android:backgroundTint="#FF3CD070"
                         android:text="CREATE ACCOUNT"
                         android:textColor="#0B0C10"
                         android:textSize="15sp"
@@ -509,7 +514,7 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FFF0C243"
+                android:backgroundTint="#FF3CD070"
                 android:text="MINIMIZE FOR VIDEO CALL"
                 android:textColor="#0B0C10"
                 android:textSize="10.5sp"
@@ -589,24 +594,25 @@
                             android:src="@drawable/ic_morphly_tv_smoke"
                             android:contentDescription="Stream Icon" />
 
-                        <TextView
+                        <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="MORPH"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.05" />
+                            android:orientation="horizontal"
+                            android:background="@drawable/bg_white_badge"
+                            android:paddingHorizontal="10dp"
+                            android:paddingVertical="4dp"
+                            android:layout_marginStart="8dp">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="SCREEN"
-                            android:textColor="#FFF0C243"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.05" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="MORPHLY"
+                                android:textColor="#FF3CD070"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.05" />
+
+                        </LinearLayout>
 
                     </LinearLayout>
 
@@ -628,7 +634,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="MENU ☰"
-                            android:textColor="#FFF0C243"
+                            android:textColor="#FF3CD070"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -757,7 +763,7 @@
                                 android:paddingHorizontal="4dp"
                                 android:paddingVertical="2dp"
                                 android:text="YOUR CAM"
-                                android:textColor="#FFF0C243"
+                                android:textColor="#FF3CD070"
                                 android:textSize="8sp"
                                 android:textStyle="bold" />
 
@@ -818,7 +824,7 @@
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:background="#FFF0C243"
+                        android:background="#FF3CD070"
                         android:gravity="center"
                         android:text="STYLE"
                         android:textColor="#0B0C10"
@@ -890,7 +896,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="CHOOSE FACE IMAGE"
-                                android:textColor="#FFF0C243"
+                                android:textColor="#FF3CD070"
                                 android:textSize="12sp"
                                 android:textStyle="bold" />
 
@@ -936,7 +942,7 @@
                         android:layout_width="0dp"
                         android:layout_height="42dp"
                         android:layout_weight="1"
-                        android:backgroundTint="#FFF0C243"
+                        android:backgroundTint="#FF3CD070"
                         android:text="▶ CONNECT"
                         android:textColor="#0B0C10"
                         android:textSize="14sp"
@@ -1022,7 +1028,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="LIVE UPDATE"
-                            android:textColor="#FFF0C243"
+                            android:textColor="#FF3CD070"
                             android:textSize="9sp"
                             android:textStyle="bold"
                             android:layout_marginEnd="6dp" />
@@ -1032,7 +1038,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:checked="true"
-                            app:thumbTint="#FFF0C243"
+                            app:thumbTint="#FF3CD070"
                             app:trackTint="#3A3F55" />
 
                     </LinearLayout>
@@ -1081,7 +1087,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="ENHANCE"
-                            android:textColor="#FFF0C243"
+                            android:textColor="#FF3CD070"
                             android:textSize="9sp"
                             android:textStyle="bold"
                             android:layout_marginEnd="6dp" />
@@ -1091,7 +1097,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:checked="true"
-                            app:thumbTint="#FFF0C243"
+                            app:thumbTint="#FF3CD070"
                             app:trackTint="#3A3F55" />
 
                     </LinearLayout>
@@ -1362,7 +1368,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentRight="true"
                             android:text="17,302 CR"
-                            android:textColor="#FFF0C243"
+                            android:textColor="#FF3CD070"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -1440,7 +1446,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:checked="true"
-                            android:buttonTint="#FFF0C243"
+                            android:buttonTint="#FF3CD070"
                             android:padding="0dp"
                             android:layout_marginTop="-4dp" />
 
@@ -1510,7 +1516,7 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FFF0C243"
+                android:backgroundTint="#FF3CD070"
                 android:text="MINIMIZE FOR VIDEO CALL"
                 android:textColor="#0B0C10"
                 android:textSize="10.5sp"
@@ -1585,7 +1591,7 @@
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:background="@drawable/bg_nav_pill"
-                        android:backgroundTint="#FFF0C243"
+                        android:backgroundTint="#FF3CD070"
                         android:gravity="center"
                         android:text="U"
                         android:textColor="#0B0C10"
@@ -1648,7 +1654,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentRight="true"
                             android:text="SS-C468-A726-0788"
-                            android:textColor="#FFF0C243"
+                            android:textColor="#FF3CD070"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -1838,7 +1844,7 @@
                             android:layout_alignParentStart="true"
                             android:layout_centerVertical="true"
                             android:text="YOUR CODE: SS-USER-FVD9"
-                            android:textColor="#FFF0C243"
+                            android:textColor="#FF3CD070"
                             android:textSize="13sp"
                             android:textStyle="bold" />
 
@@ -1942,7 +1948,7 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FFF0C243"
+                android:backgroundTint="#FF3CD070"
                 android:text="MINIMIZE FOR VIDEO CALL"
                 android:textColor="#0B0C10"
                 android:textSize="10.5sp"
@@ -2024,7 +2030,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="SCREEN"
-                    android:textColor="#FFF0C243"
+                    android:textColor="#FF3CD070"
                     android:textSize="22sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.08"
@@ -2041,13 +2047,13 @@
                     android:textStyle="bold"
                     android:letterSpacing="0.15" />
 
-                <!-- Option 1: Activate Now (Gold Gradient Card) -->
+                <!-- Option 1: Activate Now (Green Gradient Card) -->
                 <LinearLayout
                     android:id="@+id/cardActivateNow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:background="@drawable/bg_gold_gradient"
+                    android:background="@drawable/bg_green_gradient"
                     android:padding="20dp"
                     android:gravity="center_vertical"
                     android:clickable="true"
@@ -2173,7 +2179,7 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FFF0C243"
+                android:backgroundTint="#FF3CD070"
                 android:text="MINIMIZE FOR VIDEO CALL"
                 android:textColor="#0B0C10"
                 android:textSize="10.5sp"
@@ -2243,7 +2249,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:text="MORPHLY"
-                    android:textColor="#FFF0C243"
+                    android:textColor="#FF3CD070"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.05" />
@@ -2452,7 +2458,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="$20 USD"
-                            android:textColor="#FFF0C243"
+                            android:textColor="#FF3CD070"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:layout_marginTop="8dp" />
@@ -2521,7 +2527,7 @@
                             android:id="@+id/btnSelectPlanStarter"
                             android:layout_width="match_parent"
                             android:layout_height="36dp"
-                            android:backgroundTint="#FFF0C243"
+                            android:backgroundTint="#FF3CD070"
                             android:text="SELECT"
                             android:textColor="#0B0C10"
                             android:textSize="11sp"
@@ -2686,7 +2692,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="$150 USD"
-                            android:textColor="#FFF0C243"
+                            android:textColor="#FF3CD070"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:layout_marginTop="8dp" />
@@ -2755,7 +2761,7 @@
                             android:id="@+id/btnSelectPlanPremium"
                             android:layout_width="match_parent"
                             android:layout_height="36dp"
-                            android:backgroundTint="#FFF0C243"
+                            android:backgroundTint="#FF3CD070"
                             android:text="SELECT"
                             android:textColor="#0B0C10"
                             android:textSize="11sp"
@@ -2806,7 +2812,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="$550 USD"
-                            android:textColor="#FFF0C243"
+                            android:textColor="#FF3CD070"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:layout_marginTop="8dp" />
@@ -2875,7 +2881,7 @@
                             android:id="@+id/btnSelectPlanElite"
                             android:layout_width="match_parent"
                             android:layout_height="36dp"
-                            android:backgroundTint="#FFF0C243"
+                            android:backgroundTint="#FF3CD070"
                             android:text="SELECT"
                             android:textColor="#0B0C10"
                             android:textSize="11sp"
@@ -2931,7 +2937,7 @@
                     android:layout_height="42dp"
                     android:backgroundTint="#1D2030"
                     android:text="REDEEM CREDIT KEY"
-                    android:textColor="#FFF0C243"
+                    android:textColor="#FF3CD070"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     app:cornerRadius="2dp" />
@@ -2957,7 +2963,7 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FFF0C243"
+                android:backgroundTint="#FF3CD070"
                 android:text="MINIMIZE FOR VIDEO CALL"
                 android:textColor="#0B0C10"
                 android:textSize="10.5sp"
@@ -3029,7 +3035,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:text="CHECKOUT SECURE"
-                    android:textColor="#FFF0C243"
+                    android:textColor="#FF3CD070"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.05" />
@@ -3198,7 +3204,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
                             android:text="$10.00"
-                            android:textColor="#FFF0C243"
+                            android:textColor="#FF3CD070"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -3211,7 +3217,7 @@
                     android:id="@+id/btnCheckoutFlutterwave"
                     android:layout_width="match_parent"
                     android:layout_height="42dp"
-                    android:backgroundTint="#FFF0C243"
+                    android:backgroundTint="#FF3CD070"
                     android:text="🦋 PAY NOW – FLUTTERWAVE"
                     android:textColor="#0B0C10"
                     android:textSize="12.5sp"
@@ -3224,7 +3230,7 @@
                     android:id="@+id/btnCheckoutCrypto"
                     android:layout_width="match_parent"
                     android:layout_height="42dp"
-                    android:backgroundTint="#FFF0C243"
+                    android:backgroundTint="#FF3CD070"
                     android:text="₿ PAY WITH CRYPTO"
                     android:textColor="#0B0C10"
                     android:textSize="12.5sp"
@@ -3287,7 +3293,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
                     android:text="Already have a manual credit key?"
-                    android:textColor="#FFF0C243"
+                    android:textColor="#FF3CD070"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:clickable="true"
@@ -3320,7 +3326,7 @@
                         android:id="@+id/btnCheckoutRedeemKey"
                         android:layout_width="match_parent"
                         android:layout_height="38dp"
-                        android:backgroundTint="#FFF0C243"
+                        android:backgroundTint="#FF3CD070"
                         android:text="REDEEM MANUAL KEY"
                         android:textColor="#0B0C10"
                         android:textSize="11sp"
@@ -3365,7 +3371,7 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FFF0C243"
+                android:backgroundTint="#FF3CD070"
                 android:text="MINIMIZE FOR VIDEO CALL"
                 android:textColor="#0B0C10"
                 android:textSize="10.5sp"
@@ -3475,7 +3481,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:text="SS-C468-A726-0788"
-                        android:textColor="#FFF0C243"
+                        android:textColor="#FF3CD070"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05" />
@@ -3527,7 +3533,7 @@
                         android:id="@+id/btnActivationPayFlutterwave"
                         android:layout_width="match_parent"
                         android:layout_height="42dp"
-                        android:backgroundTint="#FFF0C243"
+                        android:backgroundTint="#FF3CD070"
                         android:text="🦋 PAY $75 – FLUTTERWAVE"
                         android:textColor="#0B0C10"
                         android:textSize="13sp"
@@ -3538,7 +3544,7 @@
                         android:id="@+id/btnActivationPayCrypto"
                         android:layout_width="match_parent"
                         android:layout_height="42dp"
-                        android:backgroundTint="#FFF0C243"
+                        android:backgroundTint="#FF3CD070"
                         android:text="₿ PAY $75 • CRYPTO"
                         android:textColor="#0B0C10"
                         android:textSize="13sp"
@@ -3600,7 +3606,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="42dp"
                         android:layout_marginTop="16dp"
-                        android:backgroundTint="#FFF0C243"
+                        android:backgroundTint="#FF3CD070"
                         android:text="ACTIVATE LICENSE"
                         android:textColor="#0B0C10"
                         android:textSize="14sp"
@@ -3616,7 +3622,7 @@
                     android:layout_gravity="center_horizontal"
                     android:layout_marginBottom="24dp"
                     android:text="Having trouble? Contact support on Telegram"
-                    android:textColor="#FFF0C243"
+                    android:textColor="#FF3CD070"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:clickable="true"
@@ -3670,7 +3676,7 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FFF0C243"
+                android:backgroundTint="#FF3CD070"
                 android:text="MINIMIZE FOR VIDEO CALL"
                 android:textColor="#0B0C10"
                 android:textSize="10.5sp"
