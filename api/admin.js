@@ -12,7 +12,8 @@ export default async function handler(req, res) {
 
   // 1. Verify admin secret key
   const adminSecret = process.env.ADMIN_SECRET || 'admin123';
-  const incomingSecret = req.headers['x-admin-secret'] || req.query.admin_secret || req.body.admin_secret;
+  const query = req.query || {};
+  const incomingSecret = req.headers['x-admin-secret'] || query.admin_secret || (req.body && req.body.admin_secret);
 
   if (!incomingSecret || incomingSecret !== adminSecret) {
     return res.status(403).json({ error: 'Access denied: invalid admin secret' });
@@ -101,17 +102,19 @@ async function handleOverview(req, res) {
 }
 
 async function handleListUsers(req, res) {
-  const q = (req.query.q || '').toLowerCase();
+  const query = req.query || {};
+  const rawQ = query.q || '';
+  const q = (Array.isArray(rawQ) ? rawQ[0] : rawQ).toLowerCase();
   const usersRef = db.collection('users');
   const usersSnap = await usersRef.get();
 
   let users = [];
   usersSnap.forEach(doc => {
     const data = doc.data();
-    const email = data.email || '';
-    const name = data.displayName || '';
-    const phone = data.phone || '';
-    const deviceId = data.device_id || '';
+    const email = String(data.email || '');
+    const name = String(data.displayName || '');
+    const phone = String(data.phone || '');
+    const deviceId = String(data.device_id || '');
 
     if (!q || email.toLowerCase().includes(q) || name.toLowerCase().includes(q) || phone.includes(q) || deviceId.toLowerCase().includes(q)) {
       users.push({
@@ -122,8 +125,8 @@ async function handleListUsers(req, res) {
         device_id: data.device_id || '—',
         license_status: data.is_activated ? 'active' : 'none',
         credits_remaining: 0, // will load from wallets
-        created_at: data.createdAt ? data.createdAt.toDate().toISOString() : '—',
-        last_login: data.updatedAt ? data.updatedAt.toDate().toISOString() : '—',
+        created_at: (data.createdAt && typeof data.createdAt.toDate === 'function') ? data.createdAt.toDate().toISOString() : (data.createdAt || '—'),
+        last_login: (data.updatedAt && typeof data.updatedAt.toDate === 'function') ? data.updatedAt.toDate().toISOString() : (data.updatedAt || '—'),
       });
     }
   });
