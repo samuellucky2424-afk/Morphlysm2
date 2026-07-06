@@ -13,14 +13,22 @@ if (hasCredentials) {
       if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
         config = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
       } else {
-        config = {
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          // Replace literal escaped newlines with actual newline characters
-          privateKey: process.env.FIREBASE_PRIVATE_KEY 
-            ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') 
-            : undefined,
-        };
+          let pk = process.env.FIREBASE_PRIVATE_KEY;
+          if (pk) {
+            pk = pk.replace(/^"|"$/g, ''); // Remove surrounding quotes if added
+            pk = pk.replace(/\\n/g, '\n'); // Replace escaped newlines
+            // If Vercel stripped newlines entirely and replaced with spaces:
+            if (!pk.includes('\n') && pk.includes('-----BEGIN PRIVATE KEY-----')) {
+              pk = pk.replace(/(-----BEGIN PRIVATE KEY-----)\s*(.*?)\s*(-----END PRIVATE KEY-----)/, (match, p1, p2, p3) => {
+                return p1 + '\n' + p2.replace(/\s+/g, '\n') + '\n' + p3;
+              });
+            }
+          }
+          config = {
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: pk,
+          };
       }
 
       admin.initializeApp({
