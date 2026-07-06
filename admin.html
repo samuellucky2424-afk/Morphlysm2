@@ -251,91 +251,23 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
     <!-- Tabs -->
     <div class="tabs">
-      <button class="tab-btn on" onclick="showTab('generate')">🔑 GENERATE KEY</button>
+      <button class="tab-btn on" onclick="showTab('plans')">📦 PLANS</button>
       <button class="tab-btn" onclick="showTab('credits')">💳 MANAGE CREDITS</button>
       <button class="tab-btn" onclick="showTab('users')">👥 USERS</button>
-      <button class="tab-btn" onclick="showTab('keys')">📋 KEY LOG</button>
       <button class="tab-btn" onclick="showTab('engine')">⚙️ ENGINE KEY</button>
       <button class="tab-btn" onclick="showTab('referral')">🎁 REFERRAL</button>
       <button class="tab-btn" onclick="showTab('creators')">👥 CREATORS</button>
-      <button class="tab-btn" onclick="showTab('plans')">📦 PLANS</button>
       <button class="tab-btn" onclick="showTab('payments')">💰 PAYMENTS</button>
       <button class="tab-btn" onclick="showTab('crypto')">₿ CRYPTO</button>
       <button class="tab-btn" onclick="showTab('backgrounds')">🎬 BACKGROUNDS</button>
       <button class="tab-btn" onclick="showTab('monitor')">🔴 LIVE MONITOR</button>
       <button class="tab-btn" onclick="showTab('support')">🛟 SUPPORT</button>
       <button class="tab-btn" onclick="showTab('branding')">⚙️ SETTINGS</button>
+      <button class="tab-btn" onclick="showTab('notifications')">📢 NOTIFICATIONS</button>
       <button class="tab-btn" onclick="showTab('massemail')">✉️ MASS EMAIL</button>
     </div>
 
-    <!-- ══ TAB: GENERATE ACCESS KEY ══ -->
-    <div class="tab-content on" id="tab-generate">
-      <div class="grid-2">
-
-        <!-- Form -->
-        <div class="card">
-          <div class="card-title"><span class="dot"></span>Generate Annual Access Key</div>
-
-          <label class="f-label">Customer Email *</label>
-          <input class="f-input" type="email" id="genEmail" placeholder="customer@email.com">
-
-          <label class="f-label">Device ID *</label>
-          <input class="f-input" type="text" id="genDevice" placeholder="MP-XXXX-XXXX-XXXX" oninput="this.value=this.value.toUpperCase()">
-
-          <label class="f-label">Customer Name</label>
-          <input class="f-input" type="text" id="genName" placeholder="Full name (optional)">
-
-          <label class="f-label">Notes (internal)</label>
-          <input class="f-input" type="text" id="genNotes" placeholder="Payment ref, date, etc.">
-
-          <div class="f-err" id="genErr"></div>
-
-          <button class="btn btn-gold btn-full" id="genBtn" onclick="generateKey()">
-            <span>⚡</span> GENERATE ACCESS KEY
-          </button>
-        </div>
-
-        <!-- Result -->
-        <div>
-          <div class="card">
-            <div class="card-title"><span class="dot"></span>Generated Key</div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--dim2);line-height:1.8;margin-bottom:4px">
-              Fill in the form and click Generate.<br>
-              The key will appear here, ready to copy and send.
-            </div>
-            <div class="key-result" id="keyResult">
-              <div class="kr-label">✓ Access Key Generated</div>
-              <div class="kr-key" id="krKey">—</div>
-              <div class="kr-meta">
-                <span><b>Customer:</b> <span id="krEmail">—</span></span><br>
-                <span><b>Device ID:</b> <span id="krDevice">—</span></span><br>
-                <span><b>Activated:</b> <span id="krActivated">—</span></span><br>
-                <span><b>Expires:</b> <span id="krExpires">—</span></span>
-              </div>
-              <div class="kr-actions">
-                <button class="copy-btn" onclick="copyKey()">📋 COPY KEY</button>
-                <button class="wa-btn" onclick="sendKeyIG()" style="background:rgba(60,208,112,.1);border-color:rgba(60,208,112,.4);color:#3cd070">📸 SEND VIA INSTAGRAM</button>
-                <button class="em-btn" onclick="sendKeyEmail()">✉️ SEND VIA EMAIL</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick instructions -->
-          <div class="card">
-            <div class="card-title"><span class="dot"></span>How to Use</div>
-            <div style="font-family:var(--mono);font-size:9px;color:var(--dim2);line-height:2;letter-spacing:.5px">
-              1. Customer installs Morphly desktop app<br>
-              2. App shows their <b style="color:var(--dim)">Device ID</b> on first launch<br>
-              3. Customer signs up on morphlysm2.vercel.app<br>
-              4. Customer sends you their <b style="color:var(--dim)">Device ID</b> + pays fee<br>
-              5. You enter their email + device ID above<br>
-              6. Click Generate → copy key → send to customer<br>
-              7. Customer enters key in the desktop app → unlocked ✓
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- GENERATE ACCESS KEY TAB REMOVED -->
 
     <!-- ══ TAB: MANAGE CREDITS ══ -->
     <div class="tab-content" id="tab-credits">
@@ -437,40 +369,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       </div>
     </div>
 
-    <!-- ══ TAB: KEY LOG ══ -->
-    <div class="tab-content" id="tab-keys">
-      <div class="card">
-        <div class="card-title"><span class="dot"></span>Key Generation Log <span id="keyLogCountLabel" style="color:var(--dim2);font-weight:400"></span></div>
-        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-          <input class="f-input" style="margin-bottom:0;flex:1;min-width:200px;max-width:320px" type="text" id="keyLogSearch" placeholder="Search email, key, device, source…" oninput="onKeyLogSearchInput()">
-          <button class="btn btn-ghost" onclick="loadKeyLog()">↻ REFRESH</button>
-          <button class="btn btn-ghost" type="button" onclick="clearKeyLogSearch()">✕ CLEAR</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Access Key</th>
-                <th>Customer Email</th>
-                <th>Device ID</th>
-                <th>Generated</th>
-                <th>Expires</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="keysBody">
-              <tr><td colspan="7" class="empty">Loading key history…</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="users-pagination" id="keyLogPagination" style="display:none">
-          <button type="button" id="keyLogPrevBtn" onclick="loadKeyLog(keyLogPage - 1)">← Previous</button>
-          <span id="keyLogPageInfo">Page 1 of 1</span>
-          <button type="button" id="keyLogNextBtn" onclick="loadKeyLog(keyLogPage + 1)">Next →</button>
-        </div>
-      </div>
-    </div>
+    <!-- KEY LOG TAB REMOVED -->
 
     <!-- ══ TAB: ENGINE KEY ══ -->
     <div class="tab-content" id="tab-engine">
@@ -708,11 +607,41 @@ tr:hover td{background:rgba(255,255,255,.02)}
     </div>
 
     <!-- ══ TAB: PLANS ══ -->
-    <div class="tab-content" id="tab-plans">
+    <div class="tab-content on" id="tab-plans">
       <div class="card">
-        <div class="card-title"><span class="dot"></span>Pricing Plans</div>
-        <div id="planToggles"></div>
-        <button class="btn btn-gold btn-full" onclick="saveAllPlans()" style="margin-top:16px">💾 SAVE ALL PLANS</button>
+        <div class="card-title"><span class="dot"></span>Credit Packages</div>
+        <p style="font-family:var(--mono);font-size:9px;color:var(--dim2);line-height:1.8;margin-bottom:16px">
+          Configure the pricing and credit amounts for the 4 standard packages.
+        </p>
+        <div id="planToggles">
+          <div class="grid-2">
+            <div>
+              <label class="f-label">Basic Plan Price (₦)</label>
+              <input class="f-input" type="number" id="pkg_basic_price" value="29000">
+              <label class="f-label">Basic Plan Credits</label>
+              <input class="f-input" type="number" id="pkg_basic_credits" value="1000">
+            </div>
+            <div>
+              <label class="f-label">Pro Plan Price (₦)</label>
+              <input class="f-input" type="number" id="pkg_pro_price" value="58000">
+              <label class="f-label">Pro Plan Credits</label>
+              <input class="f-input" type="number" id="pkg_pro_credits" value="2000">
+            </div>
+            <div>
+              <label class="f-label">Enterprise Plan Price (₦)</label>
+              <input class="f-input" type="number" id="pkg_enterprise_price" value="145000">
+              <label class="f-label">Enterprise Plan Credits</label>
+              <input class="f-input" type="number" id="pkg_enterprise_credits" value="5000">
+            </div>
+            <div>
+              <label class="f-label">VIP Plan Price (₦)</label>
+              <input class="f-input" type="number" id="pkg_vip_price" value="290000">
+              <label class="f-label">VIP Plan Credits</label>
+              <input class="f-input" type="number" id="pkg_vip_credits" value="10000">
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-gold btn-full" onclick="saveAllPackages()" style="margin-top:16px">💾 SAVE ALL PACKAGES</button>
         <div class="f-err" id="planSaveErr"></div>
       </div>
     </div>
@@ -814,6 +743,18 @@ tr:hover td{background:rgba(255,255,255,.02)}
       </div>
     </div>
 
+    <!-- ══ TAB: NOTIFICATIONS ══ -->
+    <div class="tab-content" id="tab-notifications">
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Global App Notifications</div>
+        <p style="font-family:var(--mono);font-size:9px;color:var(--dim2);line-height:1.8;margin-bottom:16px">
+          This message will be shown as an alert to all users when they open the app. Leave empty to disable.
+        </p>
+        <textarea id="globalNotificationInput" class="f-input" style="min-height:100px;font-family:var(--body)" placeholder="Enter notification message here..."></textarea>
+        <button class="btn btn-gold" onclick="saveGlobalNotification()">💾 SAVE NOTIFICATION</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -892,7 +833,7 @@ function restoreAdminSessionIfLoggedIn() {
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('adminApp').style.display = 'flex';
     initAdmin();
-    showTab('generate');
+    showTab('plans');
   } else {
     document.getElementById('loginSection').style.display = 'flex';
     document.getElementById('adminApp').style.display = 'none';
@@ -925,80 +866,8 @@ async function loadStats() {
 }
 
 // ════════════════════════════════════════════════════
-//  GENERATE ANNUAL ACCESS KEY
+//  GENERATE ANNUAL ACCESS KEY - REMOVED
 // ════════════════════════════════════════════════════
-let lastGeneratedKey = null;
-let lastGeneratedEmail = null;
-let lastGeneratedDevice = null;
-
-async function generateKey() {
-  const email = document.getElementById('genEmail').value.trim().toLowerCase();
-  const deviceId = document.getElementById('genDevice').value.trim().toUpperCase();
-  const name = document.getElementById('genName').value.trim();
-  const notes = document.getElementById('genNotes').value.trim();
-  const errEl = document.getElementById('genErr');
-  const btn = document.getElementById('genBtn');
-  errEl.textContent = '';
-
-  if (!email || !deviceId) { errEl.textContent = 'Email and Device ID are required.'; return; }
-  if (!deviceId.startsWith('MP-')) {
-    errEl.textContent = 'Device ID must start with MP-';
-    return;
-  }
-
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> GENERATING…';
-
-  try {
-    const r = await fetch(`${API_URL}/keys/activate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
-      body: JSON.stringify({ user_email: email, device_id: deviceId, user_name: name, notes })
-    });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error || 'Server error');
-    
-    lastGeneratedKey = d.key;
-    lastGeneratedEmail = email;
-    lastGeneratedDevice = deviceId;
-
-    document.getElementById('krKey').textContent = d.key;
-    document.getElementById('krEmail').textContent = email;
-    document.getElementById('krDevice').textContent = deviceId;
-    document.getElementById('krActivated').textContent = fmtDate(new Date());
-    document.getElementById('krExpires').textContent = fmtDate(d.expires_at);
-    document.getElementById('keyResult').classList.add('show');
-
-    document.getElementById('genEmail').value = '';
-    document.getElementById('genDevice').value = '';
-    document.getElementById('genName').value = '';
-    document.getElementById('genNotes').value = '';
-
-    toast('Key generated successfully!', 'ok');
-    loadStats();
-  } catch(e) {
-    errEl.textContent = e.message;
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<span>⚡</span> GENERATE ACCESS KEY';
-  }
-}
-
-function copyKey() {
-  if (lastGeneratedKey) {
-    navigator.clipboard.writeText(lastGeneratedKey).then(() => toast('Key copied!', 'ok'));
-  }
-}
-function sendKeyIG() {
-  window.open('https://instagram.com', '_blank');
-}
-function sendKeyEmail() {
-  if (lastGeneratedKey && lastGeneratedEmail) {
-    const sub = encodeURIComponent('Your Morphly Access Key');
-    const body = encodeURIComponent(`Hi,\n\nYour Morphly access key is: ${lastGeneratedKey}\n\nEnter this in the app.`);
-    window.location.href = `mailto:${lastGeneratedEmail}?subject=${sub}&body=${body}`;
-  }
-}
 
 // ════════════════════════════════════════════════════
 //  CREDITS TOP UP & TOPICS
@@ -1087,8 +956,9 @@ async function loadUsers(page = 1) {
           <td>${fmtDate(u.last_login)}</td>
           <td>
             <div class="td-action">
-              <button class="td-btn" onclick="quickActivate('${esc(u.email)}','${esc(u.device_id)}')">ACTIVATE</button>
               <button class="td-btn" onclick="quickCredit('${esc(u.email)}')">CREDITS</button>
+              <button class="td-btn" onclick="updateUserStatus('${esc(u.email)}', 'suspended')">SUSPEND</button>
+              <button class="td-btn" onclick="updateUserStatus('${esc(u.email)}', 'banned')">BAN</button>
               <button class="td-btn red" onclick="deleteUser('${esc(u.email)}')">DELETE</button>
             </div>
           </td>
@@ -1104,14 +974,28 @@ async function loadUsers(page = 1) {
   }
 }
 
-function quickActivate(email, device) {
-  showTab('generate');
-  document.getElementById('genEmail').value = email;
-  document.getElementById('genDevice').value = device;
-}
 function quickCredit(email) {
   showTab('credits');
   document.getElementById('creditEmail').value = email;
+}
+
+async function updateUserStatus(email, status) {
+  if (!confirm(`Mark user ${email} as ${status}?`)) return;
+  try {
+    const r = await fetch(`${API_URL}/admin/users/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+      body: JSON.stringify({ email, status })
+    });
+    if (r.ok) {
+      toast(`User ${status}`, 'ok');
+      loadUsers(usersPage);
+    } else {
+      toast('Failed to update status', 'err');
+    }
+  } catch(e) {
+    toast('Error updating status', 'err');
+  }
 }
 
 async function deleteUser(email) {
@@ -1130,46 +1014,77 @@ async function deleteUser(email) {
   }
 }
 
-async function loadKeyLog(page = 1) {
-  keyLogPage = page;
-  const tbody = document.getElementById('keysBody');
-  tbody.innerHTML = '<tr><td colspan="7" class="empty">Loading...</td></tr>';
+// ════════════════════════════════════════════════════
+//  PACKAGES & NOTIFICATIONS
+// ════════════════════════════════════════════════════
+async function loadPackages() {
   try {
-    const r = await fetch(`${API_URL}/admin/key-logs?page=${page}`, {
-      headers: { 'x-admin-secret': ADMIN_SECRET }
-    });
+    const r = await fetch(`${API_URL}/admin/packages`, { headers: { 'x-admin-secret': ADMIN_SECRET } });
     const d = await r.json();
-    if (d.logs && d.logs.length) {
-      tbody.innerHTML = d.logs.map(k => `
-        <tr>
-          <td class="td-key">${esc(k.access_key)}</td>
-          <td>${esc(k.email)}</td>
-          <td>${esc(k.device_id)}</td>
-          <td>${fmtDate(k.activated_at)}</td>
-          <td>${fmtDate(k.expires_at)}</td>
-          <td><span class="td-badge badge-active">${esc(k.status || 'ACTIVE')}</span></td>
-          <td><button class="td-btn red" onclick="deleteKeyLog('${k.id}')">DELETE</button></td>
-        </tr>
-      `).join('');
-      document.getElementById('keyLogPagination').style.display = 'flex';
-      document.getElementById('keyLogPageInfo').textContent = `Page ${page}`;
+    if (d.packages && d.packages.length === 4) {
+      document.getElementById('pkg_basic_price').value = d.packages[0].price;
+      document.getElementById('pkg_basic_credits').value = d.packages[0].credits;
+      document.getElementById('pkg_pro_price').value = d.packages[1].price;
+      document.getElementById('pkg_pro_credits').value = d.packages[1].credits;
+      document.getElementById('pkg_enterprise_price').value = d.packages[2].price;
+      document.getElementById('pkg_enterprise_credits').value = d.packages[2].credits;
+      document.getElementById('pkg_vip_price').value = d.packages[3].price;
+      document.getElementById('pkg_vip_credits').value = d.packages[3].credits;
+    }
+  } catch(e) {}
+}
+
+async function saveAllPackages() {
+  const errEl = document.getElementById('planSaveErr');
+  errEl.textContent = 'Saving...';
+  const packages = [
+    { id: 'basic', name: 'Basic', price: parseInt(document.getElementById('pkg_basic_price').value), credits: parseInt(document.getElementById('pkg_basic_credits').value), timeLabel: '~8m 20s' },
+    { id: 'pro', name: 'Pro', price: parseInt(document.getElementById('pkg_pro_price').value), credits: parseInt(document.getElementById('pkg_pro_credits').value), timeLabel: '~16m 40s' },
+    { id: 'enterprise', name: 'Enterprise', price: parseInt(document.getElementById('pkg_enterprise_price').value), credits: parseInt(document.getElementById('pkg_enterprise_credits').value), timeLabel: '~41m 40s' },
+    { id: 'vip', name: 'VIP plan', price: parseInt(document.getElementById('pkg_vip_price').value), credits: parseInt(document.getElementById('pkg_vip_credits').value), timeLabel: '~83m 20s' }
+  ];
+  
+  try {
+    const r = await fetch(`${API_URL}/admin/packages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+      body: JSON.stringify({ packages })
+    });
+    if (r.ok) {
+      toast('Packages saved successfully', 'ok');
+      errEl.textContent = '';
     } else {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty">No keys logged.</td></tr>';
+      errEl.textContent = 'Failed to save packages';
     }
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty">Error loading key logs.</td></tr>';
+    errEl.textContent = 'Network error';
   }
 }
 
-async function deleteKeyLog(id) {
-  if (!confirm('Remove key log?')) return;
+async function loadGlobalNotification() {
   try {
-    await fetch(`${API_URL}/admin/key-logs?id=${id}`, {
-      method: 'DELETE',
-      headers: { 'x-admin-secret': ADMIN_SECRET }
-    });
-    loadKeyLog(1);
+    const r = await fetch(`${API_URL}/admin/config`, { headers: { 'x-admin-secret': ADMIN_SECRET } });
+    const d = await r.json();
+    document.getElementById('globalNotificationInput').value = d.notification || '';
   } catch(e) {}
+}
+
+async function saveGlobalNotification() {
+  const notification = document.getElementById('globalNotificationInput').value;
+  try {
+    const r = await fetch(`${API_URL}/admin/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+      body: JSON.stringify({ notification })
+    });
+    if (r.ok) {
+      toast('Notification saved successfully', 'ok');
+    } else {
+      toast('Failed to save notification', 'err');
+    }
+  } catch(e) {
+    toast('Network error', 'err');
+  }
 }
 
 // ════════════════════════════════════════════════════
@@ -1234,7 +1149,8 @@ function showTab(id) {
   document.getElementById('tab-'+id).classList.add('on');
 
   if (id === 'users') loadUsers();
-  if (id === 'keys') loadKeyLog();
+  if (id === 'plans') loadPackages();
+  if (id === 'notifications') loadGlobalNotification();
 }
 
 document.addEventListener('DOMContentLoaded', restoreAdminSessionIfLoggedIn);

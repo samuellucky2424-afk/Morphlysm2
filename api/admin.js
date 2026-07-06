@@ -26,6 +26,14 @@ export default async function handler(req, res) {
     // ROUTES HANDLER
     if (path === '/overview') {
       return await handleOverview(req, res);
+    } else if (path === '/packages') {
+      if (req.method === 'POST') return await handleSavePackages(req, res);
+      return await handleGetPackages(req, res);
+    } else if (path === '/config') {
+      if (req.method === 'POST') return await handleSaveConfig(req, res);
+      return await handleGetConfig(req, res);
+    } else if (path === '/wallet/add') {
+      return await handleWalletAdd(req, res);
     } else if (path === '/users') {
       if (req.method === 'DELETE') {
         return await handleDeleteUser(req, res);
@@ -33,6 +41,8 @@ export default async function handler(req, res) {
       return await handleListUsers(req, res);
     } else if (path === '/users/lookup') {
       return await handleUserLookup(req, res);
+    } else if (path === '/users/status') {
+      return await handleUpdateUserStatus(req, res);
     } else if (path === '/users/restore') {
       return await handleUserRestore(req, res);
     } else if (path === '/key-logs') {
@@ -298,3 +308,94 @@ async function handleStreamingMonitor(req, res) {
     timestamp: new Date().toISOString()
   });
 }
+
+// --- NEW ROUTE HANDLERS ---
+
+async function handleGetPackages(req, res) {
+  const doc = await db.collection('settings').doc('packages').get();
+  if (doc.exists && doc.data().packages) {
+    return res.status(200).json({ packages: doc.data().packages });
+  }
+  // Defaults
+  return res.status(200).json({ packages: [
+    { id: 'basic', name: 'Basic', price: 29000, credits: 1000, timeLabel: '~8m 20s' },
+    { id: 'pro', name: 'Pro', price: 58000, credits: 2000, timeLabel: '~16m 40s' },
+    { id: 'enterprise', name: 'Enterprise', price: 145000, credits: 5000, timeLabel: '~41m 40s' },
+    { id: 'vip', name: 'VIP plan', price: 290000, credits: 10000, timeLabel: '~83m 20s' }
+  ]});
+}
+
+async function handleSavePackages(req, res) {
+  const { packages } = req.body;
+  if (!packages || !Array.isArray(packages)) return res.status(400).json({ error: 'packages array is required' });
+  await db.collection('settings').doc('packages').set({
+    packages,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  return res.status(200).json({ success: true });
+}
+
+async function handleGetConfig(req, res) {
+  const doc = await db.collection('settings').doc('global_config').get();
+  if (doc.exists) {
+    return res.status(200).json(doc.data());
+  }
+  return res.status(200).json({ notification: '' });
+}
+
+async function handleSaveConfig(req, res) {
+  const { notification } = req.body;
+  await db.collection('settings').doc('global_config').set({
+    notification: notification || '',
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+  return res.status(200).json({ success: true });
+}
+
+async function handleWalletAdd(req, res) {
+  const { email, amount } = req.body;
+  if (!email || !amount) return res.status(400).json({ error: 'email and amount are required' });
+  
+  const userSnap = await db.collection('users').where('email', '==', email).get();
+  if (userSnap.empty) return res.status(404).json({ error: 'User not found' });
+  
+  const userId = userSnap.docs[0].id;
+  const walletRef = db.collection('wallets').doc(userId);
+  
+  await db.runTransaction(async (t) => {
+    const wDoc = await t.get(walletRef);
+    if (!wDoc.exists) {
+      t.set(walletRef, {
+        user_id: userId,
+        balance: parseInt(amount, 10),
+        currency: 'USD',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      const currentBalance = wDoc.data().balance || 0;
+      t.update(walletRef, {
+        balance: currentBalance + parseInt(amount, 10),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  });
+  
+  return res.status(200).json({ success: true, message: `Added ${amount} credits to ${email}` });
+}
+
+async function handleUpdateUserStatus(req, res) {
+  const { email, status } = req.body;
+  if (!email || !status) return res.status(400).json({ error: 'email and status are required' });
+  
+  const userSnap = await db.collection('users').where('email', '==', email).get();
+  if (userSnap.empty) return res.status(404).json({ error: 'User not found' });
+  
+  const doc = userSnap.docs[0];
+  await doc.ref.update({
+    account_status: status,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  
+  return res.status(200).json({ success: true, message: `User status updated to ${status}` });
+}
+

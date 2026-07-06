@@ -186,7 +186,6 @@ class StreamActivity : BaseActivity() {
         binding.layoutWelcome.visibility = View.GONE
         binding.layoutStarterPack.visibility = View.GONE
         binding.layoutPlanPayment.visibility = View.GONE
-        binding.layoutActivation.visibility = View.GONE
         binding.layoutAccount.visibility = View.GONE
 
         // Start rotation animation on the arc
@@ -211,7 +210,6 @@ class StreamActivity : BaseActivity() {
         binding.layoutWelcome.visibility = View.GONE
         binding.layoutStarterPack.visibility = View.GONE
         binding.layoutPlanPayment.visibility = View.GONE
-        binding.layoutActivation.visibility = View.GONE
         binding.layoutAccount.visibility = View.GONE
 
         // Default tab is Sign In
@@ -227,8 +225,9 @@ class StreamActivity : BaseActivity() {
         binding.layoutWelcome.visibility = View.VISIBLE
         binding.layoutStarterPack.visibility = View.GONE
         binding.layoutPlanPayment.visibility = View.GONE
-        binding.layoutActivation.visibility = View.GONE
         binding.layoutAccount.visibility = View.GONE
+
+        fetchPackagesFromBackend()
     }
 
     private fun showStarterPackState() {
@@ -244,16 +243,16 @@ class StreamActivity : BaseActivity() {
         binding.layoutWelcome.visibility = View.GONE
         binding.layoutStarterPack.visibility = View.VISIBLE
         binding.layoutPlanPayment.visibility = View.GONE
-        binding.layoutActivation.visibility = View.GONE
         binding.layoutAccount.visibility = View.GONE
+
+        fetchPackagesFromBackend()
     }
 
-    private fun showPlanPaymentState(name: String, price: Double, credits: Int, streamTime: String, isActivation: Boolean) {
+    private fun showPlanPaymentState(name: String, price: Double, credits: Int, streamTime: String) {
         selectedPlanName = name
         selectedPlanPrice = price
         selectedPlanCredits = credits
         selectedPlanStreamTime = streamTime
-        isLicenseActivationPlan = isActivation
 
         binding.ivSplashArc.clearAnimation()
         releaseCamera()
@@ -263,14 +262,13 @@ class StreamActivity : BaseActivity() {
         binding.layoutWelcome.visibility = View.GONE
         binding.layoutStarterPack.visibility = View.GONE
         binding.layoutPlanPayment.visibility = View.VISIBLE
-        binding.layoutActivation.visibility = View.GONE
         binding.layoutAccount.visibility = View.GONE
 
         // Populate details
         binding.tvCheckoutPlanTitle.text = "${name.uppercase()} PLAN"
-        binding.tvCheckoutPlanSubtitle.text = if (isActivation) String.format("$%.2f • Permanent", price) else String.format("$%.2f • %,d CREDITS", price, credits)
+        binding.tvCheckoutPlanSubtitle.text = String.format("$%.2f • %,d CREDITS", price, credits)
         binding.tvCheckoutDetailPlan.text = name
-        binding.tvCheckoutDetailCredits.text = if (isActivation) "Permanent" else String.format("%,d credits", credits)
+        binding.tvCheckoutDetailCredits.text = String.format("%,d credits", credits)
         binding.tvCheckoutDetailStreamTime.text = streamTime
         binding.tvCheckoutDetailTotal.text = String.format("$%.2f", price)
 
@@ -279,25 +277,6 @@ class StreamActivity : BaseActivity() {
         binding.etCheckoutManualKey.setText("")
     }
 
-    private fun showActivationState() {
-        binding.ivSplashArc.clearAnimation()
-        releaseCamera()
-        binding.layoutSplash.visibility = View.GONE
-        binding.layoutAuth.visibility = View.GONE
-        binding.layoutDashboard.visibility = View.GONE
-        binding.layoutWelcome.visibility = View.GONE
-        binding.layoutStarterPack.visibility = View.GONE
-        binding.layoutPlanPayment.visibility = View.GONE
-        binding.layoutActivation.visibility = View.VISIBLE
-        binding.layoutAccount.visibility = View.GONE
-
-        // Populate unique device ID
-        binding.tvActivationDeviceId.text = StreamAuthManager.getDeviceId(this)
-        
-        // Reset inputs & message
-        binding.tvActivationStatus.visibility = View.GONE
-        binding.etActivationKey.setText("")
-    }
 
     private fun showDashboardState() {
         binding.ivSplashArc.clearAnimation()
@@ -306,7 +285,6 @@ class StreamActivity : BaseActivity() {
         binding.layoutWelcome.visibility = View.GONE
         binding.layoutStarterPack.visibility = View.GONE
         binding.layoutPlanPayment.visibility = View.GONE
-        binding.layoutActivation.visibility = View.GONE
         binding.layoutAccount.visibility = View.GONE
         binding.layoutDashboard.visibility = View.VISIBLE
 
@@ -899,9 +877,6 @@ class StreamActivity : BaseActivity() {
         }
 
         // Welcome Screen Actions
-        binding.cardActivateNow.setOnClickListener {
-            showPlanPaymentState("Activation", 75.0, 0, "Unlimited", true)
-        }
         binding.cardTryFirst.setOnClickListener {
             showPlanSelectionState()
         }
@@ -920,20 +895,29 @@ class StreamActivity : BaseActivity() {
         binding.btnPlanSelectionClose.setOnClickListener {
             showWelcomeState()
         }
-        binding.btnSelectPlanTest.setOnClickListener {
-            showPlanPaymentState("Test", 10.0, 500, "~4 min", false)
-        }
-        binding.btnSelectPlanStarter.setOnClickListener {
-            showPlanPaymentState("Starter", 20.0, 1000, "~8 min", false)
+        binding.btnSelectPlanBasic.setOnClickListener {
+            val price = binding.tvPlanBasicPrice.text.toString().replace("₦", "").replace(",", "").toDoubleOrNull() ?: 29000.0
+            val credits = binding.tvPlanBasicCredits.text.toString().replace(",", "").replace(" Credits", "").toIntOrNull() ?: 1000
+            val time = binding.tvPlanBasicTime.text.toString()
+            showPlanPaymentState("Basic", price, credits, time)
         }
         binding.btnSelectPlanPro.setOnClickListener {
-            showPlanPaymentState("Pro", 60.0, 5000, "~38 min", false)
+            val price = binding.tvPlanProPrice.text.toString().replace("₦", "").replace(",", "").toDoubleOrNull() ?: 58000.0
+            val credits = binding.tvPlanProCredits.text.toString().replace(",", "").replace(" Credits", "").toIntOrNull() ?: 2000
+            val time = binding.tvPlanProTime.text.toString()
+            showPlanPaymentState("Pro", price, credits, time)
         }
-        binding.btnSelectPlanPremium.setOnClickListener {
-            showPlanPaymentState("Premium", 150.0, 10000, "~76 min", false)
+        binding.btnSelectPlanEnterprise.setOnClickListener {
+            val price = binding.tvPlanEnterprisePrice.text.toString().replace("₦", "").replace(",", "").toDoubleOrNull() ?: 145000.0
+            val credits = binding.tvPlanEnterpriseCredits.text.toString().replace(",", "").replace(" Credits", "").toIntOrNull() ?: 5000
+            val time = binding.tvPlanEnterpriseTime.text.toString()
+            showPlanPaymentState("Enterprise", price, credits, time)
         }
-        binding.btnSelectPlanElite.setOnClickListener {
-            showPlanPaymentState("Elite", 550.0, 50000, "~379 min", false)
+        binding.btnSelectPlanVip.setOnClickListener {
+            val price = binding.tvPlanVipPrice.text.toString().replace("₦", "").replace(",", "").toDoubleOrNull() ?: 290000.0
+            val credits = binding.tvPlanVipCredits.text.toString().replace(",", "").replace(" Credits", "").toIntOrNull() ?: 10000
+            val time = binding.tvPlanVipTime.text.toString()
+            showPlanPaymentState("VIP plan", price, credits, time)
         }
         binding.btnPlanRedeemKey.setOnClickListener {
             redeemManualPlanKey()
@@ -1432,4 +1416,108 @@ class StreamActivity : BaseActivity() {
             Toast.makeText(this, "Email: support@morphly.com", Toast.LENGTH_LONG).show()
         }
     }
+
+    private fun fetchPackagesFromBackend() {
+        networkExecutor.execute {
+            try {
+                val url = java.net.URL("$BACKEND_BASE_URL/packages")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+                
+                if (connection.responseCode == 200) {
+                    val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream))
+                    val response = java.lang.StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        response.append(line)
+                    }
+                    reader.close()
+                    
+                    val jsonStr = response.toString()
+                    try {
+                        val jsonObject = org.json.JSONObject(jsonStr)
+                        val packagesArray = jsonObject.getJSONArray("packages")
+                        if (packagesArray.length() == 4) {
+                            runOnUiThread {
+                                val p1 = packagesArray.getJSONObject(0)
+                                binding.tvPlanBasicTitle.text = p1.getString("name")
+                                binding.tvPlanBasicPrice.text = "₦" + String.format("%,d", p1.getInt("price"))
+                                binding.tvPlanBasicCredits.text = String.format("%,d", p1.getInt("credits")) + " Credits"
+                                binding.tvPlanBasicTime.text = p1.getString("timeLabel")
+
+                                val p2 = packagesArray.getJSONObject(1)
+                                binding.tvPlanProTitle.text = p2.getString("name")
+                                binding.tvPlanProPrice.text = "₦" + String.format("%,d", p2.getInt("price"))
+                                binding.tvPlanProCredits.text = String.format("%,d", p2.getInt("credits")) + " Credits"
+                                binding.tvPlanProTime.text = p2.getString("timeLabel")
+
+                                val p3 = packagesArray.getJSONObject(2)
+                                binding.tvPlanEnterpriseTitle.text = p3.getString("name")
+                                binding.tvPlanEnterprisePrice.text = "₦" + String.format("%,d", p3.getInt("price"))
+                                binding.tvPlanEnterpriseCredits.text = String.format("%,d", p3.getInt("credits")) + " Credits"
+                                binding.tvPlanEnterpriseTime.text = p3.getString("timeLabel")
+
+                                val p4 = packagesArray.getJSONObject(3)
+                                binding.tvPlanVipTitle.text = p4.getString("name")
+                                binding.tvPlanVipPrice.text = "₦" + String.format("%,d", p4.getInt("price"))
+                                binding.tvPlanVipCredits.text = String.format("%,d", p4.getInt("credits")) + " Credits"
+                                binding.tvPlanVipTime.text = p4.getString("timeLabel")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+
+    private fun fetchNotificationFromBackend() {
+        networkExecutor.execute {
+            try {
+                val url = java.net.URL("$BACKEND_BASE_URL/config")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+                
+                if (connection.responseCode == 200) {
+                    val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream))
+                    val response = java.lang.StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        response.append(line)
+                    }
+                    reader.close()
+                    
+                    val jsonStr = response.toString()
+                    try {
+                        val jsonObject = org.json.JSONObject(jsonStr)
+                        if (jsonObject.has("notification")) {
+                            val notification = jsonObject.getString("notification")
+                            if (notification.isNotBlank()) {
+                                runOnUiThread {
+                                    android.app.AlertDialog.Builder(this@StreamActivity)
+                                        .setTitle("Notification")
+                                        .setMessage(notification)
+                                        .setPositiveButton("OK", null)
+                                        .show()
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
 }

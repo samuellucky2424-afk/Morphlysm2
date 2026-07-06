@@ -2313,14 +2313,14 @@
 
                 <!-- Grid of Plans: 2 Columns Layout -->
                 
-                <!-- Row 1: TEST & STARTER -->
+                <!-- Row 1: BASIC & PRO -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:layout_marginBottom="12dp">
 
-                    <!-- TEST Plan Card -->
+                    <!-- BASIC Plan Card -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -2334,112 +2334,6 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="#FF5252"
-                            android:textColor="#FFFFFF"
-                            android:text="TEST"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:paddingHorizontal="8dp"
-                            android:paddingVertical="3dp"
-                            android:layout_marginBottom="12dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="TEST"
-                            android:textColor="#FFFFFF"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="$10 USD"
-                            android:textColor="#FF5252"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="8dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="500 Credits"
-                            android:textColor="#FF3CD070"
-                            android:textSize="13sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="4dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="≈ 4 min streaming"
-                            android:textColor="#6F7380"
-                            android:textSize="10.5sp"
-                            android:layout_marginTop="2dp" />
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="#222538"
-                            android:layout_marginVertical="10dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="✓ Full AI engine access"
-                            android:textColor="#FF3CD070"
-                            android:textSize="9.5sp"
-                            android:layout_marginBottom="4dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="✓ OBS / Theatre mode"
-                            android:textColor="#FF3CD070"
-                            android:textSize="9.5sp"
-                            android:layout_marginBottom="4dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="- Priority support"
-                            android:textColor="#6F7380"
-                            android:textSize="9.5sp"
-                            android:layout_marginBottom="12dp" />
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1" />
-
-                        <Button
-                            android:id="@+id/btnSelectPlanTest"
-                            android:layout_width="match_parent"
-                            android:layout_height="36dp"
-                            android:backgroundTint="#FF5252"
-                            android:text="SELECT"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            app:cornerRadius="2dp"
-                            android:padding="0dp" />
-
-                    </LinearLayout>
-
-                    <!-- STARTER Plan Card -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:background="#131520"
-                        android:padding="12dp"
-                        android:layout_marginStart="6dp"
-                        android:minHeight="295dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
                             android:visibility="invisible"
                             android:text="SPACER"
                             android:textSize="9sp"
@@ -2447,23 +2341,26 @@
                             android:layout_marginBottom="12dp" />
 
                         <TextView
+                            android:id="@+id/tvPlanBasicTitle"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="STARTER"
+                            android:text="Basic"
                             android:textColor="#FFFFFF"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvPlanBasicPrice"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="$20 USD"
+                            android:text="₦29,000"
                             android:textColor="#FF3CD070"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:layout_marginTop="8dp" />
 
                         <TextView
+                            android:id="@+id/tvPlanBasicCredits"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="1,000 Credits"
@@ -2473,9 +2370,10 @@
                             android:layout_marginTop="4dp" />
 
                         <TextView
+                            android:id="@+id/tvPlanBasicTime"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="≈ 8 min streaming"
+                            android:text="~8m 20s"
                             android:textColor="#6F7380"
                             android:textSize="10.5sp"
                             android:layout_marginTop="2dp" />
@@ -2524,7 +2422,7 @@
                             android:layout_weight="1" />
 
                         <Button
-                            android:id="@+id/btnSelectPlanStarter"
+                            android:id="@+id/btnSelectPlanBasic"
                             android:layout_width="match_parent"
                             android:layout_height="36dp"
                             android:backgroundTint="#FF3CD070"
@@ -2537,15 +2435,6 @@
 
                     </LinearLayout>
 
-                </LinearLayout>
-
-                <!-- Row 2: PRO & PREMIUM -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
-
                     <!-- PRO Plan Card -->
                     <LinearLayout
                         android:layout_width="0dp"
@@ -2554,7 +2443,7 @@
                         android:orientation="vertical"
                         android:background="#131520"
                         android:padding="12dp"
-                        android:layout_marginEnd="6dp"
+                        android:layout_marginStart="6dp"
                         android:minHeight="295dp">
 
                         <TextView
@@ -2570,35 +2459,39 @@
                             android:layout_marginBottom="12dp" />
 
                         <TextView
+                            android:id="@+id/tvPlanProTitle"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="PRO"
+                            android:text="Pro"
                             android:textColor="#FFFFFF"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvPlanProPrice"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="$60 USD"
+                            android:text="₦58,000"
                             android:textColor="#FF3CD070"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:layout_marginTop="8dp" />
 
                         <TextView
+                            android:id="@+id/tvPlanProCredits"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="5,000 Credits"
+                            android:text="2,000 Credits"
                             android:textColor="#FF3CD070"
                             android:textSize="13sp"
                             android:textStyle="bold"
                             android:layout_marginTop="4dp" />
 
                         <TextView
+                            android:id="@+id/tvPlanProTime"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="≈ 38 min streaming"
+                            android:text="~16m 40s"
                             android:textColor="#6F7380"
                             android:textSize="10.5sp"
                             android:layout_marginTop="2dp" />
@@ -2660,127 +2553,16 @@
 
                     </LinearLayout>
 
-                    <!-- PREMIUM Plan Card -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:background="#131520"
-                        android:padding="12dp"
-                        android:layout_marginStart="6dp"
-                        android:minHeight="295dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:visibility="invisible"
-                            android:text="SPACER"
-                            android:textSize="9sp"
-                            android:paddingVertical="3dp"
-                            android:layout_marginBottom="12dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="PREMIUM"
-                            android:textColor="#FFFFFF"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="$150 USD"
-                            android:textColor="#FF3CD070"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="8dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="10,000 Credits"
-                            android:textColor="#FF3CD070"
-                            android:textSize="13sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="4dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="≈ 76 min streaming"
-                            android:textColor="#6F7380"
-                            android:textSize="10.5sp"
-                            android:layout_marginTop="2dp" />
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="#222538"
-                            android:layout_marginVertical="10dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="✓ Full AI engine access"
-                            android:textColor="#FF3CD070"
-                            android:textSize="9.5sp"
-                            android:layout_marginBottom="4dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="✓ All presets included"
-                            android:textColor="#FF3CD070"
-                            android:textSize="9.5sp"
-                            android:layout_marginBottom="4dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="✓ OBS / Theatre mode"
-                            android:textColor="#FF3CD070"
-                            android:textSize="9.5sp"
-                            android:layout_marginBottom="4dp" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="✓ Priority support"
-                            android:textColor="#FF3CD070"
-                            android:textSize="9.5sp"
-                            android:layout_marginBottom="12dp" />
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1" />
-
-                        <Button
-                            android:id="@+id/btnSelectPlanPremium"
-                            android:layout_width="match_parent"
-                            android:layout_height="36dp"
-                            android:backgroundTint="#FF3CD070"
-                            android:text="SELECT"
-                            android:textColor="#0B0C10"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            app:cornerRadius="2dp"
-                            android:padding="0dp" />
-
-                    </LinearLayout>
-
                 </LinearLayout>
 
-                <!-- Row 3: ELITE & Spacer -->
+                <!-- Row 2: ENTERPRISE & VIP -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:layout_marginBottom="24dp">
 
-                    <!-- ELITE Plan Card -->
+                    <!-- ENTERPRISE Plan Card -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -2801,35 +2583,39 @@
                             android:layout_marginBottom="12dp" />
 
                         <TextView
+                            android:id="@+id/tvPlanEnterpriseTitle"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="ELITE"
+                            android:text="Enterprise"
                             android:textColor="#FFFFFF"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvPlanEnterprisePrice"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="$550 USD"
+                            android:text="₦145,000"
                             android:textColor="#FF3CD070"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:layout_marginTop="8dp" />
 
                         <TextView
+                            android:id="@+id/tvPlanEnterpriseCredits"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="50,000 Credits"
+                            android:text="5,000 Credits"
                             android:textColor="#FF3CD070"
                             android:textSize="13sp"
                             android:textStyle="bold"
                             android:layout_marginTop="4dp" />
 
                         <TextView
+                            android:id="@+id/tvPlanEnterpriseTime"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="≈ 379 min streaming"
+                            android:text="~41m 40s"
                             android:textColor="#6F7380"
                             android:textSize="10.5sp"
                             android:layout_marginTop="2dp" />
@@ -2878,7 +2664,7 @@
                             android:layout_weight="1" />
 
                         <Button
-                            android:id="@+id/btnSelectPlanElite"
+                            android:id="@+id/btnSelectPlanEnterprise"
                             android:layout_width="match_parent"
                             android:layout_height="36dp"
                             android:backgroundTint="#FF3CD070"
@@ -2891,12 +2677,120 @@
 
                     </LinearLayout>
 
-                    <!-- Spacer View for grid alignment -->
-                    <View
+                    <!-- VIP Plan Card -->
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:layout_marginStart="6dp" />
+                        android:orientation="vertical"
+                        android:background="#131520"
+                        android:padding="12dp"
+                        android:layout_marginStart="6dp"
+                        android:minHeight="295dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="invisible"
+                            android:text="SPACER"
+                            android:textSize="9sp"
+                            android:paddingVertical="3dp"
+                            android:layout_marginBottom="12dp" />
+
+                        <TextView
+                            android:id="@+id/tvPlanVipTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="VIP plan"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvPlanVipPrice"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="₦290,000"
+                            android:textColor="#FF3CD070"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp" />
+
+                        <TextView
+                            android:id="@+id/tvPlanVipCredits"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="10,000 Credits"
+                            android:textColor="#FF3CD070"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            android:id="@+id/tvPlanVipTime"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="~83m 20s"
+                            android:textColor="#6F7380"
+                            android:textSize="10.5sp"
+                            android:layout_marginTop="2dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#222538"
+                            android:layout_marginVertical="10dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ Full AI engine access"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ All presets included"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ OBS / Theatre mode"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="✓ Priority support"
+                            android:textColor="#FF3CD070"
+                            android:textSize="9.5sp"
+                            android:layout_marginBottom="12dp" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1" />
+
+                        <Button
+                            android:id="@+id/btnSelectPlanVip"
+                            android:layout_width="match_parent"
+                            android:layout_height="36dp"
+                            android:backgroundTint="#FF3CD070"
+                            android:text="SELECT"
+                            android:textColor="#0B0C10"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="2dp"
+                            android:padding="0dp" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
