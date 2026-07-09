@@ -2,14 +2,18 @@ import { auth, db, admin } from './_shared/firebase.js';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 
-function getPackages() {
-  const raw = process.env.CREDIT_PACKAGES_JSON;
-  if (!raw) throw new Error("Missing required configuration: CREDIT_PACKAGES_JSON");
-  const value = JSON.parse(raw);
-  if (!Array.isArray(value) || value.length === 0) {
-    throw new Error("CREDIT_PACKAGES_JSON must contain at least one package");
+async function getPackages() {
+  const doc = await db.collection('settings').doc('packages').get();
+  if (doc.exists && doc.data().packages) {
+    return doc.data().packages;
   }
-  return value;
+  // Default packages fallback
+  return [
+    { id: 'basic', name: 'Basic', price: 29000, credits: 1000, timeLabel: '~8m 20s' },
+    { id: 'pro', name: 'Pro', price: 58000, credits: 2000, timeLabel: '~16m 40s' },
+    { id: 'enterprise', name: 'Enterprise', price: 145000, credits: 5000, timeLabel: '~41m 40s' },
+    { id: 'vip', name: 'VIP plan', price: 290000, credits: 10000, timeLabel: '~83m 20s' }
+  ];
 }
 
 function safeRedirectUrl(value) {
@@ -69,10 +73,19 @@ export default async function handler(req, res) {
 
     // 2. Parse Package Details
     const { packageId, redirectUrl } = req.body;
-    const creditPackage = getPackages().find((item) => item.id === packageId);
+    const packages = await getPackages();
+    const creditPackage = packages.find((item) => 
+      item.id === packageId || 
+      (item.name && item.name.toLowerCase() === packageId.toLowerCase()) ||
+      (item.title && item.title.toLowerCase() === packageId.toLowerCase())
+    );
     if (!creditPackage) {
       return res.status(400).json({ error: "Unknown credit package" });
     }
+
+    // Map the generic package fields for the transaction
+    const expectedAmount = creditPackage.price || creditPackage.amount;
+    const currency = creditPackage.currency || "NGN";
 
     // 3. Generate Reference & Create Pending Transaction record
     const uuidStr = crypto.randomUUID().replace(/-/g, '');
@@ -86,8 +99,8 @@ export default async function handler(req, res) {
       userId: userId,
       txRef: txRef,
       credits: creditPackage.credits,
-      expectedAmount: creditPackage.amount,
-      currency: creditPackage.currency,
+      expectedAmount: expectedAmount,
+      currency: currency,
       status: 'pending',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       verifiedAt: null,
@@ -112,21 +125,24 @@ export default async function handler(req, res) {
        ipnCallbackUrl = `${protocol}://${host}/api/nowpayments-webhook`;
     }
 
+    const payload = {
+      price_amount: expectedAmount,
+      price_currency: currency,
+      pay_currency: 'USDTTRC20', // Default starting crypto, user can change on invoice
+      order_id: txRef,
+      order_description: `Purchase ${creditPackage.credits} Morphly Credits`,
+      ipn_callback_url: ipnCallbackUrl,
+      success_url: safeRedirectUrl(redirectUrl),
+      cancel_url: safeRedirectUrl(redirectUrl),
+    };
+
     const checkoutResponse = await fetch("https://api.nowpayments.io/v1/invoice", {
       method: "POST",
       headers: {
         "x-api-key": nowpaymentsApiKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        price_amount: creditPackage.amount,
-        price_currency: creditPackage.currency.toLowerCase(),
-        order_id: transactionId,
-        order_description: creditPackage.title,
-        ipn_callback_url: ipnCallbackUrl,
-        success_url: safeRedirectUrl(redirectUrl),
-        cancel_url: safeRedirectUrl(redirectUrl),
-      }),
+      body: JSON.stringify(payload),
     });
 
     const checkoutData = await checkoutResponse.json();

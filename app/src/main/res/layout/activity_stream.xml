@@ -1911,6 +1911,19 @@
                     android:textColor="#FFFFFF"
                     android:textSize="13sp"
                     android:textStyle="bold"
+                    android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
+
+                <!-- Terms and Policies Button -->
+                <Button
+                    android:id="@+id/btnAccountTerms"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:background="@drawable/outlined_button_bg"
+                    android:text="⚖ TERMS AND POLICIES"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
                     android:layout_marginBottom="24dp"  app:cornerRadius="2dp"/>
 
                 <!-- Sign Out Button -->
@@ -2809,33 +2822,6 @@
                     android:textColor="#888D9B"
                     android:textSize="11.5sp"
                     android:layout_marginBottom="12dp" />
-
-                <EditText
-                    android:id="@+id/etPlanCreditKey"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:background="#181B29"
-                    android:paddingHorizontal="16dp"
-                    android:textColor="#FFFFFF"
-                    android:textSize="13sp"
-                    android:hint="SS-XXXX-XXXX-XXXX-XXXX"
-                    android:textColorHint="#3A3F55"
-                    android:inputType="textCapCharacters"
-                    android:gravity="center"
-                    android:importantForAutofill="no"
-                    android:layout_marginBottom="12dp" />
-
-                <Button
-                    android:id="@+id/btnPlanRedeemKey"
-                    android:layout_width="match_parent"
-                    android:layout_height="42dp"
-                    android:backgroundTint="#1D2030"
-                    android:text="REDEEM CREDIT KEY"
-                    android:textColor="#FF3CD070"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    app:cornerRadius="2dp" />
-
             </LinearLayout>
 
         </ScrollView>
@@ -3175,56 +3161,6 @@
                         android:textSize="11.5sp"
                         android:textStyle="bold"
                         android:layout_marginStart="6dp"
-                        app:cornerRadius="2dp"
-                        android:padding="0dp" />
-
-                </LinearLayout>
-
-                <!-- Hidden/Expandable Manual Key Section -->
-                <TextView
-                    android:id="@+id/tvCheckoutManualKeyToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:text="Already have a manual credit key?"
-                    android:textColor="#FF3CD070"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-                <LinearLayout
-                    android:id="@+id/layoutCheckoutManualKeyContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginTop="12dp"
-                    android:visibility="gone">
-
-                    <EditText
-                        android:id="@+id/etCheckoutManualKey"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:background="#181B29"
-                        android:paddingHorizontal="16dp"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13sp"
-                        android:hint="SS-XXXX-XXXX-XXXX-XXXX"
-                        android:textColorHint="#3A3F55"
-                        android:inputType="textCapCharacters"
-                        android:gravity="center"
-                        android:importantForAutofill="no"
-                        android:layout_marginBottom="8dp" />
-
-                    <Button
-                        android:id="@+id/btnCheckoutRedeemKey"
-                        android:layout_width="match_parent"
-                        android:layout_height="38dp"
-                        android:backgroundTint="#FF3CD070"
-                        android:text="REDEEM MANUAL KEY"
-                        android:textColor="#0B0C10"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
                         app:cornerRadius="2dp"
                         android:padding="0dp" />
 

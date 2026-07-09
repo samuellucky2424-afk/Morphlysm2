@@ -92,10 +92,10 @@ class StreamActivity : BaseActivity() {
                                     StreamAuthManager.addCredits(this@StreamActivity, fetchedBalance - currentLocal)
                                     runOnUiThread {
                                         updateSessionBalanceUI(fetchedBalance, fetchedUsed)
-                                        if (fetchedBalance == 0) {
-                                            Toast.makeText(this@StreamActivity, "Credits exhausted on backend!", Toast.LENGTH_LONG).show()
+                                        if (fetchedBalance <= 0) {
+                                            Toast.makeText(this@StreamActivity, "Credits exhausted! Please buy a plan to continue.", Toast.LENGTH_LONG).show()
                                             stopLiveStream()
-                                            showStarterPackState()
+                                            showPlanSelectionState()
                                         }
                                     }
                                 }
@@ -119,10 +119,10 @@ class StreamActivity : BaseActivity() {
             StreamAuthManager.addCredits(this@StreamActivity, -decrease)
             updateSessionBalanceUI()
             val remaining = StreamAuthManager.getWalletBalance(this@StreamActivity)
-            if (remaining == 0) {
-                Toast.makeText(this@StreamActivity, "Credits exhausted! Please activate your license to continue.", Toast.LENGTH_LONG).show()
+            if (remaining <= 0) {
+                Toast.makeText(this@StreamActivity, "Credits exhausted! Please buy a plan to continue.", Toast.LENGTH_LONG).show()
                 stopLiveStream()
-                showStarterPackState()
+                showPlanSelectionState()
             }
         }
     }
@@ -266,13 +266,7 @@ class StreamActivity : BaseActivity() {
         binding.tvCheckoutDetailCredits.text = String.format("%,d credits", credits)
         binding.tvCheckoutDetailStreamTime.text = streamTime
         binding.tvCheckoutDetailTotal.text = String.format("$%.2f", price)
-
-        // Reset manual key fields
-        binding.layoutCheckoutManualKeyContainer.visibility = View.GONE
-        binding.etCheckoutManualKey.setText("")
     }
-
-
     private fun showDashboardState() {
         binding.ivSplashArc.clearAnimation()
         binding.layoutSplash.visibility = View.GONE
@@ -856,6 +850,9 @@ class StreamActivity : BaseActivity() {
         binding.btnCheckoutBack.setOnClickListener {
             showPlanSelectionState()
         }
+        binding.btnAccountBuyCredits.setOnClickListener {
+            showPlanSelectionState()
+        }
         binding.btnPaymentMinimize.setOnClickListener {
             minimizeApp()
         }
@@ -1168,16 +1165,75 @@ class StreamActivity : BaseActivity() {
             return
         }
 
+        val packageId = when (selectedPlanName.toLowerCase()) {
+            "basic" -> "basic"
+            "pro" -> "pro"
+            "enterprise" -> "enterprise"
+            "vip plan" -> "vip"
+            else -> "basic"
+        }
+
         val progressDialog = android.app.ProgressDialog(this).apply {
             setMessage("Redirecting to $gateway payment gateway...")
             setCancelable(false)
             show()
         }
         
-        Handler(Looper.getMainLooper()).postDelayed({
-            progressDialog.dismiss()
-            Toast.makeText(this, "Payment Gateway not configured yet.", Toast.LENGTH_LONG).show()
-        }, 1500)
+        networkExecutor.execute {
+            try {
+                val token = StreamAuthManager.getIdToken(this@StreamActivity) ?: throw Exception("Not logged in")
+                val url = java.net.URL("$BACKEND_BASE_URL/create-checkout")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                connection.doOutput = true
+
+                val jsonInputString = "{\"packageId\": \"$packageId\", \"redirectUrl\": \"morphly://payment-return\"}"
+                connection.outputStream.use { os ->
+                    val input = jsonInputString.toByteArray(Charsets.UTF_8)
+                    os.write(input, 0, input.size)
+                }
+
+                if (connection.responseCode == 200) {
+                    val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream))
+                    val response = java.lang.StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        response.append(line)
+                    }
+                    reader.close()
+
+                    val jsonObject = org.json.JSONObject(response.toString())
+                    if (jsonObject.has("checkoutUrl")) {
+                        val checkoutUrl = jsonObject.getString("checkoutUrl")
+                        runOnUiThread {
+                            progressDialog.dismiss()
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(checkoutUrl))
+                            startActivity(intent)
+                        }
+                    } else {
+                        throw Exception("Missing checkoutUrl")
+                    }
+                } else {
+                    val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.errorStream))
+                    val response = java.lang.StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        response.append(line)
+                    }
+                    reader.close()
+                    val errorObj = org.json.JSONObject(response.toString())
+                    throw Exception(errorObj.optString("error", "Failed to create checkout"))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread {
+                    progressDialog.dismiss()
+                    Toast.makeText(this@StreamActivity, "Checkout Error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     private fun processCryptoCheckoutPayment() {

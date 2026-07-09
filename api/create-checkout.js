@@ -2,14 +2,18 @@ import { auth, db, admin } from './_shared/firebase.js';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 
-function getPackages() {
-  const raw = process.env.CREDIT_PACKAGES_JSON;
-  if (!raw) throw new Error("Missing required configuration: CREDIT_PACKAGES_JSON");
-  const value = JSON.parse(raw);
-  if (!Array.isArray(value) || value.length === 0) {
-    throw new Error("CREDIT_PACKAGES_JSON must contain at least one package");
+async function getPackages() {
+  const doc = await db.collection('settings').doc('packages').get();
+  if (doc.exists && doc.data().packages) {
+    return doc.data().packages;
   }
-  return value;
+  // Default packages fallback
+  return [
+    { id: 'basic', name: 'Basic', price: 29000, credits: 1000, timeLabel: '~8m 20s' },
+    { id: 'pro', name: 'Pro', price: 58000, credits: 2000, timeLabel: '~16m 40s' },
+    { id: 'enterprise', name: 'Enterprise', price: 145000, credits: 5000, timeLabel: '~41m 40s' },
+    { id: 'vip', name: 'VIP plan', price: 290000, credits: 10000, timeLabel: '~83m 20s' }
+  ];
 }
 
 function safeRedirectUrl(value) {
@@ -69,10 +73,19 @@ export default async function handler(req, res) {
 
     // 2. Parse Package Details
     const { packageId, redirectUrl } = req.body;
-    const creditPackage = getPackages().find((item) => item.id === packageId);
+    const packages = await getPackages();
+    // Allow matching by id or name/title to be resilient
+    const creditPackage = packages.find((item) => 
+      item.id === packageId || 
+      (item.name && item.name.toLowerCase() === packageId.toLowerCase()) ||
+      (item.title && item.title.toLowerCase() === packageId.toLowerCase())
+    );
     if (!creditPackage) {
-      return res.status(400).json({ error: "Unknown credit package" });
+      return res.status(400).json({ error: "Unknown credit package: " + packageId });
     }
+
+    const expectedAmount = creditPackage.price || creditPackage.amount;
+    const currency = creditPackage.currency || "NGN";
 
     // 3. Generate Reference & Create Pending Transaction record
     const uuidStr = crypto.randomUUID().replace(/-/g, '');
@@ -86,8 +99,8 @@ export default async function handler(req, res) {
       userId: userId,
       txRef: txRef,
       credits: creditPackage.credits,
-      expectedAmount: creditPackage.amount,
-      currency: creditPackage.currency,
+      expectedAmount: expectedAmount,
+      currency: currency,
       status: 'pending',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       verifiedAt: null,
@@ -109,13 +122,13 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         tx_ref: txRef,
-        amount: creditPackage.amount,
-        currency: creditPackage.currency,
+        amount: expectedAmount,
+        currency: currency,
         redirect_url: safeRedirectUrl(redirectUrl),
         customer: { email: userEmail },
         customizations: {
           title: "Morphly credits",
-          description: creditPackage.title,
+          description: creditPackage.name || creditPackage.title || "Credits",
         },
         meta: {
           payment_id: transactionId,
