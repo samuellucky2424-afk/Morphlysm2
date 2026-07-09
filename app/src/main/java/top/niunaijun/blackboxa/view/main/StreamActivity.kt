@@ -1288,12 +1288,19 @@ class StreamActivity : BaseActivity() {
 
     private fun checkoutErrorMessage(error: Exception): String {
         val message = error.message ?: return "Checkout failed. Please sign in again."
-        if (message.contains("PRIVATE KEY", ignoreCase = true) ||
-            message.contains("Bearer ", ignoreCase = true) ||
-            message.contains("Authorization", ignoreCase = true) ||
-            message.contains("not logged in", ignoreCase = true)
+        if (message.contains("not logged in", ignoreCase = true) ||
+            message.contains("Unauthorized: invalid token", ignoreCase = true) ||
+            message.contains("Unauthorized: missing authorization token", ignoreCase = true)
         ) {
             return "Your saved login session is invalid. Please sign in again."
+        }
+        if (message.contains("PRIVATE KEY", ignoreCase = true) ||
+            message.contains("BEGIN ", ignoreCase = true) ||
+            message.contains("Bearer ", ignoreCase = true) ||
+            message.contains("Authorization", ignoreCase = true) ||
+            message.contains("payment configuration", ignoreCase = true)
+        ) {
+            return "Payment gateway configuration is invalid. Please contact support."
         }
         return message
     }

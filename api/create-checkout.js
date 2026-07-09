@@ -37,6 +37,19 @@ function safeRedirectUrl(value) {
   return fallback;
 }
 
+function sanitizeProviderError(message, fallback) {
+  const text = String(message || "");
+  if (
+    text.includes("PRIVATE KEY") ||
+    text.includes("BEGIN ") ||
+    text.includes("Bearer ") ||
+    text.toLowerCase().includes("authorization")
+  ) {
+    return fallback;
+  }
+  return text || fallback;
+}
+
 export default async function handler(req, res) {
   // Handle CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -113,6 +126,13 @@ export default async function handler(req, res) {
     if (!flutterwaveSecret) {
       throw new Error("Missing required secret: FLUTTERWAVE_SECRET_KEY");
     }
+    if (
+      flutterwaveSecret.includes("PRIVATE KEY") ||
+      flutterwaveSecret.includes("BEGIN ") ||
+      !flutterwaveSecret.trim().startsWith("FLWSECK")
+    ) {
+      throw new Error("Flutterwave payment configuration is invalid. Check FLUTTERWAVE_SECRET_KEY.");
+    }
 
     const checkoutResponse = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
@@ -144,12 +164,21 @@ export default async function handler(req, res) {
         status: 'failed',
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      throw new Error(checkoutData.message || "Flutterwave could not create a checkout link");
+      throw new Error(
+        sanitizeProviderError(
+          checkoutData.message,
+          "Flutterwave payment configuration is invalid. Please contact support."
+        )
+      );
     }
 
     return res.status(200).json({ txRef, checkoutUrl: checkoutData.data.link });
   } catch (error) {
-    console.error('Error in create-checkout API:', error);
-    return res.status(400).json({ error: error.message || "Unable to start checkout" });
+    const publicMessage = sanitizeProviderError(
+      error.message,
+      "Flutterwave payment configuration is invalid. Please contact support."
+    );
+    console.error('Error in create-checkout API:', publicMessage);
+    return res.status(400).json({ error: publicMessage || "Unable to start checkout" });
   }
 }

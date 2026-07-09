@@ -37,6 +37,20 @@ function safeRedirectUrl(value) {
   return fallback;
 }
 
+function sanitizeProviderError(message, fallback) {
+  const text = String(message || "");
+  if (
+    text.includes("PRIVATE KEY") ||
+    text.includes("BEGIN ") ||
+    text.includes("Bearer ") ||
+    text.toLowerCase().includes("authorization") ||
+    text.toLowerCase().includes("x-api-key")
+  ) {
+    return fallback;
+  }
+  return text || fallback;
+}
+
 export default async function handler(req, res) {
   // Handle CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -113,6 +127,9 @@ export default async function handler(req, res) {
     if (!nowpaymentsApiKey) {
       throw new Error("Missing required secret: NOWPAYMENTS_API_KEY");
     }
+    if (nowpaymentsApiKey.includes("PRIVATE KEY") || nowpaymentsApiKey.includes("BEGIN ")) {
+      throw new Error("NOWPayments configuration is invalid. Check NOWPAYMENTS_API_KEY.");
+    }
 
     // Determine the base url to send to NOWPayments for the IPN webhook
     // Vercel populates 'x-forwarded-host', fallback to 'host'
@@ -151,12 +168,21 @@ export default async function handler(req, res) {
         status: 'failed',
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      throw new Error(checkoutData.message || "NOWPayments could not create a checkout link");
+      throw new Error(
+        sanitizeProviderError(
+          checkoutData.message,
+          "NOWPayments configuration is invalid. Please contact support."
+        )
+      );
     }
 
     return res.status(200).json({ txRef, checkoutUrl: checkoutData.invoice_url });
   } catch (error) {
-    console.error('Error in create-crypto-checkout API:', error);
-    return res.status(400).json({ error: error.message || "Unable to start crypto checkout" });
+    const publicMessage = sanitizeProviderError(
+      error.message,
+      "NOWPayments configuration is invalid. Please contact support."
+    );
+    console.error('Error in create-crypto-checkout API:', publicMessage);
+    return res.status(400).json({ error: publicMessage || "Unable to start crypto checkout" });
   }
 }
