@@ -68,6 +68,11 @@ export default async function handler(req, res) {
       return await handleGetStreamingAvailability(req, res);
     } else if (path === '/streaming-monitor') {
       return await handleStreamingMonitor(req, res);
+    } else if (path === '/referral-settings') {
+      if (req.method === 'POST') {
+        return await handleSaveReferralSettings(req, res);
+      }
+      return await handleGetReferralSettings(req, res);
     } else {
       // Fallback/Stub other dashboard requests to prevent UI crashes
       return res.status(200).json({ success: true, message: 'Endpoint matched fallback stub' });
@@ -400,5 +405,23 @@ async function handleUpdateUserStatus(req, res) {
   });
   
   return res.status(200).json({ success: true, message: `User status updated to ${status}` });
+}
+
+async function handleGetReferralSettings(req, res) {
+  const doc = await db.collection('settings').doc('referral_program').get();
+  if (doc.exists) {
+    return res.status(200).json(doc.data());
+  }
+  return res.status(200).json({ enabled: false, rewardAmount: 100 });
+}
+
+async function handleSaveReferralSettings(req, res) {
+  const { enabled, rewardAmount } = req.body;
+  await db.collection('settings').doc('referral_program').set({
+    enabled: !!enabled,
+    rewardAmount: parseInt(rewardAmount, 10) || 100,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  return res.status(200).json({ success: true });
 }
 

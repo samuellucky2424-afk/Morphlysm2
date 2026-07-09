@@ -256,15 +256,15 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <button class="tab-btn" onclick="showTab('users')">👥 USERS</button>
       <button class="tab-btn" onclick="showTab('engine')">⚙️ ENGINE KEY</button>
       <button class="tab-btn" onclick="showTab('referral')">🎁 REFERRAL</button>
-      <button class="tab-btn" onclick="showTab('creators')">👥 CREATORS</button>
+      
       <button class="tab-btn" onclick="showTab('payments')">💰 PAYMENTS</button>
       <button class="tab-btn" onclick="showTab('crypto')">₿ CRYPTO</button>
-      <button class="tab-btn" onclick="showTab('backgrounds')">🎬 BACKGROUNDS</button>
+      
       <button class="tab-btn" onclick="showTab('monitor')">🔴 LIVE MONITOR</button>
-      <button class="tab-btn" onclick="showTab('support')">🛟 SUPPORT</button>
+      
       <button class="tab-btn" onclick="showTab('branding')">⚙️ SETTINGS</button>
       <button class="tab-btn" onclick="showTab('notifications')">📢 NOTIFICATIONS</button>
-      <button class="tab-btn" onclick="showTab('massemail')">✉️ MASS EMAIL</button>
+      
     </div>
 
     <!-- GENERATE ACCESS KEY TAB REMOVED -->
@@ -434,12 +434,17 @@ tr:hover td{background:rgba(255,255,255,.02)}
               <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:2px">Show referral code field on signup form</div>
             </div>
             <label style="position:relative;width:42px;height:22px;flex-shrink:0;cursor:pointer">
-              <input type="checkbox" id="refEnabledToggle" onchange="toggleReferralProgram()" style="display:none">
+              <input type="checkbox" id="refEnabledToggle" onchange="saveReferralSettings()" style="display:none">
               <span style="position:absolute;inset:0;background:var(--s3);border:1px solid var(--b);border-radius:100px;transition:all .3s"></span>
               <span id="refToggleKnob" style="position:absolute;width:14px;height:14px;border-radius:50%;background:var(--dim);top:3px;left:3px;transition:all .3s"></span>
             </label>
           </div>
-          <div style="font-family:var(--mono);font-size:8px;letter-spacing:1px;text-align:center;margin-bottom:14px" id="refToggleStatus">Loading...</div>
+          <div style="margin-bottom: 16px;">
+            <label class="f-label">Credit Reward per Referral</label>
+            <input class="f-input" type="number" id="refRewardAmount" value="100">
+          </div>
+          <button class="btn btn-gold btn-full" onclick="saveReferralSettings()">💾 SAVE REFERRAL SETTINGS</button>
+          <div style="font-family:var(--mono);font-size:8px;letter-spacing:1px;text-align:center;margin-top:14px" id="refToggleStatus">Loading...</div>
         </div>
 
         <div class="card">
@@ -1151,6 +1156,50 @@ function showTab(id) {
   if (id === 'users') loadUsers();
   if (id === 'plans') loadPackages();
   if (id === 'notifications') loadGlobalNotification();
+  if (id === 'referral') loadReferralSettings();
+}
+
+async function loadReferralSettings() {
+  const statusEl = document.getElementById('refToggleStatus');
+  statusEl.textContent = 'Loading...';
+  try {
+    const r = await fetch(`${API_URL}/admin/referral-settings`, { headers: { 'x-admin-secret': ADMIN_SECRET } });
+    const d = await r.json();
+    document.getElementById('refEnabledToggle').checked = d.enabled;
+    document.getElementById('refToggleKnob').style.transform = d.enabled ? 'translateX(20px)' : 'translateX(0)';
+    document.getElementById('refToggleKnob').style.background = d.enabled ? 'var(--g2)' : 'var(--dim)';
+    document.getElementById('refRewardAmount').value = d.rewardAmount || 100;
+    statusEl.textContent = 'Loaded settings';
+  } catch(e) {
+    statusEl.textContent = 'Failed to load';
+  }
+}
+
+async function saveReferralSettings() {
+  const enabled = document.getElementById('refEnabledToggle').checked;
+  const rewardAmount = document.getElementById('refRewardAmount').value;
+  
+  // Update toggle UI immediately
+  document.getElementById('refToggleKnob').style.transform = enabled ? 'translateX(20px)' : 'translateX(0)';
+  document.getElementById('refToggleKnob').style.background = enabled ? 'var(--g2)' : 'var(--dim)';
+  
+  const statusEl = document.getElementById('refToggleStatus');
+  statusEl.textContent = 'Saving...';
+  try {
+    const r = await fetch(`${API_URL}/admin/referral-settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+      body: JSON.stringify({ enabled, rewardAmount })
+    });
+    if (r.ok) {
+      statusEl.textContent = 'Saved successfully';
+      toast('Referral settings saved', 'ok');
+    } else {
+      statusEl.textContent = 'Failed to save';
+    }
+  } catch(e) {
+    statusEl.textContent = 'Network error';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', restoreAdminSessionIfLoggedIn);

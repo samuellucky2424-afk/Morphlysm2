@@ -71,8 +71,14 @@ export default async function handler(req, res) {
 
     if (userDocSnap.exists) {
       userData = userDocSnap.data();
+      // Retroactively generate a referralCode if one doesn't exist
+      if (!userData.referralCode) {
+        userData.referralCode = 'REF-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        await userRef.update({ referralCode: userData.referralCode });
+      }
     } else {
       // Create user document if it doesn't exist (e.g. signed up via console)
+      userData.referralCode = 'REF-' + Math.random().toString(36).substring(2, 8).toUpperCase();
       await userRef.set({
         ...userData,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -115,6 +121,7 @@ export default async function handler(req, res) {
         role: userData.role || 'user',
         status: userData.status || 'active',
         balance: walletData.balance || 0,
+        referralCode: userData.referralCode || '',
         is_activated: userData.is_activated === true || userData.role === 'admin'
       }
     });

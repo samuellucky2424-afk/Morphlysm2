@@ -38,7 +38,6 @@ class StreamActivity : BaseActivity() {
     private var selectedPlanPrice: Double = 10.0
     private var selectedPlanCredits: Int = 500
     private var selectedPlanStreamTime: String = "~4 min"
-    private var isLicenseActivationPlan: Boolean = false
 
     private val creditUsageRunnable = object : Runnable {
         override fun run() {
@@ -96,7 +95,7 @@ class StreamActivity : BaseActivity() {
                                         if (fetchedBalance == 0) {
                                             Toast.makeText(this@StreamActivity, "Credits exhausted on backend!", Toast.LENGTH_LONG).show()
                                             stopLiveStream()
-                                            showActivationState()
+                                            showStarterPackState()
                                         }
                                     }
                                 }
@@ -123,7 +122,7 @@ class StreamActivity : BaseActivity() {
             if (remaining == 0) {
                 Toast.makeText(this@StreamActivity, "Credits exhausted! Please activate your license to continue.", Toast.LENGTH_LONG).show()
                 stopLiveStream()
-                showActivationState()
+                showStarterPackState()
             }
         }
     }
@@ -141,11 +140,7 @@ class StreamActivity : BaseActivity() {
         // Wait for 2 seconds (simulating initialization) before checking authentication state
         Handler(Looper.getMainLooper()).postDelayed({
             if (StreamAuthManager.isLoggedIn(this)) {
-                if (StreamAuthManager.isActivated(this) || StreamAuthManager.getWalletBalance(this) > 0) {
-                    showDashboardState()
-                } else {
-                    showWelcomeState()
-                }
+                showDashboardState()
             } else {
                 showAuthState()
             }
@@ -357,28 +352,19 @@ class StreamActivity : BaseActivity() {
 
     private fun updateSessionBalanceUI(overrideRemaining: Int? = null, overrideUsed: Int? = null) {
         val remaining = overrideRemaining ?: StreamAuthManager.getWalletBalance(this)
-        val isActivated = StreamAuthManager.isActivated(this)
         
-        if (isActivated) {
-            binding.tvSessionPlanTotal.text = "Permanent"
-            binding.tvSessionUsed.text = "0 CR"
-            binding.tvSessionRemaining.text = "Unlimited"
-            binding.progressSessionRemaining.progress = 100
-            binding.progressSessionRemaining.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FF3CD070")))
+        binding.tvSessionPlanTotal.text = "500 CR"
+        val used = overrideUsed ?: (500 - remaining)
+        binding.tvSessionUsed.text = "$used CR"
+        binding.tvSessionRemaining.text = "$remaining CR"
+        
+        val progressPercent = (remaining * 100) / 500
+        binding.progressSessionRemaining.progress = progressPercent
+        
+        if (progressPercent < 20) {
+            binding.progressSessionRemaining.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FF5252")))
         } else {
-            binding.tvSessionPlanTotal.text = "500 CR"
-            val used = overrideUsed ?: (500 - remaining)
-            binding.tvSessionUsed.text = "$used CR"
-            binding.tvSessionRemaining.text = "$remaining CR"
-            
-            val progressPercent = (remaining * 100) / 500
-            binding.progressSessionRemaining.progress = progressPercent
-            
-            if (progressPercent < 20) {
-                binding.progressSessionRemaining.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FF5252")))
-            } else {
-                binding.progressSessionRemaining.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FF3CD070")))
-            }
+            binding.progressSessionRemaining.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FF3CD070")))
         }
     }
 
@@ -419,67 +405,7 @@ class StreamActivity : BaseActivity() {
         }
     }
 
-    private fun simulatePayment(credits: Int, gateway: String) {
-        val progressDialog = android.app.ProgressDialog(this).apply {
-            setMessage("Processing payment via $gateway...")
-            setCancelable(false)
-            show()
-        }
-        Handler(Looper.getMainLooper()).postDelayed({
-            progressDialog.dismiss()
-            StreamAuthManager.addCredits(this, credits)
-            Toast.makeText(this, "Payment successful! 500 Credits added.", Toast.LENGTH_LONG).show()
-            showDashboardState()
-        }, 1500)
-    }
-
-    private fun simulateActivationPayment(gateway: String) {
-        val progressDialog = android.app.ProgressDialog(this).apply {
-            setMessage("Processing activation payment via $gateway...")
-            setCancelable(false)
-            show()
-        }
-        Handler(Looper.getMainLooper()).postDelayed({
-            progressDialog.dismiss()
-            StreamAuthManager.setActivated(this, true)
-            Toast.makeText(this, "Payment successful! License activated permanently.", Toast.LENGTH_LONG).show()
-            showDashboardState()
-        }, 1500)
-    }
-
-    private fun showRegistrationKeysDialog() {
-        val deviceId = StreamAuthManager.getDeviceId(this)
-        val activationKey = StreamAuthManager.getActivationKey(this)
-
-        val dialogView = layoutInflater.inflate(R.layout.dialog_registration_keys, null)
-        val tvDialogDeviceId = dialogView.findViewById<android.widget.TextView>(R.id.tvDialogDeviceId)
-        val tvDialogActivationKey = dialogView.findViewById<android.widget.TextView>(R.id.tvDialogActivationKey)
-        val btnCopyKey = dialogView.findViewById<android.widget.Button>(R.id.btnCopyKey)
-        val btnClose = dialogView.findViewById<android.widget.Button>(R.id.btnDialogClose)
-
-        tvDialogDeviceId.text = deviceId
-        tvDialogActivationKey.text = activationKey
-
-        val dialog = android.app.AlertDialog.Builder(this)
-            .setView(dialogView)
-            .setCancelable(false)
-            .create()
-
-        btnCopyKey.setOnClickListener {
-            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            val clip = android.content.ClipData.newPlainText("Activation Key", activationKey)
-            clipboard.setPrimaryClip(clip)
-            Toast.makeText(this, "Activation Key copied to clipboard!", Toast.LENGTH_SHORT).show()
-        }
-
-        btnClose.setOnClickListener {
-            dialog.dismiss()
-            showWelcomeState()
-        }
-
-        dialog.show()
-    }
-
+ 
     private fun selectPreset(textView: android.widget.TextView, prompt: String) {
         if (!binding.switchEnhance.isChecked) {
             Toast.makeText(this, "Please enable ENHANCE to select presets.", Toast.LENGTH_SHORT).show()
@@ -516,9 +442,7 @@ class StreamActivity : BaseActivity() {
             
             Toast.makeText(this, "AI transformation engine connected!", Toast.LENGTH_SHORT).show()
             
-            if (!StreamAuthManager.isActivated(this)) {
-                mainHandler.post(creditUsageRunnable)
-            }
+            mainHandler.post(creditUsageRunnable)
         }, 1200)
     }
 
@@ -543,30 +467,17 @@ class StreamActivity : BaseActivity() {
         val email = StreamAuthManager.getUserEmail(this)
         val name = StreamAuthManager.getUserName(this)
         val remaining = StreamAuthManager.getWalletBalance(this)
-        val isActivated = StreamAuthManager.isActivated(this)
+        binding.tvAccountLicenseStatus.text = "INACTIVE"
+        binding.tvAccountLicenseStatus.setTextColor(Color.parseColor("#FF5252"))
+        binding.tvAccountLicenseExpires.text = "-"
+        binding.tvAccountCreditsRemaining.text = "$remaining CR"
+        binding.tvAccountCreditsUsed.text = "${500 - remaining} CR"
         
-        binding.tvAccountName.text = name
-        binding.tvAccountEmail.text = email
-        binding.tvAccountDeviceId.text = StreamAuthManager.getDeviceId(this)
-        
-        if (isActivated) {
-            binding.tvAccountLicenseStatus.text = "ACTIVE"
-            binding.tvAccountLicenseStatus.setTextColor(Color.parseColor("#FF3CD070"))
-            binding.tvAccountLicenseExpires.text = "30 May 2027"
-            binding.tvAccountCreditsRemaining.text = "Unlimited"
-            binding.tvAccountCreditsUsed.text = "0 CR"
-        } else {
-            binding.tvAccountLicenseStatus.text = "INACTIVE"
-            binding.tvAccountLicenseStatus.setTextColor(Color.parseColor("#FF5252"))
-            binding.tvAccountLicenseExpires.text = "-"
-            binding.tvAccountCreditsRemaining.text = "$remaining CR"
-            binding.tvAccountCreditsUsed.text = "${500 - remaining} CR"
-        }
-        
-        binding.tvAccountReferralCode.text = "YOUR CODE: MP-${name.uppercase()}-FVD9"
+        val referralCode = StreamAuthManager.getUserReferralCode(this)
+        binding.tvAccountReferralCode.text = "YOUR CODE: $referralCode"
         binding.btnCopyReferral.setOnClickListener {
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            val clip = android.content.ClipData.newPlainText("Referral Code", "MP-${name.uppercase()}-FVD9")
+            val clip = android.content.ClipData.newPlainText("Referral Code", referralCode)
             clipboard.setPrimaryClip(clip)
             Toast.makeText(this, "Referral Code copied to clipboard!", Toast.LENGTH_SHORT).show()
         }
@@ -808,11 +719,7 @@ class StreamActivity : BaseActivity() {
                     progressDialog.dismiss()
                     if (errorMsg == null) {
                         Toast.makeText(this@StreamActivity, "Signed in successfully!", Toast.LENGTH_SHORT).show()
-                        if (StreamAuthManager.isActivated(this@StreamActivity) || StreamAuthManager.getWalletBalance(this@StreamActivity) > 0) {
-                            showDashboardState()
-                        } else {
-                            showWelcomeState()
-                        }
+                        showDashboardState()
                     } else {
                         Toast.makeText(this@StreamActivity, errorMsg, Toast.LENGTH_LONG).show()
                     }
@@ -827,6 +734,7 @@ class StreamActivity : BaseActivity() {
             val phone = binding.etSignUpPhone.text.toString().trim()
             val password = binding.etSignUpPassword.text.toString().trim()
             val confirmPassword = binding.etSignUpConfirmPassword.text.toString().trim()
+            val referredByCode = binding.etSignUpReferral.text.toString().trim()
 
             if (name.isEmpty()) {
                 Toast.makeText(this, "Please enter your full name", Toast.LENGTH_SHORT).show()
@@ -864,11 +772,11 @@ class StreamActivity : BaseActivity() {
             }
 
             networkExecutor.execute {
-                val errorMsg = StreamAuthManager.signUp(this@StreamActivity, BACKEND_BASE_URL, name, email, phone, password)
+                val errorMsg = StreamAuthManager.signUp(this@StreamActivity, BACKEND_BASE_URL, name, email, phone, password, referredByCode)
                 runOnUiThread {
                     progressDialog.dismiss()
                     if (errorMsg == null) {
-                        showRegistrationKeysDialog()
+                        showDashboardState()
                     } else {
                         Toast.makeText(this@StreamActivity, errorMsg, Toast.LENGTH_LONG).show()
                     }
@@ -893,7 +801,7 @@ class StreamActivity : BaseActivity() {
 
         // Credit Plan Selection Actions
         binding.btnPlanSelectionClose.setOnClickListener {
-            showWelcomeState()
+            showDashboardState()
         }
         binding.btnSelectPlanBasic.setOnClickListener {
             val price = binding.tvPlanBasicPrice.text.toString().replace("₦", "").replace(",", "").toDoubleOrNull() ?: 29000.0
@@ -919,9 +827,7 @@ class StreamActivity : BaseActivity() {
             val time = binding.tvPlanVipTime.text.toString()
             showPlanPaymentState("VIP plan", price, credits, time)
         }
-        binding.btnPlanRedeemKey.setOnClickListener {
-            redeemManualPlanKey()
-        }
+ 
         binding.btnStarterMinimize.setOnClickListener {
             minimizeApp()
         }
@@ -946,12 +852,7 @@ class StreamActivity : BaseActivity() {
         binding.btnCheckoutEmail.setOnClickListener {
             openEmailContact()
         }
-        binding.tvCheckoutManualKeyToggle.setOnClickListener {
-            toggleCheckoutManualKey()
-        }
-        binding.btnCheckoutRedeemKey.setOnClickListener {
-            redeemManualCheckoutKey()
-        }
+ 
         binding.btnCheckoutBack.setOnClickListener {
             showPlanSelectionState()
         }
@@ -966,60 +867,7 @@ class StreamActivity : BaseActivity() {
             openTelegram()
         }
 
-        // Activation Screen Actions
-        binding.btnCopyDeviceId.setOnClickListener {
-            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            val clip = android.content.ClipData.newPlainText("Device ID", binding.tvActivationDeviceId.text)
-            clipboard.setPrimaryClip(clip)
-            Toast.makeText(this, "Device ID copied to clipboard!", Toast.LENGTH_SHORT).show()
-        }
-        binding.btnActivationPayFlutterwave.setOnClickListener {
-            simulateActivationPayment("Flutterwave")
-        }
-        binding.btnActivationPayCrypto.setOnClickListener {
-            simulateActivationPayment("Crypto")
-        }
-        binding.btnActivateLicense.setOnClickListener {
-            val enteredKey = binding.etActivationKey.text.toString().trim()
-            val correctKey = StreamAuthManager.getActivationKey(this)
-
-            if (enteredKey.equals(correctKey, ignoreCase = true)) {
-                binding.tvActivationStatus.text = "✓ License activated"
-                binding.tvActivationStatus.setTextColor(Color.parseColor("#FF3CD070"))
-                binding.tvActivationStatus.visibility = View.VISIBLE
-
-                StreamAuthManager.setActivated(this, true)
-                Toast.makeText(this, "License activated successfully!", Toast.LENGTH_SHORT).show()
-                Handler(Looper.getMainLooper()).postDelayed({
-                    showDashboardState()
-                }, 1000)
-            } else {
-                binding.tvActivationStatus.text = "✗ Key not found"
-                binding.tvActivationStatus.setTextColor(Color.parseColor("#FF5252"))
-                binding.tvActivationStatus.visibility = View.VISIBLE
-            }
-        }
-        binding.tvActivationSupport.setOnClickListener {
-            openTelegram()
-        }
-        binding.btnActivationBackToOptions.setOnClickListener {
-            showWelcomeState()
-        }
-        binding.tvActivationSignOut.setOnClickListener {
-            StreamAuthManager.logout(this)
-            Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show()
-            showAuthState()
-        }
-        binding.btnActivationMinimize.setOnClickListener {
-            minimizeApp()
-        }
-        binding.btnActivationClonedApps.setOnClickListener {
-            MainActivity.start(this@StreamActivity)
-            finish()
-        }
-        binding.fabActivationTelegram.setOnClickListener {
-            openTelegram()
-        }
+ 
 
         // Dashboard Top Bar Navigation - Hamburger Dropdown Menu
         binding.btnHamburgerMenu.setOnClickListener { view ->
@@ -1264,9 +1112,7 @@ class StreamActivity : BaseActivity() {
         binding.btnConnectStream.setBackgroundColor(Color.parseColor("#1D2030"))
         binding.btnConnectStream.setTextColor(Color.parseColor("#3A3F55"))
         
-        if (!StreamAuthManager.isActivated(this)) {
-            mainHandler.post(creditUsageRunnable)
-        }
+        mainHandler.post(creditUsageRunnable)
     }
 
     private fun toggleFullscreenCamera() {
@@ -1289,61 +1135,7 @@ class StreamActivity : BaseActivity() {
         return (dp * resources.displayMetrics.density).toInt()
     }
 
-    private fun toggleCheckoutManualKey() {
-        val container = binding.layoutCheckoutManualKeyContainer
-        if (container.visibility == View.VISIBLE) {
-            container.visibility = View.GONE
-        } else {
-            container.visibility = View.VISIBLE
-        }
-    }
-
-    private fun redeemManualPlanKey() {
-        val key = binding.etPlanCreditKey.text.toString().trim()
-        redeemKeyLogic(key)
-    }
-
-    private fun redeemManualCheckoutKey() {
-        val key = binding.etCheckoutManualKey.text.toString().trim()
-        redeemKeyLogic(key)
-    }
-
-    private fun redeemKeyLogic(key: String) {
-        if (key.isEmpty()) {
-            Toast.makeText(this, "Please enter a key", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val correctKey = StreamAuthManager.getActivationKey(this)
-        
-        // 1. Check if it's the license activation key
-        if (key.equals(correctKey, ignoreCase = true) || key.equals("MP-ACTIVATE", ignoreCase = true)) {
-            StreamAuthManager.setActivated(this, true)
-            Toast.makeText(this, "License activated permanently!", Toast.LENGTH_LONG).show()
-            showDashboardState()
-            return
-        }
-
-        // 2. Check if it's a credit key starting with MP-
-        if (key.startsWith("MP-", ignoreCase = true)) {
-            val upperKey = key.uppercase()
-            val credits = when {
-                upperKey.contains("TEST") -> 500
-                upperKey.contains("START") -> 1000
-                upperKey.contains("PRO") -> 5000
-                upperKey.contains("PREM") -> 10000
-                upperKey.contains("ELITE") -> 50000
-                else -> 1000
-            }
-            
-            StreamAuthManager.addCredits(this, credits)
-            syncBalanceWithBackend(credits)
-            Toast.makeText(this, "Successfully redeemed $credits credits!", Toast.LENGTH_LONG).show()
-            showDashboardState()
-        } else {
-            Toast.makeText(this, "Invalid Credit Key format. Key must start with 'MP-'", Toast.LENGTH_SHORT).show()
-        }
-    }
+ 
 
     private fun syncBalanceWithBackend(creditsAdded: Int) {
         val email = StreamAuthManager.getUserEmail(this)
@@ -1371,24 +1163,93 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun processCheckoutPayment(gateway: String) {
+        if (gateway == "Crypto") {
+            processCryptoCheckoutPayment()
+            return
+        }
+
         val progressDialog = android.app.ProgressDialog(this).apply {
-            setMessage("Processing secure payment via $gateway...")
+            setMessage("Redirecting to $gateway payment gateway...")
             setCancelable(false)
             show()
         }
         
         Handler(Looper.getMainLooper()).postDelayed({
             progressDialog.dismiss()
-            if (isLicenseActivationPlan) {
-                StreamAuthManager.setActivated(this, true)
-                Toast.makeText(this, "Activation payment successful! License activated permanently.", Toast.LENGTH_LONG).show()
-            } else {
-                StreamAuthManager.addCredits(this, selectedPlanCredits)
-                syncBalanceWithBackend(selectedPlanCredits)
-                Toast.makeText(this, "Payment successful! $selectedPlanCredits credits added.", Toast.LENGTH_LONG).show()
-            }
-            showDashboardState()
+            Toast.makeText(this, "Payment Gateway not configured yet.", Toast.LENGTH_LONG).show()
         }, 1500)
+    }
+
+    private fun processCryptoCheckoutPayment() {
+        val packageId = when (selectedPlanName.toLowerCase()) {
+            "basic" -> "basic"
+            "pro" -> "pro"
+            "enterprise" -> "enterprise"
+            "vip plan" -> "vip"
+            else -> "basic"
+        }
+
+        val progressDialog = android.app.ProgressDialog(this).apply {
+            setMessage("Generating Crypto Invoice...")
+            setCancelable(false)
+            show()
+        }
+
+        networkExecutor.execute {
+            try {
+                val token = StreamAuthManager.getIdToken(this@StreamActivity) ?: throw Exception("Not logged in")
+                val url = java.net.URL("$BACKEND_BASE_URL/create-crypto-checkout")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                connection.doOutput = true
+
+                val jsonInputString = "{\"packageId\": \"$packageId\", \"redirectUrl\": \"morphly://payment-return\"}"
+                connection.outputStream.use { os ->
+                    val input = jsonInputString.toByteArray(Charsets.UTF_8)
+                    os.write(input, 0, input.size)
+                }
+
+                if (connection.responseCode == 200) {
+                    val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream))
+                    val response = java.lang.StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        response.append(line)
+                    }
+                    reader.close()
+
+                    val jsonObject = org.json.JSONObject(response.toString())
+                    if (jsonObject.has("checkoutUrl")) {
+                        val checkoutUrl = jsonObject.getString("checkoutUrl")
+                        runOnUiThread {
+                            progressDialog.dismiss()
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(checkoutUrl))
+                            startActivity(intent)
+                        }
+                    } else {
+                        throw Exception("Missing checkoutUrl")
+                    }
+                } else {
+                    val errorReader = java.io.BufferedReader(java.io.InputStreamReader(connection.errorStream))
+                    val errorResponse = java.lang.StringBuilder()
+                    var line: String?
+                    while (errorReader.readLine().also { line = it } != null) {
+                        errorResponse.append(line)
+                    }
+                    errorReader.close()
+                    val errorObj = org.json.JSONObject(errorResponse.toString())
+                    throw Exception(errorObj.optString("error", "Failed to create invoice"))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread {
+                    progressDialog.dismiss()
+                    Toast.makeText(this@StreamActivity, "Crypto checkout failed: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     private fun openWhatsAppContact() {
