@@ -129,6 +129,13 @@ class StreamActivity : BaseActivity() {
 
     private var selectedPresetView: android.widget.TextView? = null
 
+    // Package IDs mapped from backend
+    private var pkgBasicId = "basic"
+    private var pkgProId = "pro"
+    private var pkgEnterpriseId = "enterprise"
+    private var pkgVipId = "vip"
+    private var selectedPackageId = "basic"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityStreamBinding.inflate(layoutInflater)
@@ -137,17 +144,20 @@ class StreamActivity : BaseActivity() {
         // Initial view setup - show Splash screen first
         showSplashState()
 
-        // Wait for 2 seconds (simulating initialization) before checking authentication state
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (StreamAuthManager.isLoggedIn(this)) {
-                showDashboardState()
-            } else {
-                showAuthState()
-            }
-        }, 2000)
-
         setupListeners()
         setupSpinners()
+
+        val handledPaymentReturn = handlePaymentReturn(intent)
+        if (!handledPaymentReturn) {
+            // Wait for 2 seconds (simulating initialization) before checking authentication state
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (StreamAuthManager.isLoggedIn(this)) {
+                    showDashboardState()
+                } else {
+                    showAuthState()
+                }
+            }, 2000)
+        }
     }
 
     private fun setupSpinners() {
@@ -169,12 +179,43 @@ class StreamActivity : BaseActivity() {
         if (binding.layoutDashboard.visibility == View.VISIBLE) {
             startCameraPreview()
         }
+        if (StreamAuthManager.isLoggedIn(this) &&
+            (binding.layoutDashboard.visibility == View.VISIBLE ||
+                binding.layoutPlanPayment.visibility == View.VISIBLE ||
+                binding.layoutAccount.visibility == View.VISIBLE)
+        ) {
+            fetchBalanceFromBackend()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handlePaymentReturn(intent)
     }
 
     override fun onPause() {
         releaseCamera()
         super.onPause()
-    }    private fun showSplashState() {
+    }
+
+    private fun handlePaymentReturn(intent: Intent?): Boolean {
+        val data = intent?.data ?: return false
+        if (data.scheme != "morphly" || data.host != "payment-return") {
+            return false
+        }
+
+        if (StreamAuthManager.isLoggedIn(this)) {
+            Toast.makeText(this, "Payment complete. Refreshing your credits...", Toast.LENGTH_LONG).show()
+            showDashboardState()
+        } else {
+            Toast.makeText(this, "Payment complete. Sign in to refresh your credits.", Toast.LENGTH_LONG).show()
+            showAuthState()
+        }
+        return true
+    }
+
+    private fun showSplashState() {
         binding.layoutSplash.visibility = View.VISIBLE
         binding.layoutAuth.visibility = View.GONE
         binding.layoutDashboard.visibility = View.GONE
@@ -243,7 +284,8 @@ class StreamActivity : BaseActivity() {
         fetchPackagesFromBackend()
     }
 
-    private fun showPlanPaymentState(name: String, price: Double, credits: Int, streamTime: String) {
+    private fun showPlanPaymentState(packageId: String, name: String, price: Double, credits: Int, streamTime: String) {
+        selectedPackageId = packageId
         selectedPlanName = name
         selectedPlanPrice = price
         selectedPlanCredits = credits
@@ -801,25 +843,25 @@ class StreamActivity : BaseActivity() {
             val price = binding.tvPlanBasicPrice.text.toString().replace("₦", "").replace(",", "").toDoubleOrNull() ?: 29000.0
             val credits = binding.tvPlanBasicCredits.text.toString().replace(",", "").replace(" Credits", "").toIntOrNull() ?: 1000
             val time = binding.tvPlanBasicTime.text.toString()
-            showPlanPaymentState("Basic", price, credits, time)
+            showPlanPaymentState(pkgBasicId, "Basic", price, credits, time)
         }
         binding.btnSelectPlanPro.setOnClickListener {
             val price = binding.tvPlanProPrice.text.toString().replace("₦", "").replace(",", "").toDoubleOrNull() ?: 58000.0
             val credits = binding.tvPlanProCredits.text.toString().replace(",", "").replace(" Credits", "").toIntOrNull() ?: 2000
             val time = binding.tvPlanProTime.text.toString()
-            showPlanPaymentState("Pro", price, credits, time)
+            showPlanPaymentState(pkgProId, "Pro", price, credits, time)
         }
         binding.btnSelectPlanEnterprise.setOnClickListener {
             val price = binding.tvPlanEnterprisePrice.text.toString().replace("₦", "").replace(",", "").toDoubleOrNull() ?: 145000.0
             val credits = binding.tvPlanEnterpriseCredits.text.toString().replace(",", "").replace(" Credits", "").toIntOrNull() ?: 5000
             val time = binding.tvPlanEnterpriseTime.text.toString()
-            showPlanPaymentState("Enterprise", price, credits, time)
+            showPlanPaymentState(pkgEnterpriseId, "Enterprise", price, credits, time)
         }
         binding.btnSelectPlanVip.setOnClickListener {
             val price = binding.tvPlanVipPrice.text.toString().replace("₦", "").replace(",", "").toDoubleOrNull() ?: 290000.0
             val credits = binding.tvPlanVipCredits.text.toString().replace(",", "").replace(" Credits", "").toIntOrNull() ?: 10000
             val time = binding.tvPlanVipTime.text.toString()
-            showPlanPaymentState("VIP plan", price, credits, time)
+            showPlanPaymentState(pkgVipId, "VIP plan", price, credits, time)
         }
  
         binding.btnStarterMinimize.setOnClickListener {
@@ -1165,13 +1207,7 @@ class StreamActivity : BaseActivity() {
             return
         }
 
-        val packageId = when (selectedPlanName.toLowerCase()) {
-            "basic" -> "basic"
-            "pro" -> "pro"
-            "enterprise" -> "enterprise"
-            "vip plan" -> "vip"
-            else -> "basic"
-        }
+        val packageId = selectedPackageId
 
         val progressDialog = android.app.ProgressDialog(this).apply {
             setMessage("Redirecting to $gateway payment gateway...")
@@ -1237,13 +1273,7 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun processCryptoCheckoutPayment() {
-        val packageId = when (selectedPlanName.toLowerCase()) {
-            "basic" -> "basic"
-            "pro" -> "pro"
-            "enterprise" -> "enterprise"
-            "vip plan" -> "vip"
-            else -> "basic"
-        }
+        val packageId = selectedPackageId
 
         val progressDialog = android.app.ProgressDialog(this).apply {
             setMessage("Generating Crypto Invoice...")
@@ -1356,31 +1386,44 @@ class StreamActivity : BaseActivity() {
                     try {
                         val jsonObject = org.json.JSONObject(jsonStr)
                         val packagesArray = jsonObject.getJSONArray("packages")
-                        if (packagesArray.length() == 4) {
+                        val count = packagesArray.length()
+                        if (count > 0) {
                             runOnUiThread {
-                                val p1 = packagesArray.getJSONObject(0)
-                                binding.tvPlanBasicTitle.text = p1.getString("name")
-                                binding.tvPlanBasicPrice.text = "₦" + String.format("%,d", p1.getInt("price"))
-                                binding.tvPlanBasicCredits.text = String.format("%,d", p1.getInt("credits")) + " Credits"
-                                binding.tvPlanBasicTime.text = p1.getString("timeLabel")
+                                if (count > 0) {
+                                    val p1 = packagesArray.getJSONObject(0)
+                                    pkgBasicId = p1.optString("id", "basic")
+                                    binding.tvPlanBasicTitle.text = p1.optString("name", "Basic")
+                                    binding.tvPlanBasicPrice.text = "₦" + String.format("%,d", p1.optInt("price", 29000))
+                                    binding.tvPlanBasicCredits.text = String.format("%,d", p1.optInt("credits", 1000)) + " Credits"
+                                    binding.tvPlanBasicTime.text = p1.optString("timeLabel", "~8m 20s")
+                                }
 
-                                val p2 = packagesArray.getJSONObject(1)
-                                binding.tvPlanProTitle.text = p2.getString("name")
-                                binding.tvPlanProPrice.text = "₦" + String.format("%,d", p2.getInt("price"))
-                                binding.tvPlanProCredits.text = String.format("%,d", p2.getInt("credits")) + " Credits"
-                                binding.tvPlanProTime.text = p2.getString("timeLabel")
+                                if (count > 1) {
+                                    val p2 = packagesArray.getJSONObject(1)
+                                    pkgProId = p2.optString("id", "pro")
+                                    binding.tvPlanProTitle.text = p2.optString("name", "Pro")
+                                    binding.tvPlanProPrice.text = "₦" + String.format("%,d", p2.optInt("price", 58000))
+                                    binding.tvPlanProCredits.text = String.format("%,d", p2.optInt("credits", 2000)) + " Credits"
+                                    binding.tvPlanProTime.text = p2.optString("timeLabel", "~16m 40s")
+                                }
 
-                                val p3 = packagesArray.getJSONObject(2)
-                                binding.tvPlanEnterpriseTitle.text = p3.getString("name")
-                                binding.tvPlanEnterprisePrice.text = "₦" + String.format("%,d", p3.getInt("price"))
-                                binding.tvPlanEnterpriseCredits.text = String.format("%,d", p3.getInt("credits")) + " Credits"
-                                binding.tvPlanEnterpriseTime.text = p3.getString("timeLabel")
+                                if (count > 2) {
+                                    val p3 = packagesArray.getJSONObject(2)
+                                    pkgEnterpriseId = p3.optString("id", "enterprise")
+                                    binding.tvPlanEnterpriseTitle.text = p3.optString("name", "Enterprise")
+                                    binding.tvPlanEnterprisePrice.text = "₦" + String.format("%,d", p3.optInt("price", 145000))
+                                    binding.tvPlanEnterpriseCredits.text = String.format("%,d", p3.optInt("credits", 5000)) + " Credits"
+                                    binding.tvPlanEnterpriseTime.text = p3.optString("timeLabel", "~41m 40s")
+                                }
 
-                                val p4 = packagesArray.getJSONObject(3)
-                                binding.tvPlanVipTitle.text = p4.getString("name")
-                                binding.tvPlanVipPrice.text = "₦" + String.format("%,d", p4.getInt("price"))
-                                binding.tvPlanVipCredits.text = String.format("%,d", p4.getInt("credits")) + " Credits"
-                                binding.tvPlanVipTime.text = p4.getString("timeLabel")
+                                if (count > 3) {
+                                    val p4 = packagesArray.getJSONObject(3)
+                                    pkgVipId = p4.optString("id", "vip")
+                                    binding.tvPlanVipTitle.text = p4.optString("name", "VIP")
+                                    binding.tvPlanVipPrice.text = "₦" + String.format("%,d", p4.optInt("price", 290000))
+                                    binding.tvPlanVipCredits.text = String.format("%,d", p4.optInt("credits", 10000)) + " Credits"
+                                    binding.tvPlanVipTime.text = p4.optString("timeLabel", "~83m 20s")
+                                }
                             }
                         }
                     } catch (e: Exception) {

@@ -32,7 +32,19 @@
         <activity android:name=".view.gms.GmsManagerActivity" />
         <activity android:name=".view.main.StreamActivity"
             android:screenOrientation="portrait"
-            android:exported="false" />
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="morphly"
+                    android:host="payment-return" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".view.main.WelcomeActivity"
             android:exported="true"

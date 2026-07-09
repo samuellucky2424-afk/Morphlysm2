@@ -33,7 +33,9 @@ object StreamAuthManager {
      * Checks if the user is currently authenticated/logged into the streaming flow.
      */
     fun isLoggedIn(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_IS_LOGGED_IN, false)
+        val prefs = getPrefs(context)
+        val token = prefs.getString(KEY_USER_TOKEN, null)
+        return prefs.getBoolean(KEY_IS_LOGGED_IN, false) && !token.isNullOrBlank()
     }
 
     fun getUserReferralCode(context: Context): String {
@@ -79,7 +81,7 @@ object StreamAuthManager {
                 val name = userJson.getString("name")
                 val balance = userJson.getInt("balance")
                 val refCode = userJson.optString("referralCode", "")
-                val token = responseJson.optString("token", "")
+                val token = responseJson.optString("token", "").trim()
 
                 val prefs = getPrefs(context)
                 val existingEmail = prefs.getString(KEY_USER_EMAIL, "")
@@ -155,7 +157,7 @@ object StreamAuthManager {
                 val userJson = responseJson.optJSONObject("user")
                 val refCode = userJson?.optString("referralCode", "") ?: ""
                 val balance = userJson?.optInt("balance", 0) ?: 0
-                val token = responseJson.optString("token", "")
+                val token = responseJson.optString("token", "").trim()
 
                 val prefs = getPrefs(context)
                 prefs.edit().apply {
@@ -168,6 +170,10 @@ object StreamAuthManager {
                     putString(KEY_USER_TOKEN, token)
                     putString(KEY_USER_DEVICE_ID, generateDeviceId())
                     apply()
+                }
+
+                if (token.isEmpty()) {
+                    return login(context, baseUrl, email, password)
                 }
                 return null // Success
             } else {
@@ -219,7 +225,7 @@ object StreamAuthManager {
     }
 
     fun getIdToken(context: Context): String? {
-        return getPrefs(context).getString(KEY_USER_TOKEN, null)
+        return getPrefs(context).getString(KEY_USER_TOKEN, null)?.trim()?.takeIf { it.isNotEmpty() }
     }
 
  

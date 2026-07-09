@@ -1,4 +1,5 @@
 import { auth, db, admin } from './_shared/firebase.js';
+import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   // Handle CORS
@@ -17,6 +18,13 @@ export default async function handler(req, res) {
   const { name, email, phone, password, referredByCode } = req.body;
   if (!email || !password || !name) {
     return res.status(400).json({ error: 'name, email, and password are required' });
+  }
+
+  const firebaseApiKey = process.env.FIREBASE_API_KEY;
+  if (!firebaseApiKey) {
+    return res.status(500).json({
+      error: 'Backend configuration missing. Please configure FIREBASE_API_KEY in your Vercel settings.'
+    });
   }
 
   try {
@@ -84,8 +92,28 @@ export default async function handler(req, res) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    const authUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}`;
+    const authRes = await fetch(authUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        returnSecureToken: true
+      })
+    });
+
+    const authData = await authRes.json();
+    if (!authRes.ok || !authData.idToken) {
+      const errMsg = authData.error?.message || 'Registration succeeded, but automatic sign-in failed';
+      throw new Error(errMsg);
+    }
+
     return res.status(200).json({
       message: 'Registration successful!',
+      token: authData.idToken,
       user: {
         id: userId,
         email: userRecord.email,
