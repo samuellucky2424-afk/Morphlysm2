@@ -129,7 +129,7 @@ export default async function handler(req, res) {
       price_amount: expectedAmount,
       price_currency: currency,
       pay_currency: 'USDTTRC20', // Default starting crypto, user can change on invoice
-      order_id: txRef,
+      order_id: transactionId,
       order_description: `Purchase ${creditPackage.credits} Morphly Credits`,
       ipn_callback_url: ipnCallbackUrl,
       success_url: safeRedirectUrl(redirectUrl),

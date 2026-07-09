@@ -51,7 +51,7 @@ export default async function handler(req, res) {
 
     // 2. Process the payment
     const paymentStatus = params.payment_status;
-    const transactionId = String(params.order_id || ''); // We stored transactionId in order_id
+    const orderId = String(params.order_id || '');
     
     // We only want to fulfill if it's finished (or partially_paid if you want to allow it, but let's stick to finished)
     if (paymentStatus !== 'finished') {
@@ -59,12 +59,25 @@ export default async function handler(req, res) {
       return res.status(200).json({ received: true, status: paymentStatus });
     }
 
-    if (!transactionId) {
+    if (!orderId) {
       return res.status(400).json({ error: 'Webhook is missing order_id' });
     }
 
-    // 3. Find transaction in Firestore by ID directly since we used doc().id
-    const txDocRef = db.collection('payment_transactions').doc(transactionId);
+    // 3. Find transaction in Firestore. New invoices use the Firestore doc id
+    // as order_id; older invoices used txRef, so keep that lookup too.
+    let txDocRef = db.collection('payment_transactions').doc(orderId);
+    const directTxDoc = await txDocRef.get();
+    if (!directTxDoc.exists) {
+      const txQuerySnap = await db.collection('payment_transactions')
+        .where('txRef', '==', orderId)
+        .limit(1)
+        .get();
+
+      if (txQuerySnap.empty) {
+        return res.status(400).json({ error: 'unknown payment reference (order_id not found)' });
+      }
+      txDocRef = txQuerySnap.docs[0].ref;
+    }
     
     // 4. Update transaction status and user wallet atomically in a transaction
     await db.runTransaction(async (transaction) => {
@@ -125,11 +138,13 @@ export default async function handler(req, res) {
         delta: txData.credits,
         balanceAfter: newBalance,
         reason: 'crypto_payment',
-        paymentTransactionId: transactionId,
+        paymentTransactionId: txDocRef.id,
         streamSessionId: null,
         metadata: {
           provider: 'nowpayments',
-          payment_id: params.payment_id
+          payment_id: params.payment_id,
+          order_id: orderId,
+          txRef: txData.txRef || null
         },
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       });

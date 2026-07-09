@@ -1201,6 +1201,103 @@ class StreamActivity : BaseActivity() {
         }
     }
 
+    private fun openCheckoutPopup(title: String, checkoutUrl: String) {
+        val webView = android.webkit.WebView(this)
+        var checkoutDialog: android.app.AlertDialog? = null
+
+        webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true
+        webView.settings.loadWithOverviewMode = true
+        webView.settings.useWideViewPort = true
+        webView.webChromeClient = android.webkit.WebChromeClient()
+        webView.webViewClient = object : android.webkit.WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: android.webkit.WebView?,
+                request: android.webkit.WebResourceRequest?
+            ): Boolean {
+                return handleCheckoutNavigation(checkoutDialog, request?.url)
+            }
+
+            @Deprecated("Deprecated in Android framework")
+            override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, url: String?): Boolean {
+                return handleCheckoutNavigation(checkoutDialog, url?.let { Uri.parse(it) })
+            }
+        }
+
+        val container = android.widget.FrameLayout(this).apply {
+            val pad = dpToPx(4)
+            setPadding(pad, 0, pad, 0)
+            addView(
+                webView,
+                android.widget.FrameLayout.LayoutParams(
+                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+                )
+            )
+        }
+
+        checkoutDialog = android.app.AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(container)
+            .setNegativeButton("Close") { dialog, _ -> dialog.dismiss() }
+            .create()
+
+        checkoutDialog.setOnShowListener {
+            checkoutDialog.window?.setLayout(
+                android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                (resources.displayMetrics.heightPixels * 0.88f).toInt()
+            )
+            webView.loadUrl(checkoutUrl)
+        }
+        checkoutDialog.setOnDismissListener {
+            webView.stopLoading()
+            webView.destroy()
+            if (StreamAuthManager.isLoggedIn(this)) {
+                fetchBalanceFromBackend()
+            }
+        }
+        checkoutDialog.show()
+    }
+
+    private fun handleCheckoutNavigation(dialog: android.app.AlertDialog?, uri: Uri?): Boolean {
+        uri ?: return false
+        if (uri.scheme == "morphly" && uri.host == "payment-return") {
+            dialog?.dismiss()
+            handlePaymentReturn(Intent(Intent.ACTION_VIEW, uri))
+            return true
+        }
+
+        val scheme = uri.scheme?.lowercase()
+        if (scheme == "http" || scheme == "https" || scheme == "about") {
+            return false
+        }
+
+        return try {
+            val intent = if (scheme == "intent") {
+                Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME)
+            } else {
+                Intent(Intent.ACTION_VIEW, uri)
+            }
+            startActivity(intent)
+            true
+        } catch (e: Exception) {
+            Toast.makeText(this, "No app can open this payment link.", Toast.LENGTH_LONG).show()
+            true
+        }
+    }
+
+    private fun checkoutErrorMessage(error: Exception): String {
+        val message = error.message ?: return "Checkout failed. Please sign in again."
+        if (message.contains("PRIVATE KEY", ignoreCase = true) ||
+            message.contains("Bearer ", ignoreCase = true) ||
+            message.contains("Authorization", ignoreCase = true) ||
+            message.contains("not logged in", ignoreCase = true)
+        ) {
+            return "Your saved login session is invalid. Please sign in again."
+        }
+        return message
+    }
+
     private fun processCheckoutPayment(gateway: String) {
         if (gateway == "Crypto") {
             processCryptoCheckoutPayment()
@@ -1245,8 +1342,7 @@ class StreamActivity : BaseActivity() {
                         val checkoutUrl = jsonObject.getString("checkoutUrl")
                         runOnUiThread {
                             progressDialog.dismiss()
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(checkoutUrl))
-                            startActivity(intent)
+                            openCheckoutPopup("$gateway Checkout", checkoutUrl)
                         }
                     } else {
                         throw Exception("Missing checkoutUrl")
@@ -1266,7 +1362,11 @@ class StreamActivity : BaseActivity() {
                 e.printStackTrace()
                 runOnUiThread {
                     progressDialog.dismiss()
-                    Toast.makeText(this@StreamActivity, "Checkout Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    val message = checkoutErrorMessage(e)
+                    Toast.makeText(this@StreamActivity, "Checkout Error: $message", Toast.LENGTH_LONG).show()
+                    if (message.contains("sign in again", ignoreCase = true)) {
+                        showAuthState()
+                    }
                 }
             }
         }
@@ -1311,8 +1411,7 @@ class StreamActivity : BaseActivity() {
                         val checkoutUrl = jsonObject.getString("checkoutUrl")
                         runOnUiThread {
                             progressDialog.dismiss()
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(checkoutUrl))
-                            startActivity(intent)
+                            openCheckoutPopup("Crypto Checkout", checkoutUrl)
                         }
                     } else {
                         throw Exception("Missing checkoutUrl")
@@ -1332,7 +1431,11 @@ class StreamActivity : BaseActivity() {
                 e.printStackTrace()
                 runOnUiThread {
                     progressDialog.dismiss()
-                    Toast.makeText(this@StreamActivity, "Crypto checkout failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    val message = checkoutErrorMessage(e)
+                    Toast.makeText(this@StreamActivity, "Crypto checkout failed: $message", Toast.LENGTH_LONG).show()
+                    if (message.contains("sign in again", ignoreCase = true)) {
+                        showAuthState()
+                    }
                 }
             }
         }

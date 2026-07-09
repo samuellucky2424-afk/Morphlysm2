@@ -13,9 +13,31 @@ object StreamAuthManager {
     private const val KEY_USER_DEVICE_ID = "user_device_id"
     private const val KEY_USER_REFERRAL_CODE = "user_referral_code"
     private const val KEY_USER_TOKEN = "user_token"
+    private val ID_TOKEN_PATTERN = Regex("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$")
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    }
+
+    private fun isUsableIdToken(token: String?): Boolean {
+        val value = token?.trim() ?: return false
+        if (value.contains("PRIVATE KEY", ignoreCase = true) ||
+            value.contains("BEGIN ") ||
+            value.contains('\n') ||
+            value.contains('\r') ||
+            value.startsWith("Bearer ", ignoreCase = true)
+        ) {
+            return false
+        }
+        return ID_TOKEN_PATTERN.matches(value)
+    }
+
+    private fun clearInvalidAuth(context: Context) {
+        getPrefs(context).edit().apply {
+            putBoolean(KEY_IS_LOGGED_IN, false)
+            putString(KEY_USER_TOKEN, null)
+            apply()
+        }
     }
 
     private fun generateRandomHex(length: Int): String {
@@ -35,7 +57,12 @@ object StreamAuthManager {
     fun isLoggedIn(context: Context): Boolean {
         val prefs = getPrefs(context)
         val token = prefs.getString(KEY_USER_TOKEN, null)
-        return prefs.getBoolean(KEY_IS_LOGGED_IN, false) && !token.isNullOrBlank()
+        val loggedIn = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
+        if (loggedIn && !isUsableIdToken(token)) {
+            clearInvalidAuth(context)
+            return false
+        }
+        return loggedIn
     }
 
     fun getUserReferralCode(context: Context): String {
@@ -82,6 +109,9 @@ object StreamAuthManager {
                 val balance = userJson.getInt("balance")
                 val refCode = userJson.optString("referralCode", "")
                 val token = responseJson.optString("token", "").trim()
+                if (!isUsableIdToken(token)) {
+                    return "Sign-in token is invalid. Please check the backend Firebase API key and sign in again."
+                }
 
                 val prefs = getPrefs(context)
                 val existingEmail = prefs.getString(KEY_USER_EMAIL, "")
@@ -159,6 +189,10 @@ object StreamAuthManager {
                 val balance = userJson?.optInt("balance", 0) ?: 0
                 val token = responseJson.optString("token", "").trim()
 
+                if (!isUsableIdToken(token)) {
+                    return login(context, baseUrl, email, password)
+                }
+
                 val prefs = getPrefs(context)
                 prefs.edit().apply {
                     putBoolean(KEY_IS_LOGGED_IN, true)
@@ -170,10 +204,6 @@ object StreamAuthManager {
                     putString(KEY_USER_TOKEN, token)
                     putString(KEY_USER_DEVICE_ID, generateDeviceId())
                     apply()
-                }
-
-                if (token.isEmpty()) {
-                    return login(context, baseUrl, email, password)
                 }
                 return null // Success
             } else {
@@ -225,7 +255,12 @@ object StreamAuthManager {
     }
 
     fun getIdToken(context: Context): String? {
-        return getPrefs(context).getString(KEY_USER_TOKEN, null)?.trim()?.takeIf { it.isNotEmpty() }
+        val token = getPrefs(context).getString(KEY_USER_TOKEN, null)?.trim()
+        if (!isUsableIdToken(token)) {
+            clearInvalidAuth(context)
+            return null
+        }
+        return token
     }
 
  
