@@ -47,6 +47,21 @@ public final class DecartFrameStore {
         }
     }
 
+    public static synchronized void update(VirtualFrame frame) {
+        if (frame == null || frame.nv21 == null || frame.width <= 0 || frame.height <= 0) {
+            return;
+        }
+        long counter = ++frameCounter;
+        latestTimestamp = frame.timestampNs;
+        latestFrame = new VirtualFrame(frame.nv21, frame.width, frame.height, frame.timestampNs, counter);
+
+        if (counter <= 5 || counter % 30 == 0) {
+            Log.d(TAG, "Decart: received frameCounter=" + counter
+                    + " timestamp=" + frame.timestampNs
+                    + " " + frame.width + "x" + frame.height);
+        }
+    }
+
     /** Clear the store (e.g. on disconnect). */
     public static synchronized void clear() {
         latestFrame = null;

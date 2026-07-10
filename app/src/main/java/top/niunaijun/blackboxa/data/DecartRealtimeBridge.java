@@ -74,9 +74,12 @@ public final class DecartRealtimeBridge {
     private static final int PREVIEW_SAMPLE_INTERVAL_MS = 333;
     private static final int DIRECT_FRAME_INTERVAL_MS = 66;
     private static final int MINI_PREVIEW_INTERVAL_MS = 333;
+    private static final int SHARED_FRAME_WRITE_INTERVAL_MS = 66;
     private static final String VIRTUAL_CAMERA_SESSION_TOKEN = "decart-live";
     private static final AtomicBoolean PREVIEW_CAPTURE_IN_FLIGHT = new AtomicBoolean(false);
     private static final AtomicBoolean DIRECT_FRAME_IN_FLIGHT = new AtomicBoolean(false);
+    private static final AtomicBoolean PUBLISH_DRAIN_SCHEDULED = new AtomicBoolean(false);
+    private static final Object PUBLISH_LOCK = new Object();
     private static final ExecutorService FRAME_EXECUTOR = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, "DecartFrameSampler");
         thread.setDaemon(true);
@@ -98,9 +101,17 @@ public final class DecartRealtimeBridge {
     private static volatile boolean virtualCameraSessionStarted;
     private static volatile long lastDirectFrameAtMs;
     private static volatile long lastMiniPreviewAtMs;
+    private static volatile long lastSharedFramePublishAtMs;
     private static volatile long publishedFrameCounter;
     private static volatile int configuredVideoBitrate = 850_000;
     private static volatile int configuredVideoFps = 20;
+    private static byte[] pendingPublishFrame;
+    private static int pendingPublishWidth;
+    private static int pendingPublishHeight;
+    private static boolean pendingPublishMiniPreview;
+    private static long pendingPublishTimestampNs;
+    private static boolean hasPendingPublishFrame;
+    private static long droppedPublishFrameCounter;
     private DecartRealtimeBridge() {
     }
 
@@ -362,6 +373,16 @@ public final class DecartRealtimeBridge {
         previewSamplerRunning = false;
         PREVIEW_CAPTURE_IN_FLIGHT.set(false);
         DIRECT_FRAME_IN_FLIGHT.set(false);
+        PUBLISH_DRAIN_SCHEDULED.set(false);
+        synchronized (PUBLISH_LOCK) {
+            pendingPublishFrame = null;
+            pendingPublishWidth = 0;
+            pendingPublishHeight = 0;
+            pendingPublishMiniPreview = false;
+            pendingPublishTimestampNs = 0L;
+            hasPendingPublishFrame = false;
+            droppedPublishFrameCounter = 0L;
+        }
         MAIN.removeCallbacks(PREVIEW_SAMPLER);
         virtualCameraSessionStarted = false;
         VirtualCameraBridge.stopSession(VirtualCameraBridge.DEFAULT_SLOT, VIRTUAL_CAMERA_SESSION_TOKEN);
@@ -743,8 +764,76 @@ public final class DecartRealtimeBridge {
             Log.d(TAG_STATE, "blank_frame_dropped:" + width + "x" + height);
             return false;
         }
+        offerLatestPublishFrame(nv21, width, height, allowMiniPreview);
+        return true;
+    }
+
+    private static void offerLatestPublishFrame(byte[] nv21, int width, int height, boolean allowMiniPreview) {
+        synchronized (PUBLISH_LOCK) {
+            if (hasPendingPublishFrame) {
+                droppedPublishFrameCounter++;
+            }
+            pendingPublishFrame = nv21;
+            pendingPublishWidth = width;
+            pendingPublishHeight = height;
+            pendingPublishMiniPreview = allowMiniPreview;
+            pendingPublishTimestampNs = System.nanoTime();
+            hasPendingPublishFrame = true;
+        }
+        schedulePublishDrain();
+    }
+
+    private static void schedulePublishDrain() {
+        if (PUBLISH_DRAIN_SCHEDULED.compareAndSet(false, true)) {
+            FRAME_EXECUTOR.execute(DecartRealtimeBridge::drainLatestPublishFrameSilently);
+        }
+    }
+
+    private static void drainLatestPublishFrameSilently() {
+        try {
+            drainLatestPublishFrame();
+        } catch (Throwable error) {
+            Log.e(TAG_ERROR, "frame publish drain failed: " + readableMessage(error));
+        } finally {
+            PUBLISH_DRAIN_SCHEDULED.set(false);
+            boolean hasMore;
+            synchronized (PUBLISH_LOCK) {
+                hasMore = hasPendingPublishFrame;
+            }
+            if (realtime != null && hasMore) {
+                schedulePublishDrain();
+            }
+        }
+    }
+
+    private static void drainLatestPublishFrame() {
+        byte[] nv21;
+        int width;
+        int height;
+        boolean allowMiniPreview;
+        long timestampNs;
+        long dropped;
+        synchronized (PUBLISH_LOCK) {
+            if (!hasPendingPublishFrame || pendingPublishFrame == null) {
+                return;
+            }
+            nv21 = pendingPublishFrame;
+            width = pendingPublishWidth;
+            height = pendingPublishHeight;
+            allowMiniPreview = pendingPublishMiniPreview;
+            timestampNs = pendingPublishTimestampNs;
+            dropped = droppedPublishFrameCounter;
+            pendingPublishFrame = null;
+            hasPendingPublishFrame = false;
+        }
+        publishLatestNv21Frame(nv21, width, height, timestampNs, allowMiniPreview, dropped);
+    }
+
+    private static void publishLatestNv21Frame(byte[] nv21, int width, int height, long timestampNs, boolean allowMiniPreview, long droppedFrames) {
+        if (realtime == null || nv21 == null || width <= 0 || height <= 0) {
+            return;
+        }
         VirtualCameraBridge.setActiveSource(appContext, VirtualCameraBridge.SOURCE_DECART);
-        long timestampNs = System.nanoTime();
         if (!virtualCameraSessionStarted) {
             VirtualCameraBridge.startSession(
                     VirtualCameraBridge.DEFAULT_SLOT,
@@ -764,19 +853,22 @@ public final class DecartRealtimeBridge {
                 timestampNs
         );
         VirtualCameraSurfaceService.queueFrameProcessing(nv21, width, height);
-        SharedFrameStore.publish(appContext, VirtualCameraBridge.DEFAULT_SLOT, nv21, width, height, timestampNs);
+        long now = System.currentTimeMillis();
+        if (now - lastSharedFramePublishAtMs >= SHARED_FRAME_WRITE_INTERVAL_MS) {
+            lastSharedFramePublishAtMs = now;
+            SharedFrameStore.publish(appContext, VirtualCameraBridge.DEFAULT_SLOT, nv21, width, height, timestampNs);
+        }
         // Also publish directly to the in-memory volatile store so the
         // Nv21SurfaceRenderer (same loop that rendered green-test) can
         // read Decart frames without file-based IPC.
         VirtualCameraBridge.publishDecartDirect(nv21, width, height);
-        // Explicitly update the persistent DecartFrameStore as well
-        DecartFrameStore.update(nv21, width, height);
         long count = ++publishedFrameCounter;
         if (count == 1) {
             Log.d(TAG_STATE, "first_decart_frame_received:" + width + "x" + height);
         }
         if (count == 1 || count % 30 == 0) {
-            Log.d(TAG_STATE, "frame_published:" + width + "x" + height + ":" + count);
+            Log.d(TAG_STATE, "frame_published:" + width + "x" + height + ":" + count
+                    + " dropped=" + droppedFrames);
         }
         if (allowMiniPreview) {
             maybePublishMiniBitmap(nv21, width, height);
@@ -785,7 +877,6 @@ public final class DecartRealtimeBridge {
         if (callback != null) {
             MAIN.post(() -> fireRemoteReady(callback));
         }
-        return true;
     }
 
     private static boolean isBlankNv21(byte[] nv21, int width, int height) {

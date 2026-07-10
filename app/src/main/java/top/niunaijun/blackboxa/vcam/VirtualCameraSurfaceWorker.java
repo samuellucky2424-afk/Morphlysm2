@@ -36,9 +36,14 @@ public final class VirtualCameraSurfaceWorker {
     private final Object frameLock = new Object();
 
     private volatile boolean released;
-    private byte[] pendingFrame;
+    private byte[] pendingFrameBuffer;
+    private byte[] activeFrameBuffer;
+    private boolean hasPendingFrame;
+    private long pendingFrameCounter;
+    private long droppedFrameCounter;
     private int pendingWidth;
     private int pendingHeight;
+    private int pendingLength;
     private ImageWriter imageWriter;
     private boolean imageWriterFailed;
     private int imageWriterFailedCount;
@@ -75,10 +80,23 @@ public final class VirtualCameraSurfaceWorker {
         if (released || rawFrame == null || width <= 0 || height <= 0) {
             return;
         }
+        int length = Math.min(rawFrame.length, width * height * 3 / 2);
+        if (length <= 0) {
+            return;
+        }
         synchronized (frameLock) {
-            pendingFrame = rawFrame;
+            if (pendingFrameBuffer == null || pendingFrameBuffer.length < length) {
+                pendingFrameBuffer = new byte[length];
+            }
+            if (hasPendingFrame) {
+                droppedFrameCounter++;
+            }
+            System.arraycopy(rawFrame, 0, pendingFrameBuffer, 0, length);
             pendingWidth = width;
             pendingHeight = height;
+            pendingLength = length;
+            pendingFrameCounter++;
+            hasPendingFrame = true;
         }
         if (drainScheduled.compareAndSet(false, true)) {
             workerHandler.post(this::drainLatestFrameSilently);
@@ -88,7 +106,9 @@ public final class VirtualCameraSurfaceWorker {
     public void release() {
         released = true;
         synchronized (frameLock) {
-            pendingFrame = null;
+            pendingFrameBuffer = null;
+            activeFrameBuffer = null;
+            hasPendingFrame = false;
         }
         workerHandler.post(() -> {
             closeImageWriter();
@@ -110,7 +130,7 @@ public final class VirtualCameraSurfaceWorker {
             drainScheduled.set(false);
             boolean hasMore;
             synchronized (frameLock) {
-                hasMore = pendingFrame != null;
+                hasMore = hasPendingFrame;
             }
             if (!released && hasMore && drainScheduled.compareAndSet(false, true)) {
                 workerHandler.post(this::drainLatestFrameSilently);
@@ -125,26 +145,36 @@ public final class VirtualCameraSurfaceWorker {
         byte[] source;
         int width;
         int height;
+        int length;
+        long frameCounter;
+        long droppedCounter;
         synchronized (frameLock) {
-            source = pendingFrame;
+            if (!hasPendingFrame || pendingFrameBuffer == null) {
+                return;
+            }
+            source = pendingFrameBuffer;
             width = pendingWidth;
             height = pendingHeight;
-            pendingFrame = null;
+            length = pendingLength;
+            frameCounter = pendingFrameCounter;
+            droppedCounter = droppedFrameCounter;
+            pendingFrameBuffer = activeFrameBuffer;
+            activeFrameBuffer = source;
+            hasPendingFrame = false;
         }
         if (source == null || width <= 0 || height <= 0) {
             return;
         }
-        int length = Math.min(source.length, width * height * 3 / 2);
-        byte[] nv21 = new byte[length];
-        System.arraycopy(source, 0, nv21, 0, length);
-        PreparedFrame prepared = prepareFrameForTarget(nv21, width, height, targetWidth, targetHeight);
+        PreparedFrame prepared = prepareFrameForTarget(source, length, width, height, targetWidth, targetHeight);
         if ((isYuvSurface() || surfaceFormat == FORMAT_UNKNOWN) && writeImage(prepared.nv21, prepared.width, prepared.height)) {
+            logDroppedFrames(frameCounter, droppedCounter);
             return;
         }
         if (isYuvSurface()) {
             return;
         }
         drawCanvas(prepared.nv21, prepared.width, prepared.height);
+        logDroppedFrames(frameCounter, droppedCounter);
     }
 
     private void drawCanvas(byte[] nv21, int width, int height) {
@@ -226,12 +256,17 @@ public final class VirtualCameraSurfaceWorker {
         }
     }
 
-    private PreparedFrame prepareFrameForTarget(byte[] nv21, int width, int height, int outputWidth, int outputHeight) {
+    private PreparedFrame prepareFrameForTarget(byte[] nv21, int inputLength, int width, int height, int outputWidth, int outputHeight) {
         int safeOutputWidth = Math.max(2, outputWidth & ~1);
         int safeOutputHeight = Math.max(2, outputHeight & ~1);
         int safeWidth = Math.max(2, width & ~1);
         int safeHeight = Math.max(2, height & ~1);
+        int safeLength = Math.min(inputLength, Math.min(nv21.length, safeWidth * safeHeight * 3 / 2));
         byte[] source = nv21;
+        if (safeLength < Math.min(nv21.length, safeWidth * safeHeight * 3 / 2)) {
+            source = new byte[safeLength];
+            System.arraycopy(nv21, 0, source, 0, safeLength);
+        }
         int rotationDegrees = rotationForTarget(safeWidth, safeHeight, safeOutputWidth, safeOutputHeight);
         if (rotationDegrees == 90 || rotationDegrees == 270) {
             source = Nv21Converter.rotateNv21(source, safeWidth, safeHeight, rotationDegrees);
@@ -245,6 +280,18 @@ public final class VirtualCameraSurfaceWorker {
             safeHeight = safeOutputHeight;
         }
         return new PreparedFrame(source, safeWidth, safeHeight);
+    }
+
+    private PreparedFrame prepareFrameForTarget(byte[] nv21, int width, int height, int outputWidth, int outputHeight) {
+        return prepareFrameForTarget(nv21, nv21 == null ? 0 : nv21.length, width, height, outputWidth, outputHeight);
+    }
+
+    private void logDroppedFrames(long frameCounter, long droppedCounter) {
+        if (droppedCounter > 0 && (frameCounter <= 5 || frameCounter % 60 == 0)) {
+            Log.d(TAG, "worker_backpressure_drop label=" + label
+                    + " dropped=" + droppedCounter
+                    + " latestCounter=" + frameCounter);
+        }
     }
 
     private int rotationForTarget(int sourceWidth, int sourceHeight, int outputWidth, int outputHeight) {

@@ -139,9 +139,10 @@ public final class VirtualCameraBridge {
         }
         byte[] copy = new byte[Math.min(nv21.length, width * height * 3 / 2)];
         System.arraycopy(nv21, 0, copy, 0, copy.length);
-        directDecartFrame = new VirtualFrame(copy, width, height, System.nanoTime(), System.currentTimeMillis());
-        // Also update the persistent DecartFrameStore for the render loop
-        DecartFrameStore.update(nv21, width, height);
+        VirtualFrame frame = new VirtualFrame(copy, width, height, System.nanoTime(), System.currentTimeMillis());
+        directDecartFrame = frame;
+        // Also update the persistent DecartFrameStore for the render loop.
+        DecartFrameStore.update(frame);
     }
 
     public static VirtualFrame getDirectDecartFrame() {
