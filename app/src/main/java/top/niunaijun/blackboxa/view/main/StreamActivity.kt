@@ -1202,14 +1202,36 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun openCheckoutPopup(title: String, checkoutUrl: String) {
-        val webView = android.webkit.WebView(this)
-        var checkoutDialog: android.app.AlertDialog? = null
+        val checkoutDialog = android.app.Dialog(this)
+        val progressBar = android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            isIndeterminate = true
+            visibility = View.VISIBLE
+        }
+        val webView = android.webkit.WebView(this).apply {
+            setBackgroundColor(Color.WHITE)
+            isVerticalScrollBarEnabled = true
+            isHorizontalScrollBarEnabled = false
+        }
 
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
+        webView.settings.databaseEnabled = true
         webView.settings.loadWithOverviewMode = true
         webView.settings.useWideViewPort = true
-        webView.webChromeClient = android.webkit.WebChromeClient()
+        webView.settings.loadsImagesAutomatically = true
+        webView.settings.javaScriptCanOpenWindowsAutomatically = true
+        webView.settings.setSupportMultipleWindows(false)
+        webView.settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
+        }
+        android.webkit.CookieManager.getInstance().setAcceptCookie(true)
+        webView.webChromeClient = object : android.webkit.WebChromeClient() {
+            override fun onProgressChanged(view: android.webkit.WebView?, newProgress: Int) {
+                progressBar.visibility = if (newProgress >= 100) View.GONE else View.VISIBLE
+            }
+        }
         webView.webViewClient = object : android.webkit.WebViewClient() {
             override fun shouldOverrideUrlLoading(
                 view: android.webkit.WebView?,
@@ -1222,33 +1244,78 @@ class StreamActivity : BaseActivity() {
             override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, url: String?): Boolean {
                 return handleCheckoutNavigation(checkoutDialog, url?.let { Uri.parse(it) })
             }
+
+            override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                progressBar.visibility = View.GONE
+                super.onPageFinished(view, url)
+            }
         }
 
-        val container = android.widget.FrameLayout(this).apply {
-            val pad = dpToPx(4)
-            setPadding(pad, 0, pad, 0)
+        val header = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dpToPx(18), 0, dpToPx(12), 0)
+            setBackgroundColor(Color.WHITE)
             addView(
-                webView,
-                android.widget.FrameLayout.LayoutParams(
-                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+                android.widget.TextView(this@StreamActivity).apply {
+                    text = title
+                    textSize = 20f
+                    setTextColor(Color.rgb(28, 30, 36))
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    isSingleLine = true
+                },
+                android.widget.LinearLayout.LayoutParams(
+                    0,
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    1f
+                )
+            )
+            addView(
+                android.widget.TextView(this@StreamActivity).apply {
+                    text = "CLOSE"
+                    textSize = 14f
+                    letterSpacing = 0.12f
+                    setTextColor(Color.rgb(45, 48, 56))
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    gravity = android.view.Gravity.CENTER
+                    setPadding(dpToPx(16), 0, dpToPx(4), 0)
+                    setOnClickListener { checkoutDialog.dismiss() }
+                },
+                android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT
                 )
             )
         }
 
-        checkoutDialog = android.app.AlertDialog.Builder(this)
-            .setTitle(title)
-            .setView(container)
-            .setNegativeButton("Close") { dialog, _ -> dialog.dismiss() }
-            .create()
-
-        checkoutDialog.setOnShowListener {
-            checkoutDialog.window?.setLayout(
-                android.view.WindowManager.LayoutParams.MATCH_PARENT,
-                (resources.displayMetrics.heightPixels * 0.88f).toInt()
+        val root = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+            addView(
+                header,
+                android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    dpToPx(58)
+                )
             )
-            webView.loadUrl(checkoutUrl)
+            addView(
+                progressBar,
+                android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    dpToPx(3)
+                )
+            )
+            addView(
+                webView,
+                android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    0,
+                    1f
+                )
+            )
         }
+
+        checkoutDialog.setContentView(root)
         checkoutDialog.setOnDismissListener {
             webView.stopLoading()
             webView.destroy()
@@ -1257,9 +1324,17 @@ class StreamActivity : BaseActivity() {
             }
         }
         checkoutDialog.show()
+        checkoutDialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.WHITE))
+        checkoutDialog.window?.setDimAmount(0.72f)
+        checkoutDialog.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        checkoutDialog.window?.setLayout(
+            android.view.WindowManager.LayoutParams.MATCH_PARENT,
+            (resources.displayMetrics.heightPixels * 0.94f).toInt()
+        )
+        webView.post { webView.loadUrl(checkoutUrl) }
     }
 
-    private fun handleCheckoutNavigation(dialog: android.app.AlertDialog?, uri: Uri?): Boolean {
+    private fun handleCheckoutNavigation(dialog: android.app.Dialog?, uri: Uri?): Boolean {
         uri ?: return false
         if (uri.scheme == "morphly" && uri.host == "payment-return") {
             dialog?.dismiss()
