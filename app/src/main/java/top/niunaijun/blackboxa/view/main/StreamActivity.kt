@@ -1361,6 +1361,190 @@ class StreamActivity : BaseActivity() {
         }
     }
 
+    private fun showCryptoPaymentDetails(payment: org.json.JSONObject) {
+        val payAddress = payment.optString("payAddress", "").trim()
+        val payAmount = payment.optString("payAmount", "").trim()
+        val payCurrency = payment.optString("payCurrency", "USDTTRC20").trim()
+        val paymentId = payment.optString("paymentId", "").trim()
+        val orderId = payment.optString("orderId", "").trim()
+
+        if (payAddress.isEmpty() || payAmount.isEmpty()) {
+            Toast.makeText(this, "Crypto payment details are incomplete. Please try again.", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val dialog = android.app.Dialog(this)
+        val root = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setBackgroundColor(Color.WHITE)
+        }
+
+        val header = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dpToPx(18), 0, dpToPx(12), 0)
+            setBackgroundColor(Color.WHITE)
+            addView(
+                android.widget.TextView(this@StreamActivity).apply {
+                    text = "Crypto Payment"
+                    textSize = 20f
+                    setTextColor(Color.rgb(28, 30, 36))
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                },
+                android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+            )
+            addView(
+                android.widget.TextView(this@StreamActivity).apply {
+                    text = "CLOSE"
+                    textSize = 14f
+                    letterSpacing = 0.12f
+                    setTextColor(Color.rgb(45, 48, 56))
+                    gravity = android.view.Gravity.CENTER
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    setPadding(dpToPx(16), 0, dpToPx(4), 0)
+                    setOnClickListener { dialog.dismiss() }
+                },
+                android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT
+                )
+            )
+        }
+        root.addView(header, android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            dpToPx(58)
+        ))
+
+        val content = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dpToPx(20), dpToPx(16), dpToPx(20), dpToPx(20))
+        }
+
+        fun addLabel(text: String) {
+            content.addView(android.widget.TextView(this).apply {
+                this.text = text
+                textSize = 12f
+                setTextColor(Color.rgb(112, 116, 128))
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setPadding(0, dpToPx(14), 0, dpToPx(6))
+            })
+        }
+
+        fun addValue(text: String, mono: Boolean = false, selectable: Boolean = false) {
+            content.addView(android.widget.TextView(this).apply {
+                this.text = text
+                textSize = if (mono) 14f else 16f
+                setTextColor(Color.rgb(24, 27, 34))
+                typeface = if (mono) android.graphics.Typeface.MONOSPACE else android.graphics.Typeface.DEFAULT_BOLD
+                setTextIsSelectable(selectable)
+                setPadding(dpToPx(12), dpToPx(10), dpToPx(12), dpToPx(10))
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    setColor(Color.rgb(245, 247, 250))
+                    cornerRadius = dpToPx(8).toFloat()
+                    setStroke(1, Color.rgb(224, 228, 236))
+                }
+            })
+        }
+
+        fun addCopyButton(label: String, value: String) {
+            content.addView(android.widget.Button(this).apply {
+                text = label
+                setOnClickListener { copyToClipboard(label.removePrefix("Copy "), value) }
+            }, android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dpToPx(8)
+            })
+        }
+
+        content.addView(android.widget.TextView(this).apply {
+            text = "Send exactly this amount to the address below."
+            textSize = 15f
+            setTextColor(Color.rgb(75, 80, 92))
+        })
+
+        addLabel("AMOUNT")
+        addValue("$payAmount $payCurrency")
+        addCopyButton("Copy Amount", payAmount)
+
+        addLabel("NETWORK")
+        addValue(cryptoNetworkLabel(payCurrency))
+
+        addLabel("PAYMENT ADDRESS")
+        addValue(payAddress, mono = true, selectable = true)
+        addCopyButton("Copy Address", payAddress)
+
+        if (paymentId.isNotEmpty()) {
+            addLabel("PAYMENT ID")
+            addValue(paymentId, mono = true, selectable = true)
+        }
+
+        if (orderId.isNotEmpty()) {
+            addLabel("ORDER ID")
+            addValue(orderId, mono = true, selectable = true)
+        }
+
+        content.addView(android.widget.TextView(this).apply {
+            text = "Credits are added automatically after the blockchain payment is confirmed."
+            textSize = 13f
+            setTextColor(Color.rgb(112, 116, 128))
+            setPadding(0, dpToPx(18), 0, 0)
+        })
+
+        content.addView(android.widget.Button(this).apply {
+            text = "I HAVE PAID - REFRESH BALANCE"
+            setOnClickListener {
+                fetchBalanceFromBackend()
+                Toast.makeText(this@StreamActivity, "Checking payment status...", Toast.LENGTH_SHORT).show()
+            }
+        }, android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            topMargin = dpToPx(14)
+        })
+
+        root.addView(android.widget.ScrollView(this).apply {
+            addView(content)
+        }, android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            0,
+            1f
+        ))
+
+        dialog.setContentView(root)
+        dialog.setOnDismissListener {
+            if (StreamAuthManager.isLoggedIn(this)) {
+                fetchBalanceFromBackend()
+            }
+        }
+        dialog.show()
+        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.WHITE))
+        dialog.window?.setDimAmount(0.72f)
+        dialog.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        dialog.window?.setLayout(
+            android.view.WindowManager.LayoutParams.MATCH_PARENT,
+            (resources.displayMetrics.heightPixels * 0.94f).toInt()
+        )
+    }
+
+    private fun copyToClipboard(label: String, value: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(label, value))
+        Toast.makeText(this, "$label copied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun cryptoNetworkLabel(currency: String): String {
+        return when (currency.uppercase()) {
+            "USDTTRC20" -> "TRON (TRC20)"
+            "USDTERC20" -> "Ethereum (ERC20)"
+            "USDTBEP20" -> "BNB Smart Chain (BEP20)"
+            "USDTMATIC" -> "Polygon"
+            else -> currency
+        }
+    }
+
     private fun checkoutErrorMessage(error: Exception): String {
         val message = error.message ?: return "Checkout failed. Please sign in again."
         if (message.contains("not logged in", ignoreCase = true) ||
@@ -1489,7 +1673,13 @@ class StreamActivity : BaseActivity() {
                     reader.close()
 
                     val jsonObject = org.json.JSONObject(response.toString())
-                    if (jsonObject.has("checkoutUrl")) {
+                    if (jsonObject.has("cryptoPayment")) {
+                        val cryptoPayment = jsonObject.getJSONObject("cryptoPayment")
+                        runOnUiThread {
+                            progressDialog.dismiss()
+                            showCryptoPaymentDetails(cryptoPayment)
+                        }
+                    } else if (jsonObject.has("checkoutUrl")) {
                         val checkoutUrl = jsonObject.getString("checkoutUrl")
                         runOnUiThread {
                             progressDialog.dismiss()

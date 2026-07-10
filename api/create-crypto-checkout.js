@@ -145,15 +145,13 @@ export default async function handler(req, res) {
     const payload = {
       price_amount: expectedAmount,
       price_currency: currency,
-      pay_currency: 'USDTTRC20', // Default starting crypto, user can change on invoice
+      pay_currency: 'USDTTRC20',
       order_id: transactionId,
       order_description: `Purchase ${creditPackage.credits} Morphly Credits`,
       ipn_callback_url: ipnCallbackUrl,
-      success_url: safeRedirectUrl(redirectUrl),
-      cancel_url: safeRedirectUrl(redirectUrl),
     };
 
-    const checkoutResponse = await fetch("https://api.nowpayments.io/v1/invoice", {
+    const checkoutResponse = await fetch("https://api.nowpayments.io/v1/payment", {
       method: "POST",
       headers: {
         "x-api-key": nowpaymentsApiKey,
@@ -163,7 +161,7 @@ export default async function handler(req, res) {
     });
 
     const checkoutData = await checkoutResponse.json();
-    if (!checkoutResponse.ok || !checkoutData.invoice_url) {
+    if (!checkoutResponse.ok || !checkoutData.pay_address) {
       await transactionRef.update({
         status: 'failed',
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -176,7 +174,33 @@ export default async function handler(req, res) {
       );
     }
 
-    return res.status(200).json({ txRef, checkoutUrl: checkoutData.invoice_url });
+    await transactionRef.update({
+      providerTransactionId: checkoutData.payment_id ? String(checkoutData.payment_id) : null,
+      providerPayload: {
+        provider: 'nowpayments',
+        paymentId: checkoutData.payment_id || null,
+        payCurrency: checkoutData.pay_currency || payload.pay_currency,
+        payAmount: checkoutData.pay_amount || null,
+        payAddress: checkoutData.pay_address || null,
+      },
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return res.status(200).json({
+      txRef,
+      cryptoPayment: {
+        paymentId: checkoutData.payment_id || null,
+        paymentStatus: checkoutData.payment_status || 'waiting',
+        payAddress: checkoutData.pay_address,
+        payAmount: checkoutData.pay_amount,
+        payCurrency: checkoutData.pay_currency || payload.pay_currency,
+        priceAmount: checkoutData.price_amount || expectedAmount,
+        priceCurrency: checkoutData.price_currency || currency,
+        orderId: transactionId,
+        credits: creditPackage.credits,
+        validUntil: checkoutData.expiration_estimate_date || null
+      }
+    });
   } catch (error) {
     const publicMessage = sanitizeProviderError(
       error.message,
