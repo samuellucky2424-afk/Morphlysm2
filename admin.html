@@ -783,6 +783,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 // ════════════════════════════════════════════════════
 let API_URL = window.location.origin + '/api';
 let ADMIN_SECRET = sessionStorage.getItem('ss_admin_secret') || localStorage.getItem('ss_admin_secret') || '';
+let cachedCreditPackages = [];
 
 async function verifyAdminSecret(secret) {
   try {
@@ -816,7 +817,7 @@ async function doAdminLogin() {
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('adminApp').style.display = 'flex';
     initAdmin();
-    showTab('generate');
+    showTab('plans');
   } catch (e) {
     err.textContent = 'Verification failed: invalid admin secret';
     ADMIN_SECRET = '';
@@ -850,6 +851,7 @@ function restoreAdminSessionIfLoggedIn() {
 // ════════════════════════════════════════════════════
 async function initAdmin() {
   loadStats();
+  loadPackages();
   refreshEngineKeyStatus();
 }
 
@@ -881,32 +883,69 @@ document.getElementById('creditPlan').addEventListener('change', function() {
   document.getElementById('customCreditRow').style.display = this.value === 'custom' ? 'block' : 'none';
 });
 
+function formatNgn(amount) {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0
+  }).format(Number(amount || 0));
+}
+
+function renderCreditPlanOptions(packages) {
+  const select = document.getElementById('creditPlan');
+  const previousValue = select.value;
+  select.innerHTML = '<option value="">Select package</option>';
+  (packages || []).forEach((pkg) => {
+    const option = document.createElement('option');
+    option.value = pkg.id || String(pkg.credits || '');
+    option.dataset.credits = String(pkg.credits || 0);
+    option.dataset.price = String(pkg.price || 0);
+    option.textContent = `${pkg.name || 'Package'} - ${fmtCred(pkg.credits || 0)} credits (${formatNgn(pkg.price || 0)})`;
+    select.appendChild(option);
+  });
+  const customOption = document.createElement('option');
+  customOption.value = 'custom';
+  customOption.textContent = 'Custom amount...';
+  select.appendChild(customOption);
+  if ([...select.options].some((option) => option.value === previousValue)) {
+    select.value = previousValue;
+  }
+  document.getElementById('customCreditRow').style.display = select.value === 'custom' ? 'block' : 'none';
+}
+
 async function addCredits() {
   const email = document.getElementById('creditEmail').value.trim().toLowerCase();
-  const plan = document.getElementById('creditPlan').value;
+  const select = document.getElementById('creditPlan');
+  const plan = select.value;
+  const reference = document.getElementById('creditRef').value.trim();
   const errEl = document.getElementById('creditErr');
   errEl.textContent = '';
 
   if (!email || !plan) { errEl.textContent = 'Email and Plan are required.'; return; }
 
-  let credits = parseInt(plan, 10);
+  let credits = parseInt(select.selectedOptions[0]?.dataset.credits || plan, 10);
   if (plan === 'custom') {
     credits = parseInt(document.getElementById('customCredits').value, 10);
     const isDebit = document.querySelector('input[name="creditAction"]:checked').value === 'debit';
     if (isDebit) credits = -credits;
+  }
+  if (!Number.isFinite(credits) || credits === 0) {
+    errEl.textContent = 'Select a valid package or custom credit amount.';
+    return;
   }
 
   try {
     const r = await fetch(`${API_URL}/credits/add`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
-      body: JSON.stringify({ user_email: email, credits })
+      body: JSON.stringify({ user_email: email, credits, package_id: plan === 'custom' ? null : plan, reference })
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Server error');
     toast(`Credits adjusted successfully. New balance: ${d.new_total}`, 'ok');
     document.getElementById('creditEmail').value = '';
     document.getElementById('creditPlan').value = '';
+    document.getElementById('creditRef').value = '';
     document.getElementById('customCreditRow').style.display = 'none';
   } catch(e) {
     errEl.textContent = e.message;
@@ -1026,15 +1065,30 @@ async function loadPackages() {
   try {
     const r = await fetch(`${API_URL}/admin/packages`, { headers: { 'x-admin-secret': ADMIN_SECRET } });
     const d = await r.json();
-    if (d.packages && d.packages.length === 4) {
-      document.getElementById('pkg_basic_price').value = d.packages[0].price;
-      document.getElementById('pkg_basic_credits').value = d.packages[0].credits;
-      document.getElementById('pkg_pro_price').value = d.packages[1].price;
-      document.getElementById('pkg_pro_credits').value = d.packages[1].credits;
-      document.getElementById('pkg_enterprise_price').value = d.packages[2].price;
-      document.getElementById('pkg_enterprise_credits').value = d.packages[2].credits;
-      document.getElementById('pkg_vip_price').value = d.packages[3].price;
-      document.getElementById('pkg_vip_credits').value = d.packages[3].credits;
+    if (d.packages && d.packages.length) {
+      cachedCreditPackages = d.packages;
+      renderCreditPlanOptions(cachedCreditPackages);
+      const byId = Object.fromEntries(cachedCreditPackages.map((pkg) => [pkg.id, pkg]));
+      const basic = byId.basic || cachedCreditPackages[0];
+      const pro = byId.pro || cachedCreditPackages[1];
+      const enterprise = byId.enterprise || cachedCreditPackages[2];
+      const vip = byId.vip || cachedCreditPackages[3];
+      if (basic) {
+        document.getElementById('pkg_basic_price').value = basic.price;
+        document.getElementById('pkg_basic_credits').value = basic.credits;
+      }
+      if (pro) {
+        document.getElementById('pkg_pro_price').value = pro.price;
+        document.getElementById('pkg_pro_credits').value = pro.credits;
+      }
+      if (enterprise) {
+        document.getElementById('pkg_enterprise_price').value = enterprise.price;
+        document.getElementById('pkg_enterprise_credits').value = enterprise.credits;
+      }
+      if (vip) {
+        document.getElementById('pkg_vip_price').value = vip.price;
+        document.getElementById('pkg_vip_credits').value = vip.credits;
+      }
     }
   } catch(e) {}
 }
@@ -1043,10 +1097,10 @@ async function saveAllPackages() {
   const errEl = document.getElementById('planSaveErr');
   errEl.textContent = 'Saving...';
   const packages = [
-    { id: 'basic', name: 'Basic', price: parseInt(document.getElementById('pkg_basic_price').value), credits: parseInt(document.getElementById('pkg_basic_credits').value), timeLabel: '~8m 20s' },
-    { id: 'pro', name: 'Pro', price: parseInt(document.getElementById('pkg_pro_price').value), credits: parseInt(document.getElementById('pkg_pro_credits').value), timeLabel: '~16m 40s' },
-    { id: 'enterprise', name: 'Enterprise', price: parseInt(document.getElementById('pkg_enterprise_price').value), credits: parseInt(document.getElementById('pkg_enterprise_credits').value), timeLabel: '~41m 40s' },
-    { id: 'vip', name: 'VIP plan', price: parseInt(document.getElementById('pkg_vip_price').value), credits: parseInt(document.getElementById('pkg_vip_credits').value), timeLabel: '~83m 20s' }
+    { id: 'basic', name: 'Basic', price: parseInt(document.getElementById('pkg_basic_price').value), credits: parseInt(document.getElementById('pkg_basic_credits').value), currency: 'NGN', timeLabel: '~8m 20s' },
+    { id: 'pro', name: 'Pro', price: parseInt(document.getElementById('pkg_pro_price').value), credits: parseInt(document.getElementById('pkg_pro_credits').value), currency: 'NGN', timeLabel: '~16m 40s' },
+    { id: 'enterprise', name: 'Enterprise', price: parseInt(document.getElementById('pkg_enterprise_price').value), credits: parseInt(document.getElementById('pkg_enterprise_credits').value), currency: 'NGN', timeLabel: '~41m 40s' },
+    { id: 'vip', name: 'VIP plan', price: parseInt(document.getElementById('pkg_vip_price').value), credits: parseInt(document.getElementById('pkg_vip_credits').value), currency: 'NGN', timeLabel: '~83m 20s' }
   ];
   
   try {
@@ -1056,6 +1110,8 @@ async function saveAllPackages() {
       body: JSON.stringify({ packages })
     });
     if (r.ok) {
+      cachedCreditPackages = packages;
+      renderCreditPlanOptions(cachedCreditPackages);
       toast('Packages saved successfully', 'ok');
       errEl.textContent = '';
     } else {
@@ -1155,6 +1211,7 @@ function showTab(id) {
 
   if (id === 'users') loadUsers();
   if (id === 'plans') loadPackages();
+  if (id === 'credits') loadPackages();
   if (id === 'notifications') loadGlobalNotification();
   if (id === 'referral') loadReferralSettings();
 }

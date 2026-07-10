@@ -88,7 +88,7 @@ export default async function handler(req, res) {
     await db.collection('wallets').doc(userId).set({
       user_id: userId,
       balance: initialBalance,
-      currency: 'USD',
+      currency: 'NGN',
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 

@@ -27,7 +27,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ balance: 0, used: 0 });
     }
 
-    const userId = usersSnap.docs[0].id;
+    const userDoc = usersSnap.docs[0];
+    const userId = userDoc.id;
+    const userData = userDoc.data();
 
     // 2. Fetch wallet balance from Firestore
     const walletDoc = await db.collection('wallets').doc(userId).get();
@@ -44,7 +46,31 @@ export default async function handler(req, res) {
       used += (doc.data().creditsUsed || 0);
     });
 
-    return res.status(200).json({ balance, used });
+    const toIso = (value) => {
+      if (!value) return null;
+      if (typeof value.toDate === 'function') return value.toDate().toISOString();
+      return value;
+    };
+
+    const licenseActive = userData.is_activated === true || userData.role === 'admin';
+
+    return res.status(200).json({
+      balance,
+      used,
+      user: {
+        id: userId,
+        email: userData.email || email,
+        name: userData.displayName || userData.name || (userData.email || email).split('@')[0],
+        phone: userData.phone || '',
+        deviceId: userData.device_id || '',
+        referralCode: userData.referralCode || '',
+        createdAt: toIso(userData.createdAt)
+      },
+      license: {
+        status: licenseActive ? 'active' : 'inactive',
+        expiresAt: toIso(userData.expires_at || userData.license_expires_at || userData.expiresAt) || '-'
+      }
+    });
   } catch (error) {
     console.error('Error in balance API:', error);
     return res.status(500).json({ error: error.message || 'Internal server error' });

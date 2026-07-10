@@ -54,6 +54,14 @@ class StreamActivity : BaseActivity() {
     private var selectedPlanCredits: Int = 500
     private var selectedPlanStreamTime: String = "~4 min"
 
+    private fun formatNaira(amount: Double): String {
+        return "\u20A6" + String.format("%,.2f", amount)
+    }
+
+    private fun formatNairaWhole(amount: Int): String {
+        return "\u20A6" + String.format("%,d", amount)
+    }
+
     private val creditUsageRunnable = object : Runnable {
         override fun run() {
             if (isStreaming) {
@@ -321,11 +329,11 @@ class StreamActivity : BaseActivity() {
 
         // Populate details
         binding.tvCheckoutPlanTitle.text = "${name.uppercase()} PLAN"
-        binding.tvCheckoutPlanSubtitle.text = String.format("$%.2f • %,d CREDITS", price, credits)
+        binding.tvCheckoutPlanSubtitle.text = String.format("%s • %,d CREDITS", formatNaira(price), credits)
         binding.tvCheckoutDetailPlan.text = name
         binding.tvCheckoutDetailCredits.text = String.format("%,d credits", credits)
         binding.tvCheckoutDetailStreamTime.text = streamTime
-        binding.tvCheckoutDetailTotal.text = String.format("$%.2f", price)
+        binding.tvCheckoutDetailTotal.text = formatNaira(price)
     }
     private fun showDashboardState() {
         binding.ivSplashArc.clearAnimation()
@@ -352,38 +360,20 @@ class StreamActivity : BaseActivity() {
                 
                 val responseCode = connection.responseCode
                 if (responseCode == 200) {
-                    val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream))
-                    val response = java.lang.StringBuilder()
-                    var line: String?
-                    while (reader.readLine().also { line = it } != null) {
-                        response.append(line)
+                    val jsonStr = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream)).use { reader ->
+                        reader.readText()
                     }
-                    reader.close()
-                    
-                    val jsonStr = response.toString()
-                    val balancePattern = java.util.regex.Pattern.compile("\"balance\"\\s*:\\s*(\\d+)")
-                    val usedPattern = java.util.regex.Pattern.compile("\"used\"\\s*:\\s*(\\d+)")
-                    
-                    val balanceMatcher = balancePattern.matcher(jsonStr)
-                    val usedMatcher = usedPattern.matcher(jsonStr)
-                    
-                    var fetchedBalance = -1
-                    var fetchedUsed = -1
-                    if (balanceMatcher.find()) {
-                        fetchedBalance = balanceMatcher.group(1).toInt()
-                    }
-                    if (usedMatcher.find()) {
-                        fetchedUsed = usedMatcher.group(1).toInt()
-                    }
-                    
+                    val balanceJson = JSONObject(jsonStr)
+                    val fetchedBalance = balanceJson.optInt("balance", -1)
+                    val fetchedUsed = balanceJson.optInt("used", -1)
+
                     if (fetchedBalance >= 0) {
-                        val currentLocalBalance = StreamAuthManager.getWalletBalance(this)
-                        if (currentLocalBalance != fetchedBalance) {
-                            StreamAuthManager.addCredits(this, fetchedBalance - currentLocalBalance)
-                        }
-                        
+                        StreamAuthManager.setWalletBalance(this, fetchedBalance)
                         runOnUiThread {
                             updateSessionBalanceUI(fetchedBalance, fetchedUsed)
+                            if (binding.layoutAccount.visibility == View.VISIBLE) {
+                                updateAccountOverlayFromBalance(balanceJson)
+                            }
                         }
                     } else {
                         runOnUiThread {
@@ -406,13 +396,14 @@ class StreamActivity : BaseActivity() {
 
     private fun updateSessionBalanceUI(overrideRemaining: Int? = null, overrideUsed: Int? = null) {
         val remaining = overrideRemaining ?: StreamAuthManager.getWalletBalance(this)
+        val used = (overrideUsed ?: 0).coerceAtLeast(0)
+        val planTotal = maxOf(remaining + used, remaining, 1)
         
-        binding.tvSessionPlanTotal.text = "500 CR"
-        val used = overrideUsed ?: (500 - remaining)
+        binding.tvSessionPlanTotal.text = "$planTotal CR"
         binding.tvSessionUsed.text = "$used CR"
         binding.tvSessionRemaining.text = "$remaining CR"
         
-        val progressPercent = (remaining * 100) / 500
+        val progressPercent = ((remaining.coerceAtLeast(0) * 100) / planTotal).coerceIn(0, 100)
         binding.progressSessionRemaining.progress = progressPercent
         
         if (progressPercent < 20) {
@@ -531,11 +522,14 @@ class StreamActivity : BaseActivity() {
         val email = StreamAuthManager.getUserEmail(this)
         val name = StreamAuthManager.getUserName(this)
         val remaining = StreamAuthManager.getWalletBalance(this)
-        binding.tvAccountLicenseStatus.text = "INACTIVE"
-        binding.tvAccountLicenseStatus.setTextColor(Color.parseColor("#FF5252"))
-        binding.tvAccountLicenseExpires.text = "-"
+        binding.tvAccountName.text = name
+        binding.tvAccountEmail.text = email
+        binding.tvAccountDeviceId.text = StreamAuthManager.getDeviceId(this)
+        binding.tvAccountLicenseStatus.text = "LOADING"
+        binding.tvAccountLicenseStatus.setTextColor(Color.parseColor("#888D9B"))
+        binding.tvAccountLicenseExpires.text = "Checking..."
         binding.tvAccountCreditsRemaining.text = "$remaining CR"
-        binding.tvAccountCreditsUsed.text = "${500 - remaining} CR"
+        binding.tvAccountCreditsUsed.text = "..."
         
         val referralCode = StreamAuthManager.getUserReferralCode(this)
         binding.tvAccountReferralCode.text = "YOUR CODE: $referralCode"
@@ -571,6 +565,39 @@ class StreamActivity : BaseActivity() {
         binding.btnAccountMinimize.setOnClickListener { minimizeApp() }
         binding.btnAccountClonedApps.setOnClickListener { finish() }
         binding.fabAccountTelegram.setOnClickListener { openTelegram() }
+        fetchBalanceFromBackend()
+    }
+
+    private fun updateAccountOverlayFromBalance(balanceJson: JSONObject) {
+        val userJson = balanceJson.optJSONObject("user")
+        val licenseJson = balanceJson.optJSONObject("license")
+        val remaining = balanceJson.optInt("balance", StreamAuthManager.getWalletBalance(this))
+        val used = balanceJson.optInt("used", 0).coerceAtLeast(0)
+        val name = userJson?.optString("name")?.takeIf { it.isNotBlank() } ?: StreamAuthManager.getUserName(this)
+        val email = userJson?.optString("email")?.takeIf { it.isNotBlank() } ?: StreamAuthManager.getUserEmail(this)
+        val deviceId = userJson?.optString("deviceId")?.takeIf { it.isNotBlank() } ?: StreamAuthManager.getDeviceId(this)
+        val referralCode = userJson?.optString("referralCode")?.takeIf { it.isNotBlank() } ?: StreamAuthManager.getUserReferralCode(this)
+        val licenseStatus = licenseJson?.optString("status")?.takeIf { it.isNotBlank() } ?: "inactive"
+        val licenseExpires = licenseJson?.optString("expiresAt")?.takeIf { it.isNotBlank() } ?: "-"
+
+        StreamAuthManager.updateUserProfile(this, name = name, email = email, referralCode = referralCode)
+        StreamAuthManager.setWalletBalance(this, remaining)
+
+        binding.tvAccountName.text = name
+        binding.tvAccountEmail.text = email
+        binding.tvAccountDeviceId.text = deviceId
+        binding.tvAccountCreditsRemaining.text = "$remaining CR"
+        binding.tvAccountCreditsUsed.text = "$used CR"
+        binding.tvAccountReferralCode.text = "YOUR CODE: $referralCode"
+        binding.tvAccountLicenseStatus.text = licenseStatus.uppercase()
+        binding.tvAccountLicenseStatus.setTextColor(
+            if (licenseStatus.equals("active", ignoreCase = true)) {
+                Color.parseColor("#FF3CD070")
+            } else {
+                Color.parseColor("#FF5252")
+            }
+        )
+        binding.tvAccountLicenseExpires.text = licenseExpires
     }
 
     private fun startBackgroundThread() {
@@ -2049,7 +2076,7 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun openWhatsAppContact() {
-        val message = "Hello Morphly Support, I would like to purchase the $selectedPlanName Plan for total $selectedPlanPrice USD."
+        val message = "Hello Morphly Support, I would like to purchase the $selectedPlanName Plan for total ${formatNaira(selectedPlanPrice)}."
         try {
             val url = "https://api.whatsapp.com/send?phone=2349033333333&text=" + java.net.URLEncoder.encode(message, "UTF-8")
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -2061,7 +2088,7 @@ class StreamActivity : BaseActivity() {
 
     private fun openEmailContact() {
         val subject = "Morphly Purchase Request - $selectedPlanName Plan"
-        val body = "Hello,\n\nI want to purchase the $selectedPlanName Plan ($selectedPlanPrice USD).\nMy unique Device ID is: ${StreamAuthManager.getDeviceId(this)}"
+        val body = "Hello,\n\nI want to purchase the $selectedPlanName Plan (${formatNaira(selectedPlanPrice)}).\nMy unique Device ID is: ${StreamAuthManager.getDeviceId(this)}"
         val intent = Intent(Intent.ACTION_SENDTO).apply {
             data = Uri.parse("mailto:support@morphly.com")
             putExtra(Intent.EXTRA_SUBJECT, subject)
@@ -2103,7 +2130,7 @@ class StreamActivity : BaseActivity() {
                                     val p1 = packagesArray.getJSONObject(0)
                                     pkgBasicId = p1.optString("id", "basic")
                                     binding.tvPlanBasicTitle.text = p1.optString("name", "Basic")
-                                    binding.tvPlanBasicPrice.text = "₦" + String.format("%,d", p1.optInt("price", 29000))
+                                    binding.tvPlanBasicPrice.text = formatNairaWhole(p1.optInt("price", 29000))
                                     binding.tvPlanBasicCredits.text = String.format("%,d", p1.optInt("credits", 1000)) + " Credits"
                                     binding.tvPlanBasicTime.text = p1.optString("timeLabel", "~8m 20s")
                                 }
@@ -2112,7 +2139,7 @@ class StreamActivity : BaseActivity() {
                                     val p2 = packagesArray.getJSONObject(1)
                                     pkgProId = p2.optString("id", "pro")
                                     binding.tvPlanProTitle.text = p2.optString("name", "Pro")
-                                    binding.tvPlanProPrice.text = "₦" + String.format("%,d", p2.optInt("price", 58000))
+                                    binding.tvPlanProPrice.text = formatNairaWhole(p2.optInt("price", 58000))
                                     binding.tvPlanProCredits.text = String.format("%,d", p2.optInt("credits", 2000)) + " Credits"
                                     binding.tvPlanProTime.text = p2.optString("timeLabel", "~16m 40s")
                                 }
@@ -2121,7 +2148,7 @@ class StreamActivity : BaseActivity() {
                                     val p3 = packagesArray.getJSONObject(2)
                                     pkgEnterpriseId = p3.optString("id", "enterprise")
                                     binding.tvPlanEnterpriseTitle.text = p3.optString("name", "Enterprise")
-                                    binding.tvPlanEnterprisePrice.text = "₦" + String.format("%,d", p3.optInt("price", 145000))
+                                    binding.tvPlanEnterprisePrice.text = formatNairaWhole(p3.optInt("price", 145000))
                                     binding.tvPlanEnterpriseCredits.text = String.format("%,d", p3.optInt("credits", 5000)) + " Credits"
                                     binding.tvPlanEnterpriseTime.text = p3.optString("timeLabel", "~41m 40s")
                                 }
@@ -2130,7 +2157,7 @@ class StreamActivity : BaseActivity() {
                                     val p4 = packagesArray.getJSONObject(3)
                                     pkgVipId = p4.optString("id", "vip")
                                     binding.tvPlanVipTitle.text = p4.optString("name", "VIP")
-                                    binding.tvPlanVipPrice.text = "₦" + String.format("%,d", p4.optInt("price", 290000))
+                                    binding.tvPlanVipPrice.text = formatNairaWhole(p4.optInt("price", 290000))
                                     binding.tvPlanVipCredits.text = String.format("%,d", p4.optInt("credits", 10000)) + " Credits"
                                     binding.tvPlanVipTime.text = p4.optString("timeLabel", "~83m 20s")
                                 }

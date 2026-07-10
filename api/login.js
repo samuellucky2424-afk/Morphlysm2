@@ -97,7 +97,7 @@ export default async function handler(req, res) {
 
     let walletData = {
       balance: 0,
-      currency: 'USD',
+      currency: 'NGN',
     };
 
     if (walletDocSnap.exists) {
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
       await walletRef.set({
         user_id: userId,
         balance: 0,
-        currency: 'USD',
+        currency: 'NGN',
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     }

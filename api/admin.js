@@ -326,18 +326,24 @@ async function handleGetPackages(req, res) {
   }
   // Defaults
   return res.status(200).json({ packages: [
-    { id: 'basic', name: 'Basic', price: 29000, credits: 1000, timeLabel: '~8m 20s' },
-    { id: 'pro', name: 'Pro', price: 58000, credits: 2000, timeLabel: '~16m 40s' },
-    { id: 'enterprise', name: 'Enterprise', price: 145000, credits: 5000, timeLabel: '~41m 40s' },
-    { id: 'vip', name: 'VIP plan', price: 290000, credits: 10000, timeLabel: '~83m 20s' }
+    { id: 'basic', name: 'Basic', price: 29000, credits: 1000, currency: 'NGN', timeLabel: '~8m 20s' },
+    { id: 'pro', name: 'Pro', price: 58000, credits: 2000, currency: 'NGN', timeLabel: '~16m 40s' },
+    { id: 'enterprise', name: 'Enterprise', price: 145000, credits: 5000, currency: 'NGN', timeLabel: '~41m 40s' },
+    { id: 'vip', name: 'VIP plan', price: 290000, credits: 10000, currency: 'NGN', timeLabel: '~83m 20s' }
   ]});
 }
 
 async function handleSavePackages(req, res) {
   const { packages } = req.body;
   if (!packages || !Array.isArray(packages)) return res.status(400).json({ error: 'packages array is required' });
+  const normalizedPackages = packages.map((pkg) => ({
+    ...pkg,
+    price: parseInt(pkg.price, 10) || 0,
+    credits: parseInt(pkg.credits, 10) || 0,
+    currency: pkg.currency || 'NGN'
+  }));
   await db.collection('settings').doc('packages').set({
-    packages,
+    packages: normalizedPackages,
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   });
   return res.status(200).json({ success: true });
@@ -376,7 +382,7 @@ async function handleWalletAdd(req, res) {
       t.set(walletRef, {
         user_id: userId,
         balance: parseInt(amount, 10),
-        currency: 'USD',
+        currency: 'NGN',
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
     } else {
@@ -424,4 +430,3 @@ async function handleSaveReferralSettings(req, res) {
   });
   return res.status(200).json({ success: true });
 }
-

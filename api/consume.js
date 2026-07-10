@@ -39,18 +39,18 @@ export default async function handler(req, res) {
       transactionResult = await db.runTransaction(async (transaction) => {
         const walletDoc = await transaction.get(walletRef);
         let currentBalance = 0;
-        let currency = 'USD';
+        let currency = 'NGN';
 
         if (walletDoc.exists) {
           const data = walletDoc.data();
           currentBalance = data.balance || 0;
-          currency = data.currency || 'USD';
+          currency = data.currency || 'NGN';
         } else {
           // If no wallet exists, initialize it in transaction
           transaction.set(walletRef, {
             user_id: userId,
             balance: 0,
-            currency: 'USD',
+            currency: 'NGN',
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
           });
         }

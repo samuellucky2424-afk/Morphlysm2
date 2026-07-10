@@ -244,6 +244,28 @@ object StreamAuthManager {
         return getPrefs(context).getInt(KEY_USER_CREDITS, 0)
     }
 
+    fun setWalletBalance(context: Context, balance: Int) {
+        getPrefs(context).edit()
+            .putInt(KEY_USER_CREDITS, balance.coerceAtLeast(0))
+            .apply()
+    }
+
+    fun updateUserProfile(
+        context: Context,
+        name: String? = null,
+        email: String? = null,
+        phone: String? = null,
+        referralCode: String? = null
+    ) {
+        getPrefs(context).edit().apply {
+            if (!name.isNullOrBlank()) putString(KEY_USER_NAME, name)
+            if (!email.isNullOrBlank()) putString(KEY_USER_EMAIL, email)
+            if (!phone.isNullOrBlank()) putString(KEY_USER_PHONE, phone)
+            if (!referralCode.isNullOrBlank()) putString(KEY_USER_REFERRAL_CODE, referralCode)
+            apply()
+        }
+    }
+
     fun getDeviceId(context: Context): String {
         val prefs = getPrefs(context)
         var devId = prefs.getString(KEY_USER_DEVICE_ID, null)

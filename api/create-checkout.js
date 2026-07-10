@@ -9,10 +9,10 @@ async function getPackages() {
   }
   // Default packages fallback
   return [
-    { id: 'basic', name: 'Basic', price: 29000, credits: 1000, timeLabel: '~8m 20s' },
-    { id: 'pro', name: 'Pro', price: 58000, credits: 2000, timeLabel: '~16m 40s' },
-    { id: 'enterprise', name: 'Enterprise', price: 145000, credits: 5000, timeLabel: '~41m 40s' },
-    { id: 'vip', name: 'VIP plan', price: 290000, credits: 10000, timeLabel: '~83m 20s' }
+    { id: 'basic', name: 'Basic', price: 29000, credits: 1000, currency: 'NGN', timeLabel: '~8m 20s' },
+    { id: 'pro', name: 'Pro', price: 58000, credits: 2000, currency: 'NGN', timeLabel: '~16m 40s' },
+    { id: 'enterprise', name: 'Enterprise', price: 145000, credits: 5000, currency: 'NGN', timeLabel: '~41m 40s' },
+    { id: 'vip', name: 'VIP plan', price: 290000, credits: 10000, currency: 'NGN', timeLabel: '~83m 20s' }
   ];
 }
 

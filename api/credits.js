@@ -36,7 +36,7 @@ async function handleAddCredits(req, res) {
     return res.status(403).json({ error: 'Access denied: invalid admin secret' });
   }
 
-  const { user_email, credits } = req.body;
+  const { user_email, credits, package_id, reference } = req.body;
   if (!user_email || credits === undefined) {
     return res.status(400).json({ error: 'user_email and credits are required' });
   }
@@ -83,6 +83,8 @@ async function handleAddCredits(req, res) {
       email,
       action: creditsAmount >= 0 ? 'admin_add_credits' : 'admin_debit_credits',
       amount: Math.abs(creditsAmount),
+      package_id: package_id || null,
+      reference: reference || null,
       newBalance,
       timestamp: admin.firestore.FieldValue.serverTimestamp()
     });
