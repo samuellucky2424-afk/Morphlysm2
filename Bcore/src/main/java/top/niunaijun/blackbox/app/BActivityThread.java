@@ -1154,8 +1154,21 @@ public class BActivityThread extends IBActivityThread.Stub {
     }
 
     private void onBeforeCreateApplication(String packageName, String processName, Context context) {
+        installMorphlyVirtualCameraHook(packageName, processName, context);
         for (AppLifecycleCallback appLifecycleCallback : BlackBoxCore.get().getAppLifecycleCallbacks()) {
             appLifecycleCallback.beforeCreateApplication(packageName, processName, context, BActivityThread.getUserId());
+        }
+    }
+
+    private void installMorphlyVirtualCameraHook(String packageName, String processName, Context context) {
+        try {
+            Class<?> hookClass = Class.forName("top.niunaijun.blackboxa.vcam.VirtualCameraServiceHook");
+            Method install = hookClass.getDeclaredMethod("install", Context.class, String.class, String.class);
+            install.setAccessible(true);
+            install.invoke(null, context, packageName, processName);
+        } catch (Throwable throwable) {
+            Slog.w(TAG, "Morphly virtual camera hook unavailable for " + packageName + ": "
+                    + throwable.getMessage());
         }
     }
 

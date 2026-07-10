@@ -12,7 +12,7 @@ android {
     ndkVersion = "28.2.13676358"
     defaultConfig {
         applicationId "top.niunaijun.blackbox"
-        minSdk rootProject.ext.minSdk
+        minSdk Math.max(rootProject.ext.minSdk as int, 24)
         targetSdk rootProject.ext.targetSdkVersion
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionName
@@ -43,9 +43,17 @@ android {
     }
     buildFeatures {
         viewBinding true
+        aidl true
     }
     kotlinOptions {
         jvmTarget = '21'
+    }
+    sourceSets {
+        main {
+            java.srcDirs += file('../android_virtual_cam/app/src/main/java')
+            java.exclude 'com/example/vcam/MainActivity.java'
+            assets.srcDirs += file('../android_virtual_cam/app/src/main/assets')
+        }
     }
 
     applicationVariants.configureEach { variant ->
@@ -58,6 +66,7 @@ android {
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar", "*.aar"])
     implementation project(':Bcore')
+    compileOnly files('../android_virtual_cam/app/libs/api-82.jar')
 
     implementation libs.appcompat
     implementation libs.material
@@ -72,6 +81,7 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1"
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.3.1"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.3.1"
+    runtimeOnly "com.github.DecartAI:decart-android:0.7.3"
 
     
     implementation 'androidx.recyclerview:recyclerview:1.2.1'

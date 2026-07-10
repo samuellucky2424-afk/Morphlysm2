@@ -42,6 +42,7 @@ public class VideoToFrames implements Runnable {
     private Surface play_surf;
 
     private Callback callback;
+    private FrameSink frameSink;
 
     public interface Callback {
         void onFinishDecode();
@@ -51,6 +52,10 @@ public class VideoToFrames implements Runnable {
 
     public void setCallback(Callback callback) {
         this.callback = callback;
+    }
+
+    public void setFrameSink(FrameSink frameSink) {
+        this.frameSink = frameSink;
     }
 
     public void setEnqueue(LinkedBlockingQueue<byte[]> queue) {
@@ -211,7 +216,22 @@ public class VideoToFrames implements Runnable {
                             }
                         }
                         if (outputImageFormat != null) {
-                            HookMain.data_buffer = getDataFromImage(image, COLOR_FormatNV21);
+                            byte[] nv21 = getDataFromImage(image, COLOR_FormatNV21);
+                            HookMain.data_buffer = nv21;
+                            if (frameSink != null) {
+                                Rect crop = image.getCropRect();
+                                frameSink.onNv21Frame(nv21, crop.width(), crop.height(), System.nanoTime());
+                            } else {
+                                Rect crop = image.getCropRect();
+                                VirtualCameraBridge.publishNv21(
+                                        VirtualCameraBridge.DEFAULT_SLOT,
+                                        null,
+                                        nv21,
+                                        crop.width(),
+                                        crop.height(),
+                                        System.nanoTime()
+                                );
+                            }
                         }
                         image.close();
                     }

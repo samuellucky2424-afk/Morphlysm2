@@ -1,20 +1,30 @@
 package top.niunaijun.blackboxa.view.main
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.View
 import android.view.animation.Animation
 import android.view.animation.LinearInterpolator
 import android.view.animation.RotateAnimation
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.example.vcam.VirtualCameraBridge
+import org.json.JSONObject
 import top.niunaijun.blackboxa.R
 import top.niunaijun.blackboxa.databinding.ActivityStreamBinding
+import top.niunaijun.blackboxa.data.DecartRealtimeBridge
 import top.niunaijun.blackboxa.data.StreamAuthManager
+import top.niunaijun.blackboxa.data.StreamPreviewBridge
+import top.niunaijun.blackboxa.data.StreamSessionController
 import top.niunaijun.blackboxa.view.base.BaseActivity
 
 class StreamActivity : BaseActivity() {
@@ -28,11 +38,16 @@ class StreamActivity : BaseActivity() {
 
     private var isStreaming = false
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val TAG_STREAM_LIFECYCLE = "STREAM_LIFECYCLE"
 
     private val BACKEND_BASE_URL = "https://morphlysm2.vercel.app/api"
+    private val DECART_REALTIME_MODEL = "lucy-2.1"
+    private val REQUEST_DECART_PERMISSIONS = 2202
     private val networkExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private var selectedFaceImageUri: Uri? = null
     private var isFullscreenCamera = false
+    private var currentStreamSessionId: String = ""
+    private var currentStreamModel: String = ""
 
     private var selectedPlanName: String = "Test"
     private var selectedPlanPrice: Double = 10.0
@@ -140,6 +155,8 @@ class StreamActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityStreamBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        VirtualCameraBridge.setApplicationContext(this)
+        VirtualCameraBridge.setActiveSource(applicationContext, VirtualCameraBridge.SOURCE_DECART)
 
         // Initial view setup - show Splash screen first
         showSplashState()
@@ -176,6 +193,7 @@ class StreamActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        StreamSessionController.refreshWindow(this)
         if (binding.layoutDashboard.visibility == View.VISIBLE) {
             startCameraPreview()
         }
@@ -484,7 +502,17 @@ class StreamActivity : BaseActivity() {
 
     private fun stopLiveStream() {
         isStreaming = false
+        currentStreamSessionId = ""
+        currentStreamModel = ""
         mainHandler.removeCallbacks(creditUsageRunnable)
+        DecartRealtimeBridge.disconnect()
+        StreamSessionController.stop()
+        StreamPreviewBridge.clear()
+        binding.layoutDecartRemoteOutput.removeAllViews()
+        binding.layoutDecartRemoteOutput.visibility = View.GONE
+        binding.layoutAiOutputPlaceholder.visibility = View.VISIBLE
+        binding.tvAiOutputTitle.text = "AI OUTPUT WILL APPEAR HERE"
+        binding.tvAiOutputStatus.text = "Ready to connect live output"
         
         binding.btnConnectStream.isEnabled = true
         binding.btnConnectStream.setBackgroundColor(Color.parseColor("#FF3CD070"))
@@ -696,6 +724,12 @@ class StreamActivity : BaseActivity() {
                 startCameraPreview()
             } else {
                 showCameraFallback()
+            }
+        } else if (requestCode == REQUEST_DECART_PERMISSIONS) {
+            if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                connectToDecartSession()
+            } else {
+                Toast.makeText(this, "Camera and microphone permission are required for live output.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -945,7 +979,7 @@ class StreamActivity : BaseActivity() {
                 Toast.makeText(this, "Consent is required before connecting to the live engine.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            connectToVercelBackend()
+            connectToDecartSession()
         }
         binding.btnStopStream.setOnClickListener {
             stopLiveStream()
@@ -1029,18 +1063,16 @@ class StreamActivity : BaseActivity() {
 
         // Bottom Actions
         binding.btnMinimize.setOnClickListener {
-            minimizeApp()
+            minimizeForVideoCall()
         }
 
         binding.btnClonedApps.setOnClickListener {
-            MainActivity.start(this@StreamActivity)
-            finish()
+            openClonedAppsForVideoCall()
         }
 
-        binding.btnDashboardMinimize.setOnClickListener { minimizeApp() }
+        binding.btnDashboardMinimize.setOnClickListener { minimizeForVideoCall() }
         binding.btnDashboardClonedApps.setOnClickListener {
-            MainActivity.start(this@StreamActivity)
-            finish()
+            openClonedAppsForVideoCall()
         }
         binding.fabDashboardTelegram.setOnClickListener { openTelegram() }
     }
@@ -1064,6 +1096,300 @@ class StreamActivity : BaseActivity() {
                 binding.tvUploadedFileName.visibility = View.VISIBLE
                 binding.tvUploadedFileName.text = "face_image.png"
                 Toast.makeText(this, "Face image selected successfully!", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun ensureDecartRuntimePermissions(): Boolean {
+        val required = mutableListOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            required.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        val missing = required.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, missing.toTypedArray(), REQUEST_DECART_PERMISSIONS)
+            return false
+        }
+        return true
+    }
+
+    private fun selectedModeKey(): String {
+        return if (binding.layoutFaceSwapUpload.visibility == View.VISIBLE) "face_swap" else "style"
+    }
+
+    private fun selectedQualityKey(): String {
+        return when (binding.spinnerQualitySelect.selectedItemPosition) {
+            0 -> "high"
+            2 -> "low"
+            else -> "medium"
+        }
+    }
+
+    private fun selectedFrameRate(): Int {
+        return when (selectedQualityKey()) {
+            "high" -> 24
+            "low" -> 15
+            else -> 20
+        }
+    }
+
+    private fun selectedVideoBitrate(): Int {
+        return when (selectedQualityKey()) {
+            "high" -> 1_000_000
+            "low" -> 450_000
+            else -> 750_000
+        }
+    }
+
+    private fun selectedPresetLabel(): String {
+        return selectedPresetView?.text?.toString().orEmpty()
+    }
+
+    private fun currentDecartPrompt(): String {
+        val prompt = binding.etPromptDescription.text?.toString()?.trim().orEmpty()
+        if (binding.switchLiveUpdate.isChecked && prompt.isNotBlank()) {
+            return prompt
+        }
+        return when (selectedModeKey()) {
+            "face_swap" -> "Apply the selected face image to the live video while preserving natural motion."
+            else -> selectedPresetLabel().ifBlank { "Transform the live camera into a clean high-definition cinematic style." }
+        }
+    }
+
+    private fun readFaceImageForDecart(uri: Uri): Pair<String, String> {
+        val mimeType = contentResolver.getType(uri) ?: "image/png"
+        val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: throw IllegalStateException("Could not read selected face image.")
+        return Pair(android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP), mimeType)
+    }
+
+    private fun postBackendJson(path: String, payload: JSONObject): Pair<Int, String> {
+        val url = java.net.URL("$BACKEND_BASE_URL/$path")
+        val connection = url.openConnection() as java.net.HttpURLConnection
+        connection.requestMethod = "POST"
+        connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+        connection.setRequestProperty("Accept", "application/json")
+        connection.doOutput = true
+        connection.connectTimeout = 15000
+        connection.readTimeout = 20000
+        try {
+            connection.outputStream.use { os ->
+                os.write(payload.toString().toByteArray(charset("UTF-8")))
+            }
+            val responseCode = connection.responseCode
+            val stream = if (responseCode in 200..299) {
+                connection.inputStream
+            } else {
+                connection.errorStream ?: connection.inputStream
+            }
+            val responseText = java.io.BufferedReader(java.io.InputStreamReader(stream)).use { reader ->
+                reader.readText()
+            }
+            return Pair(responseCode, responseText)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun parseBackendError(responseText: String, fallback: String): String {
+        return try {
+            JSONObject(responseText).optString("error", fallback).ifBlank { fallback }
+        } catch (error: Exception) {
+            fallback
+        }
+    }
+
+    private fun sanitizeEngineText(message: String): String {
+        return message
+            .replace("DECART_API_KEY", "LIVE_ENGINE_API_KEY")
+            .replace("api.decart.ai", "live engine API", ignoreCase = true)
+            .replace("Decart WebRTC", "live engine", ignoreCase = true)
+            .replace("Decart realtime", "live", ignoreCase = true)
+            .replace("Decart", "live engine", ignoreCase = true)
+    }
+
+    private fun decartStatusFromResponse(response: JSONObject, prompt: String): String {
+        val status = response.optString("status", "running")
+        return "Live output $status. ${prompt.take(90)}"
+    }
+
+    private fun showMiniWindowPermissionNotice() {
+        if (StreamSessionController.hasOverlayPermission(this)) {
+            StreamSessionController.showMiniWindow(this)
+            binding.tvAiOutputStatus.text = "Live output is feeding the virtual camera. Open cloned WhatsApp to use it."
+            return
+        }
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Mini window permission")
+            .setMessage("Allow Display over other apps so live output can stay visible while cloned WhatsApp uses the virtual camera.")
+            .setPositiveButton("OPEN SETTINGS") { _, _ ->
+                startActivity(StreamSessionController.overlayPermissionIntent(this))
+            }
+            .setNegativeButton("LATER", null)
+            .show()
+    }
+
+    private fun minimizeForVideoCall() {
+        if (isStreaming && StreamSessionController.isActive()) {
+            StreamSessionController.showMiniWindow(this)
+        }
+        minimizeApp()
+    }
+
+    private fun openClonedAppsForVideoCall() {
+        if (isStreaming && StreamSessionController.isActive()) {
+            StreamSessionController.showMiniWindow(this)
+        }
+        MainActivity.start(this@StreamActivity)
+        finish()
+    }
+
+    private fun connectToDecartSession() {
+        if (!ensureDecartRuntimePermissions()) {
+            return
+        }
+        if (StreamAuthManager.getWalletBalance(this) <= 0) {
+            Toast.makeText(this, "No credits remaining. Buy credits before connecting.", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val mode = selectedModeKey()
+        if (mode == "face_swap" && selectedFaceImageUri == null) {
+            Toast.makeText(this, "Select a face image before starting Face Swap.", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        VirtualCameraBridge.setApplicationContext(this)
+        VirtualCameraBridge.setActiveSource(applicationContext, VirtualCameraBridge.SOURCE_DECART)
+        binding.tvAiOutputTitle.text = "CONNECTING LIVE OUTPUT"
+        binding.tvAiOutputStatus.text = "Preparing live engine session..."
+        binding.btnConnectStream.isEnabled = false
+        binding.btnConnectStream.setBackgroundColor(Color.parseColor("#1D2030"))
+        binding.btnConnectStream.setTextColor(Color.parseColor("#3A3F55"))
+
+        val deviceId = StreamAuthManager.getDeviceId(this)
+        val email = StreamAuthManager.getUserEmail(this)
+        val prompt = currentDecartPrompt()
+        val preset = selectedPresetLabel()
+        val quality = selectedQualityKey()
+        val fps = selectedFrameRate()
+
+        networkExecutor.execute {
+            try {
+                var base64Image = ""
+                var faceImageMimeType = ""
+                if (mode == "face_swap") {
+                    val faceImage = readFaceImageForDecart(
+                        selectedFaceImageUri ?: throw IllegalStateException("Select a face image before starting Face Swap.")
+                    )
+                    base64Image = faceImage.first
+                    faceImageMimeType = faceImage.second
+                }
+
+                val tokenResponse = postBackendJson(
+                    "decart-token",
+                    JSONObject()
+                        .put("deviceId", deviceId)
+                        .put("email", email)
+                        .put("model", DECART_REALTIME_MODEL)
+                )
+                if (tokenResponse.first !in 200..299) {
+                    throw IllegalStateException(parseBackendError(tokenResponse.second, "Could not create live session token."))
+                }
+                val tokenJson = JSONObject(tokenResponse.second)
+                val clientApiKey = tokenJson.optString("apiKey")
+                if (clientApiKey.isBlank()) {
+                    throw IllegalStateException("Live session token response did not include a client key.")
+                }
+
+                val transformResponse = postBackendJson(
+                    "transform",
+                    JSONObject()
+                        .put("deviceId", deviceId)
+                        .put("email", email)
+                        .put("mode", mode)
+                        .put("prompt", prompt)
+                        .put("preset", preset)
+                        .put("presetLabel", preset)
+                        .put("enhance", false)
+                        .put("quality", quality)
+                        .put("fps", fps)
+                        .put("model", DECART_REALTIME_MODEL)
+                        .put("faceImage", base64Image)
+                        .put("faceImageMimeType", faceImageMimeType)
+                )
+                if (transformResponse.first !in 200..299) {
+                    throw IllegalStateException(parseBackendError(transformResponse.second, "Could not reserve live stream session."))
+                }
+
+                val transformJson = JSONObject(transformResponse.second)
+                val sessionId = transformJson.optString("sessionId", "morphly_${System.currentTimeMillis()}")
+                val model = transformJson.optString("model", DECART_REALTIME_MODEL)
+                val maxSessionDuration = tokenJson.optInt("maxSessionDuration", 900)
+                val resolvedPrompt = transformJson.optString("prompt", prompt).ifBlank { prompt }
+                val useBackCamera = binding.spinnerCameraSelect.selectedItemPosition == 1
+                val targetBitrate = selectedVideoBitrate()
+
+                runOnUiThread {
+                    binding.tvAiOutputTitle.text = "LIVE OUTPUT"
+                    binding.tvAiOutputStatus.text = "Opening live camera..."
+                    binding.layoutAiOutputPlaceholder.visibility = View.GONE
+                    binding.layoutDecartRemoteOutput.visibility = View.VISIBLE
+                    binding.layoutDecartRemoteOutput.removeAllViews()
+                    releaseCamera()
+                    DecartRealtimeBridge.connect(
+                        this@StreamActivity,
+                        binding.layoutDecartRemoteOutput,
+                        clientApiKey,
+                        resolvedPrompt,
+                        false,
+                        base64Image,
+                        useBackCamera,
+                        fps,
+                        targetBitrate,
+                        { status ->
+                            binding.tvAiOutputStatus.text = status
+                        },
+                        {
+                            binding.tvAiOutputStatus.text = "Live engine connected. Waiting for transformed video..."
+                        },
+                        {
+                            if (!isStreaming) {
+                                startLiveStreamState(sessionId, model, maxSessionDuration)
+                            }
+                            binding.tvAiOutputStatus.text = decartStatusFromResponse(transformJson, resolvedPrompt)
+                            Toast.makeText(this@StreamActivity, "Live output is feeding the virtual camera.", Toast.LENGTH_SHORT).show()
+                            showMiniWindowPermissionNotice()
+                        },
+                        { error ->
+                            Log.e(TAG_STREAM_LIFECYCLE, "live_engine_failed", error)
+                            if (!isStreaming) {
+                                binding.btnConnectStream.isEnabled = true
+                                binding.btnConnectStream.setBackgroundColor(Color.parseColor("#FF3CD070"))
+                                binding.btnConnectStream.setTextColor(Color.parseColor("#0B0C10"))
+                                binding.btnStopStream.isEnabled = false
+                            }
+                            binding.layoutDecartRemoteOutput.visibility = View.GONE
+                            binding.layoutAiOutputPlaceholder.visibility = View.VISIBLE
+                            binding.tvAiOutputTitle.text = "LIVE OUTPUT ERROR"
+                            binding.tvAiOutputStatus.text = sanitizeEngineText(error.message ?: "Live video failed.")
+                            Toast.makeText(this@StreamActivity, sanitizeEngineText(error.message ?: "Live video failed."), Toast.LENGTH_LONG).show()
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG_STREAM_LIFECYCLE, "connect_live_engine_failed", e)
+                runOnUiThread {
+                    binding.btnConnectStream.isEnabled = true
+                    binding.btnConnectStream.setBackgroundColor(Color.parseColor("#FF3CD070"))
+                    binding.btnConnectStream.setTextColor(Color.parseColor("#0B0C10"))
+                    binding.tvAiOutputTitle.text = "LIVE OUTPUT ERROR"
+                    binding.tvAiOutputStatus.text = sanitizeEngineText(e.message ?: "Unable to connect to the live engine.")
+                    Toast.makeText(this@StreamActivity, sanitizeEngineText(e.message ?: "Unable to connect to the live engine."), Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
@@ -1141,8 +1467,17 @@ class StreamActivity : BaseActivity() {
         }
     }
 
-    private fun startLiveStreamState() {
+    private fun startLiveStreamState(
+        sessionId: String = "morphly_${System.currentTimeMillis()}",
+        model: String = DECART_REALTIME_MODEL,
+        maxSessionDurationSeconds: Int = 900
+    ) {
         isStreaming = true
+        currentStreamSessionId = sessionId
+        currentStreamModel = model
+        StreamSessionController.start(this, sessionId, model, maxSessionDurationSeconds) {
+            stopLiveStream()
+        }
         binding.btnStopStream.isEnabled = true
         binding.btnStopStream.setBackgroundColor(Color.parseColor("#FFFF5252"))
         binding.btnStopStream.setTextColor(Color.parseColor("#0B0C10"))

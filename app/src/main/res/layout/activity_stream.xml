@@ -678,8 +678,15 @@
                     android:background="#050608"
                     android:layout_marginBottom="16dp">
 
+                    <FrameLayout
+                        android:id="@+id/layoutDecartRemoteOutput"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone" />
+
                     <!-- Center Text Placeholder -->
                     <LinearLayout
+                        android:id="@+id/layoutAiOutputPlaceholder"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_centerInParent="true"
@@ -694,6 +701,7 @@
                             android:textSize="44sp" />
 
                         <TextView
+                            android:id="@+id/tvAiOutputTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="AI OUTPUT WILL APPEAR HERE"
@@ -701,6 +709,16 @@
                             android:textSize="12sp"
                             android:textStyle="bold"
                             android:letterSpacing="0.1" />
+
+                        <TextView
+                            android:id="@+id/tvAiOutputStatus"
+                            android:layout_width="220dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:gravity="center"
+                            android:text="Ready to connect live output"
+                            android:textColor="#5D6688"
+                            android:textSize="10sp" />
 
                     </LinearLayout>
 
