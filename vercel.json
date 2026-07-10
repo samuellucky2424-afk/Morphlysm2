@@ -11,6 +11,14 @@
     {
       "source": "/api/credits/:path*",
       "destination": "/api/credits.js"
+    },
+    {
+      "source": "/api/decart-token",
+      "destination": "/api/config.js?route=decart-token"
+    },
+    {
+      "source": "/api/transform",
+      "destination": "/api/config.js?route=transform"
     }
   ]
 }
