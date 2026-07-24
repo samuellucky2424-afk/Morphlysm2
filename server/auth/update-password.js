@@ -3,13 +3,13 @@ import {
   createUserClient,
   publicSupabaseKey,
   supabaseUrl,
-} from './_shared/supabase.js';
+} from '../shared/supabase.js';
 import {
   applyHttpHeaders,
   handleOptions,
   publicError,
   requireMethod,
-} from './_shared/http.js';
+} from '../shared/http.js';
 
 export default async function handler(req, res) {
   applyHttpHeaders(req, res, 'POST, OPTIONS');

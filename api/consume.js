@@ -1,4 +1,4 @@
-import { requireUser } from './_shared/supabase.js';
+import { requireUser } from '../server/shared/supabase.js';
 import {
   applyHttpHeaders,
   cleanString,
@@ -6,7 +6,7 @@ import {
   positiveInteger,
   publicError,
   requireMethod,
-} from './_shared/http.js';
+} from '../server/shared/http.js';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 

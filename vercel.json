@@ -1,8 +1,29 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
       "source": "/admin",
       "destination": "/admin.html"
+    },
+    {
+      "source": "/api/login",
+      "destination": "/api/auth.js?route=login"
+    },
+    {
+      "source": "/api/signup",
+      "destination": "/api/auth.js?route=signup"
+    },
+    {
+      "source": "/api/refresh",
+      "destination": "/api/auth.js?route=refresh"
+    },
+    {
+      "source": "/api/request-password-reset",
+      "destination": "/api/auth.js?route=request-password-reset"
+    },
+    {
+      "source": "/api/update-password",
+      "destination": "/api/auth.js?route=update-password"
     },
     {
       "source": "/api/admin/:path*",

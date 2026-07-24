@@ -1,3 +1,4 @@
+// Shared by the routed Vercel functions; this file is not an API entry point.
 const DEFAULT_ALLOWED_METHODS = 'GET, POST, PATCH, PUT, DELETE, OPTIONS';
 
 function configuredOrigins() {

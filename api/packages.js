@@ -1,10 +1,10 @@
-import { createServiceClient } from './_shared/supabase.js';
+import { createServiceClient } from '../server/shared/supabase.js';
 import {
   applyHttpHeaders,
   handleOptions,
   publicError,
   requireMethod,
-} from './_shared/http.js';
+} from '../server/shared/http.js';
 
 export default async function handler(req, res) {
   applyHttpHeaders(req, res, 'GET, OPTIONS');

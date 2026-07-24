@@ -1,6 +1,6 @@
 import crypto from 'crypto';
-import { createServiceClient } from './_shared/supabase.js';
-import { publicError, requireMethod } from './_shared/http.js';
+import { createServiceClient } from '../server/shared/supabase.js';
+import { publicError, requireMethod } from '../server/shared/http.js';
 
 export const config = { api: { bodyParser: false } };
 

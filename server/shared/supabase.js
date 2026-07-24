@@ -1,3 +1,4 @@
+// Shared by the routed Vercel functions; this file is not an API entry point.
 import { createClient } from '@supabase/supabase-js';
 
 function requiredEnv(...names) {

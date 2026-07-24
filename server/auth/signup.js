@@ -4,14 +4,14 @@ import {
   createServiceClient,
   formatAccount,
   getAccountSummary,
-} from './_shared/supabase.js';
+} from '../shared/supabase.js';
 import {
   applyHttpHeaders,
   cleanString,
   handleOptions,
   publicError,
   requireMethod,
-} from './_shared/http.js';
+} from '../shared/http.js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

@@ -1,11 +1,11 @@
-import { createServiceClient, requireUser } from './_shared/supabase.js';
+import { createServiceClient, requireUser } from '../server/shared/supabase.js';
 import {
   applyHttpHeaders,
   cleanString,
   handleOptions,
   publicError,
   requireMethod,
-} from './_shared/http.js';
+} from '../server/shared/http.js';
 
 function routeFor(req) {
   const url = new URL(req.url, `https://${req.headers.host || 'localhost'}`);

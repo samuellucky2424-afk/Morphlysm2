@@ -1,11 +1,11 @@
-import { createPublicClient } from './_shared/supabase.js';
+import { createPublicClient } from '../shared/supabase.js';
 import {
   applyHttpHeaders,
   cleanString,
   handleOptions,
   publicError,
   requireMethod,
-} from './_shared/http.js';
+} from '../shared/http.js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

@@ -1,11 +1,11 @@
-import { requireAdmin } from './_shared/supabase.js';
+import { requireAdmin } from '../server/shared/supabase.js';
 import {
   applyHttpHeaders,
   cleanString,
   handleOptions,
   parseRoute,
   publicError,
-} from './_shared/http.js';
+} from '../server/shared/http.js';
 
 async function lookup(service, email) {
   const { data: user, error: userError } = await service

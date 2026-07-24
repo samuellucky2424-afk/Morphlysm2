@@ -2,13 +2,13 @@ import {
   formatAccount,
   getAccountSummary,
   requireUser,
-} from './_shared/supabase.js';
+} from '../server/shared/supabase.js';
 import {
   applyHttpHeaders,
   handleOptions,
   publicError,
   requireMethod,
-} from './_shared/http.js';
+} from '../server/shared/http.js';
 
 export default async function handler(req, res) {
   applyHttpHeaders(req, res, 'GET, OPTIONS');

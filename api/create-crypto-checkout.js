@@ -1,12 +1,12 @@
 import crypto from 'crypto';
-import { requireUser } from './_shared/supabase.js';
+import { requireUser } from '../server/shared/supabase.js';
 import {
   applyHttpHeaders,
   cleanString,
   handleOptions,
   publicError,
   requireMethod,
-} from './_shared/http.js';
+} from '../server/shared/http.js';
 
 function callbackUrl() {
   const configured = String(process.env.PUBLIC_APP_URL || '').replace(/\/+$/, '');

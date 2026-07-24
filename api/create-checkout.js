@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { requireUser } from './_shared/supabase.js';
+import { requireUser } from '../server/shared/supabase.js';
 import {
   applyHttpHeaders,
   cleanString,
@@ -7,7 +7,7 @@ import {
   publicError,
   requireMethod,
   safeRedirectUrl,
-} from './_shared/http.js';
+} from '../server/shared/http.js';
 
 export default async function handler(req, res) {
   applyHttpHeaders(req, res, 'POST, OPTIONS');

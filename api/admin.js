@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { requireAdmin } from './_shared/supabase.js';
+import { requireAdmin } from '../server/shared/supabase.js';
 import {
   applyHttpHeaders,
   cleanString,
@@ -7,7 +7,7 @@ import {
   parseRoute,
   positiveInteger,
   publicError,
-} from './_shared/http.js';
+} from '../server/shared/http.js';
 
 const USER_STATUSES = new Set(['active', 'suspended', 'banned', 'deleted']);
 
