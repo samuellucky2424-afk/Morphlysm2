@@ -1,111 +1,54 @@
-import { db, admin } from './_shared/firebase.js';
+import { requireUser } from './_shared/supabase.js';
+import {
+  applyHttpHeaders,
+  cleanString,
+  handleOptions,
+  positiveInteger,
+  publicError,
+  requireMethod,
+} from './_shared/http.js';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
-  // Handle CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyHttpHeaders(req, res, 'POST, OPTIONS');
+  if (handleOptions(req, res) || !requireMethod(req, res, 'POST')) return;
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { email, amount } = req.body;
-  if (!email || amount === undefined) {
-    return res.status(400).json({ error: 'email and amount are required' });
-  }
-
-  const changeAmount = parseInt(amount, 10);
-  if (isNaN(changeAmount)) {
-    return res.status(400).json({ error: 'amount must be a valid integer' });
+  const amount = positiveInteger(req.body?.amount);
+  const streamSessionId = cleanString(req.body?.streamSessionId, 64);
+  const idempotencyKey = cleanString(
+    req.headers['idempotency-key'] || req.body?.idempotencyKey,
+    160,
+  );
+  if (!amount) return res.status(400).json({ error: 'amount must be an integer between 1 and 100000' });
+  if (!idempotencyKey) return res.status(400).json({ error: 'An idempotency key is required' });
+  if (streamSessionId && !UUID_PATTERN.test(streamSessionId)) {
+    return res.status(400).json({ error: 'streamSessionId must be a valid UUID' });
   }
 
   try {
-    // 1. Look up user by email in Firestore
-    const usersSnap = await db.collection('users').where('email', '==', email).limit(1).get();
-    if (usersSnap.empty) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const userId = usersSnap.docs[0].id;
-    const walletRef = db.collection('wallets').doc(userId);
-
-    let transactionResult;
-    try {
-      transactionResult = await db.runTransaction(async (transaction) => {
-        const walletDoc = await transaction.get(walletRef);
-        let currentBalance = 0;
-        let currency = 'NGN';
-
-        if (walletDoc.exists) {
-          const data = walletDoc.data();
-          currentBalance = data.balance || 0;
-          currency = data.currency || 'NGN';
-        } else {
-          // If no wallet exists, initialize it in transaction
-          transaction.set(walletRef, {
-            user_id: userId,
-            balance: 0,
-            currency: 'NGN',
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-        }
-
-        const newBalance = currentBalance - changeAmount; // positive changeAmount deducts, negative changeAmount adds
-        if (newBalance < 0) {
-          throw new Error('Insufficient credits');
-        }
-
-        transaction.update(walletRef, {
-          balance: newBalance,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        return { currentBalance, newBalance };
-      });
-    } catch (txError) {
-      if (txError.message === 'Insufficient credits') {
-        // Log a warning in applogs collection
-        await db.collection('applogs').add({
-          userId: userId,
-          logLevel: 'warn',
-          message: `Deduction of ${changeAmount} credits rejected: Insufficient balance`,
-          createdAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        return res.status(400).json({ error: 'Insufficient credits' });
-      }
-      throw txError;
-    }
-
-    const { newBalance } = transactionResult;
-
-    // 4. Log the usage in usage collection
-    await db.collection('usage').add({
-      userId: userId,
-      featureName: changeAmount >= 0 ? 'live_stream' : 'admin_sync',
-      creditsUsed: changeAmount,
-      status: 'success',
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    const { client } = await requireUser(req);
+    const { data, error } = await client.rpc('consume_credits_sm', {
+      p_amount: amount,
+      p_feature_name: cleanString(req.body?.featureName, 80) || 'live_stream',
+      p_stream_session_id: streamSessionId || null,
+      p_idempotency_key: idempotencyKey,
+      p_metadata: {
+        deviceId: cleanString(req.body?.deviceId, 120) || null,
+        client: 'android',
+      },
     });
-
-    // 5. Query total usages to return 'used' summary
-    const usageSnap = await db.collection('usage')
-      .where('userId', '==', userId)
-      .where('status', '==', 'success')
-      .get();
-
-    let totalUsed = 0;
-    usageSnap.forEach((doc) => {
-      totalUsed += (doc.data().creditsUsed || 0);
+    if (error) throw error;
+    const result = Array.isArray(data) ? data[0] : data;
+    return res.status(200).json({
+      balance: Number(result?.balance || 0),
+      used: Number(result?.used || 0),
+      usageId: result?.usage_id || null,
     });
-
-    return res.status(200).json({ balance: newBalance, used: totalUsed });
   } catch (error) {
-    console.error('Error in consume API:', error);
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    const message = String(error?.message || '');
+    const status = message.toLowerCase().includes('insufficient') ? 402 : (error.status || 500);
+    console.error('Consume API failed:', error);
+    return res.status(status).json({ error: publicError(error) });
   }
 }

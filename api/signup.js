@@ -1,134 +1,110 @@
-import { auth, db, admin } from './_shared/firebase.js';
-import fetch from 'node-fetch';
+import crypto from 'crypto';
+import {
+  createPublicClient,
+  createServiceClient,
+  formatAccount,
+  getAccountSummary,
+} from './_shared/supabase.js';
+import {
+  applyHttpHeaders,
+  cleanString,
+  handleOptions,
+  publicError,
+  requireMethod,
+} from './_shared/http.js';
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default async function handler(req, res) {
-  // Handle CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyHttpHeaders(req, res, 'POST, OPTIONS');
+  if (handleOptions(req, res) || !requireMethod(req, res, 'POST')) return;
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  const name = cleanString(req.body?.name, 120);
+  const email = cleanString(req.body?.email, 320).toLowerCase();
+  const phone = cleanString(req.body?.phone, 40);
+  const password = String(req.body?.password || '');
+  const referredByCode = cleanString(req.body?.referredByCode, 64).toUpperCase();
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { name, email, phone, password, referredByCode } = req.body;
-  if (!email || !password || !name) {
+  if (!name || !email || !password) {
     return res.status(400).json({ error: 'name, email, and password are required' });
   }
-
-  const firebaseApiKey = process.env.FIREBASE_API_KEY;
-  if (!firebaseApiKey) {
-    return res.status(500).json({
-      error: 'Backend configuration missing. Please configure FIREBASE_API_KEY in your Vercel settings.'
-    });
+  if (!EMAIL_PATTERN.test(email)) {
+    return res.status(400).json({ error: 'Enter a valid email address' });
+  }
+  if (password.length < 8 || password.length > 128) {
+    return res.status(400).json({ error: 'Password must be between 8 and 128 characters' });
   }
 
+  let service;
+  let createdUserId = null;
   try {
-    // 1. Create user in Firebase Authentication
-    const userRecord = await auth.createUser({
+    service = createServiceClient();
+    // Server-created users are email-confirmed so the Android app can sign in
+    // immediately. The database Auth trigger atomically provisions the profile,
+    // 50-credit signup bonus, wallet, and optional referral link.
+    const { data: created, error: createError } = await service.auth.admin.createUser({
       email,
       password,
-      displayName: name,
-      phoneNumber: phone || undefined,
-    });
-
-    const userId = userRecord.uid;
-
-    // Generate unique referral code
-    const referralCode = 'REF-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-
-    // 2. Initialize user document in Firestore 'users' collection
-    await db.collection('users').doc(userId).set({
-      email: email,
-      phone: phone || null,
-      role: 'user',
-      status: 'active',
-      displayName: name,
-      referralCode: referralCode,
-      referredByCode: referredByCode || null,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    // 3. Process referral if provided
-    let initialBalance = 0;
-    if (referredByCode) {
-      const settingsDoc = await db.collection('settings').doc('referral_program').get();
-      const settings = settingsDoc.exists ? settingsDoc.data() : { enabled: false, rewardAmount: 100 };
-      
-      if (settings.enabled) {
-        const referrerSnap = await db.collection('users').where('referralCode', '==', referredByCode).limit(1).get();
-        if (!referrerSnap.empty) {
-          const referrerId = referrerSnap.docs[0].id;
-          const rewardAmount = parseInt(settings.rewardAmount, 10) || 100;
-          
-          initialBalance = rewardAmount;
-          
-          // Add reward to referrer
-          const referrerWalletRef = db.collection('wallets').doc(referrerId);
-          await db.runTransaction(async (t) => {
-            const wDoc = await t.get(referrerWalletRef);
-            if (wDoc.exists) {
-              const currentBalance = wDoc.data().balance || 0;
-              t.update(referrerWalletRef, {
-                balance: currentBalance + rewardAmount,
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-              });
-            }
-          });
-        }
-      }
-    }
-
-    // 4. Initialize wallet document in Firestore 'wallets' collection
-    await db.collection('wallets').doc(userId).set({
-      user_id: userId,
-      balance: initialBalance,
-      currency: 'NGN',
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    const authUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}`;
-    const authRes = await fetch(authUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
+      email_confirm: true,
+      user_metadata: {
+        name,
+        display_name: name,
+        phone: phone || null,
+        referredByCode: referredByCode || null,
       },
-      body: JSON.stringify({
-        email,
-        password,
-        returnSecureToken: true
-      })
     });
+    if (createError || !created?.user) {
+      const message = String(createError?.message || '');
+      if (message.toLowerCase().includes('already')) {
+        return res.status(409).json({ error: 'The email address is already registered.' });
+      }
+      throw createError || new Error('Could not create account');
+    }
+    createdUserId = created.user.id;
 
-    const authData = await authRes.json();
-    if (!authRes.ok || !authData.idToken) {
-      const errMsg = authData.error?.message || 'Registration succeeded, but automatic sign-in failed';
-      throw new Error(errMsg);
+    const referralHashSecret = String(process.env.REFERRAL_HASH_SECRET || '').trim();
+    const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    const deviceId = cleanString(req.body?.deviceId, 160);
+    if (referredByCode && referralHashSecret) {
+      const hash = (value) => value
+        ? crypto.createHmac('sha256', referralHashSecret).update(value).digest('hex')
+        : null;
+      const { error: referralUpdateError } = await service
+        .from('referral_sm')
+        .update({
+          signup_ip_hash: hash(forwardedFor),
+          device_hash: hash(deviceId),
+        })
+        .eq('referred_user_id', createdUserId);
+      if (referralUpdateError) throw referralUpdateError;
     }
 
+    const authClient = createPublicClient();
+    const { data: sessionData, error: signInError } = await authClient.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (signInError || !sessionData?.session) {
+      throw signInError || new Error('Account created, but automatic sign-in failed');
+    }
+
+    const summary = await getAccountSummary(service, createdUserId);
     return res.status(200).json({
-      message: 'Registration successful!',
-      token: authData.idToken,
-      user: {
-        id: userId,
-        email: userRecord.email,
-        displayName: name,
-        referralCode: referralCode,
-        balance: initialBalance
-      }
+      message: 'Registration successful',
+      token: sessionData.session.access_token,
+      refreshToken: sessionData.session.refresh_token,
+      expiresIn: sessionData.session.expires_in,
+      expiresAt: sessionData.session.expires_at,
+      user: formatAccount(summary),
     });
   } catch (error) {
-    console.error('Error in signup API:', error);
-    // Map Firebase errors to user-friendly messages
-    let errMsg = error.message || 'Failed to sign up user';
-    if (error.code === 'auth/email-already-exists') {
-      errMsg = 'The email address is already in use by another account.';
+    if (createdUserId && service) {
+      const { error: cleanupError } = await service.auth.admin.deleteUser(createdUserId);
+      if (cleanupError) console.error('Signup rollback failed:', cleanupError);
     }
-    return res.status(400).json({ error: errMsg });
+    console.error('Signup API failed:', error);
+    return res.status(error.status || 400).json({
+      error: publicError(error, 'Registration failed. Please try again.'),
+    });
   }
 }

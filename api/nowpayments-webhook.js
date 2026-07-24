@@ -1,158 +1,71 @@
-import { db, admin } from './_shared/firebase.js';
 import crypto from 'crypto';
+import { createServiceClient } from './_shared/supabase.js';
+import { publicError, requireMethod } from './_shared/http.js';
 
-// Utility to sort object keys recursively as per NOWPayments documentation
-function sortObject(obj) {
-  return Object.keys(obj).sort().reduce(
-    (result, key) => {
-      result[key] = (obj[key] && typeof obj[key] === 'object') ? sortObject(obj[key]) : obj[key];
-      return result;
-    },
-    {}
-  );
+function sortObject(value) {
+  if (Array.isArray(value)) return value.map(sortObject);
+  if (!value || typeof value !== 'object') return value;
+  return Object.keys(value).sort().reduce((result, key) => {
+    result[key] = sortObject(value[key]);
+    return result;
+  }, {});
+}
+
+function constantTimeEqual(left, right) {
+  if (typeof left !== 'string' || typeof right !== 'string') return false;
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 export default async function handler(req, res) {
-  // Handle CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-nowpayments-sig');
+  res.setHeader('Cache-Control', 'no-store');
+  if (!requireMethod(req, res, 'POST')) return;
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  const secret = String(process.env.NOWPAYMENTS_IPN_SECRET_KEY || '');
+  const receivedSignature = req.headers['x-nowpayments-sig'];
+  if (!secret || typeof receivedSignature !== 'string') {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const calculatedSignature = crypto
+    .createHmac('sha512', secret)
+    .update(JSON.stringify(sortObject(req.body || {})))
+    .digest('hex');
+  if (!constantTimeEqual(receivedSignature, calculatedSignature)) {
+    return res.status(401).json({ error: 'HMAC signature does not match' });
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const nowpaymentsIpnSecret = process.env.NOWPAYMENTS_IPN_SECRET_KEY;
-  if (!nowpaymentsIpnSecret) {
-    console.error("Missing NOWPAYMENTS_IPN_SECRET_KEY");
-    return res.status(500).json({ error: "Server configuration error" });
-  }
-
-  // 1. Verify NOWPayments IPN Signature
-  const receivedSig = req.headers['x-nowpayments-sig'];
-  if (!receivedSig) {
-    return res.status(401).json({ error: 'Missing x-nowpayments-sig header' });
+  const payload = req.body || {};
+  if (payload.payment_status !== 'finished') {
+    return res.status(200).json({ received: true, status: payload.payment_status });
   }
 
   try {
-    const params = req.body;
-    const sortedParams = JSON.stringify(sortObject(params));
-    const hmac = crypto.createHmac('sha512', nowpaymentsIpnSecret);
-    hmac.update(sortedParams);
-    const calculatedSig = hmac.digest('hex');
-
-    if (calculatedSig !== receivedSig) {
-      return res.status(401).json({ error: 'HMAC signature does not match' });
+    const txRef = String(payload.order_id || '');
+    const providerId = String(payload.payment_id || '');
+    if (!txRef || !providerId) {
+      return res.status(400).json({ error: 'Webhook is missing payment identifiers' });
     }
-
-    // 2. Process the payment
-    const paymentStatus = params.payment_status;
-    const orderId = String(params.order_id || '');
-    
-    // We only want to fulfill if it's finished (or partially_paid if you want to allow it, but let's stick to finished)
-    if (paymentStatus !== 'finished') {
-      // Just acknowledge receipt for other statuses
-      return res.status(200).json({ received: true, status: paymentStatus });
-    }
-
-    if (!orderId) {
-      return res.status(400).json({ error: 'Webhook is missing order_id' });
-    }
-
-    // 3. Find transaction in Firestore. New invoices use the Firestore doc id
-    // as order_id; older invoices used txRef, so keep that lookup too.
-    let txDocRef = db.collection('payment_transactions').doc(orderId);
-    const directTxDoc = await txDocRef.get();
-    if (!directTxDoc.exists) {
-      const txQuerySnap = await db.collection('payment_transactions')
-        .where('txRef', '==', orderId)
-        .limit(1)
-        .get();
-
-      if (txQuerySnap.empty) {
-        return res.status(400).json({ error: 'unknown payment reference (order_id not found)' });
-      }
-      txDocRef = txQuerySnap.docs[0].ref;
-    }
-    
-    // 4. Update transaction status and user wallet atomically in a transaction
-    await db.runTransaction(async (transaction) => {
-      const txDocSnap = await transaction.get(txDocRef);
-      if (!txDocSnap.exists) {
-        throw new Error('unknown payment reference (order_id not found)');
-      }
-
-      const txData = txDocSnap.data();
-      if (txData.status === 'verified') {
-        // Idempotent success - already verified
-        return; 
-      }
-
-      if (txData.status !== 'pending') {
-        throw new Error('payment is not pending');
-      }
-
-      // Note: we can optionally verify the received amount/currency against txData
-      // but NOWPayments will only send 'finished' if the expected amount was fully paid.
-
-      // Update payment transaction document
-      transaction.update(txDocRef, {
-        status: 'verified',
-        providerTransactionId: String(params.payment_id),
-        verificationPayload: {
-          provider: 'nowpayments',
-          id: params.payment_id,
-          amount: params.price_amount,
-          currency: params.price_currency,
-          status: params.payment_status,
-        },
-        verifiedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-
-      // Update user wallet document
-      const walletRef = db.collection('wallets').doc(txData.userId);
-      const walletDocSnap = await transaction.get(walletRef);
-      
-      let currentBalance = 0;
-      if (walletDocSnap.exists) {
-        currentBalance = walletDocSnap.data().balance || 0;
-      }
-
-      const newBalance = currentBalance + txData.credits;
-      transaction.set(walletRef, {
-        user_id: txData.userId,
-        balance: newBalance,
-        currency: txData.currency, // e.g., USD
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-
-      // Add to credit ledger
-      const ledgerRef = db.collection('credit_ledger').doc();
-      transaction.set(ledgerRef, {
-        id: ledgerRef.id,
-        userId: txData.userId,
-        delta: txData.credits,
-        balanceAfter: newBalance,
-        reason: 'crypto_payment',
-        paymentTransactionId: txDocRef.id,
-        streamSessionId: null,
-        metadata: {
-          provider: 'nowpayments',
-          payment_id: params.payment_id,
-          order_id: orderId,
-          txRef: txData.txRef || null
-        },
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      });
+    const { data, error } = await createServiceClient().rpc('fulfill_payment_sm', {
+      p_tx_ref: txRef,
+      p_provider: 'nowpayments',
+      p_provider_transaction_id: providerId,
+      p_verified_amount: Number(payload.price_amount),
+      p_verified_currency: String(payload.price_currency || '').toUpperCase(),
+      p_verification_payload: {
+        provider: 'nowpayments',
+        id: providerId,
+        amount: payload.price_amount,
+        currency: payload.price_currency,
+        payAmount: payload.actually_paid || payload.pay_amount,
+        payCurrency: payload.pay_currency,
+        status: payload.payment_status,
+      },
     });
-
-    return res.status(200).json({ received: true });
+    if (error) throw error;
+    return res.status(200).json({ received: true, result: Array.isArray(data) ? data[0] : data });
   } catch (error) {
-    console.error('NOWPayments Webhook processing failed:', error);
-    return res.status(500).json({ error: error.message || 'Webhook processing failed' });
+    console.error('NOWPayments webhook failed:', error);
+    return res.status(500).json({ error: publicError(error, 'Webhook processing failed') });
   }
 }

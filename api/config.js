@@ -1,127 +1,121 @@
-import { db, admin } from './_shared/firebase.js';
+import { createServiceClient, requireUser } from './_shared/supabase.js';
+import {
+  applyHttpHeaders,
+  cleanString,
+  handleOptions,
+  publicError,
+  requireMethod,
+} from './_shared/http.js';
 
-function cors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+function routeFor(req) {
+  const url = new URL(req.url, `https://${req.headers.host || 'localhost'}`);
+  return url.searchParams.get('route') || url.pathname.replace(/^\/api\//, '');
 }
 
-function pickKey(config, email) {
-  const envKey = process.env.DECART_API_KEY || process.env.LIVE_ENGINE_API_KEY || '';
-  if (!config) return envKey;
-
-  if (config.mode === 'multi' && Array.isArray(config.keys) && config.keys.length > 0) {
-    const keys = config.keys.map((key) => String(key || '').trim()).filter(Boolean);
-    if (keys.length === 0) return envKey;
-    const seed = String(email || '').split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    return keys[seed % keys.length];
-  }
-
-  return String(config.single_key || envKey).trim();
+async function publicConfig(res) {
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from('app_setting_sm')
+    .select('key,value')
+    .eq('is_public', true)
+    .in('key', ['global_config', 'streaming_availability', 'referral_program']);
+  if (error) throw error;
+  const values = Object.fromEntries((data || []).map((row) => [row.key, row.value]));
+  return res.status(200).json({
+    notification: values.global_config?.notification || '',
+    streamingEnabled: values.streaming_availability?.enabled !== false,
+    referralEnabled: values.referral_program?.enabled !== false,
+    signupCredits: Number(values.referral_program?.signup_credits ?? 50),
+    referralPurchaseReward: Number(values.referral_program?.purchase_reward ?? 250),
+  });
 }
 
-function cleanText(value, fallback = '') {
-  return String(value || fallback).trim();
-}
+async function decartToken(req, res) {
+  if (!requireMethod(req, res, 'POST')) return;
+  const { service, appUser } = await requireUser(req);
 
-async function handleDecartToken(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  const { email, deviceId, model } = req.body || {};
-  if (!email || !deviceId) {
-    return res.status(400).json({ error: 'email and deviceId are required' });
-  }
-
-  const availabilityDoc = await db.collection('settings').doc('streaming_availability').get();
-  if (availabilityDoc.exists && availabilityDoc.data()?.enabled === false) {
+  const [{ data: availability, error: availabilityError }, { data: wallet, error: walletError }] =
+    await Promise.all([
+      service.from('app_setting_sm').select('value').eq('key', 'streaming_availability').single(),
+      service.from('wallet_sm').select('balance').eq('user_id', appUser.id).single(),
+    ]);
+  if (availabilityError) throw availabilityError;
+  if (walletError) throw walletError;
+  if (availability?.value?.enabled === false) {
     return res.status(503).json({ error: 'Live streaming is currently disabled.' });
   }
-
-  const keyDoc = await db.collection('settings').doc('engine_key').get();
-  const apiKey = pickKey(keyDoc.exists ? keyDoc.data() : null, email);
-  if (!apiKey) {
-    return res.status(503).json({ error: 'Live engine key is not configured.' });
+  if (Number(wallet?.balance || 0) <= 0) {
+    return res.status(402).json({ error: 'Insufficient credits' });
   }
+
+  let apiKey = String(process.env.DECART_API_KEY || process.env.LIVE_ENGINE_API_KEY || '').trim();
+  if (!apiKey) {
+    const { data, error } = await service.rpc('next_engine_key_for_service_sm');
+    if (!error) {
+      const result = Array.isArray(data) ? data[0] : data;
+      apiKey = String(result?.api_key || '').trim();
+    } else if (!String(error.message || '').includes('Could not find the function')) {
+      throw error;
+    }
+  }
+  if (!apiKey) return res.status(503).json({ error: 'Live engine key is not configured.' });
 
   return res.status(200).json({
     apiKey,
-    model: model || 'lucy-2.1',
-    expiresIn: 900,
-    maxSessionDuration: 900
+    model: cleanString(req.body?.model, 80) || 'lucy-2.1',
+    maxSessionDuration: 900,
   });
 }
 
-async function handleTransform(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
+async function transform(req, res) {
+  if (!requireMethod(req, res, 'POST')) return;
+  const { client } = await requireUser(req);
   const body = req.body || {};
-  const email = cleanText(body.email);
-  const deviceId = cleanText(body.deviceId);
-  if (!email || !deviceId) {
-    return res.status(400).json({ error: 'email and deviceId are required' });
-  }
+  const deviceId = cleanString(body.deviceId, 120);
+  if (!deviceId) return res.status(400).json({ error: 'deviceId is required' });
 
-  const mode = cleanText(body.mode, 'style');
-  const prompt = cleanText(body.prompt, 'Transform the live camera into a clean high-definition cinematic style.');
-  const model = cleanText(body.model, 'lucy-2.1');
-  const quality = cleanText(body.quality, 'medium');
-  const fps = Number.parseInt(body.fps, 10) || 20;
-  const sessionId = `morphly_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-  await db.collection('stream_sessions').doc(sessionId).set({
-    sessionId,
-    email,
-    deviceId,
-    mode,
-    prompt,
-    preset: cleanText(body.preset || body.presetLabel),
-    enhance: !!body.enhance,
-    quality,
-    fps,
-    model,
-    status: 'starting',
-    hasFaceImage: !!body.faceImage,
-    faceImageMimeType: cleanText(body.faceImageMimeType),
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  const { data, error } = await client.rpc('create_stream_session_sm', {
+    p_device_id: deviceId,
+    p_mode: cleanString(body.mode, 20) || 'style',
+    p_prompt: cleanString(
+      body.prompt,
+      2000,
+    ) || 'Transform the live camera into a clean high-definition cinematic style.',
+    p_preset: cleanString(body.preset || body.presetLabel, 120) || null,
+    p_enhance: body.enhance === true,
+    p_quality: cleanString(body.quality, 20) || 'medium',
+    p_fps: Math.min(Math.max(Number.parseInt(body.fps, 10) || 20, 1), 60),
+    p_model: cleanString(body.model, 80) || 'lucy-2.1',
+    p_has_face_image: body.hasFaceImage === true || Boolean(body.faceImage),
+    p_face_image_mime_type: cleanString(body.faceImageMimeType, 100) || null,
   });
-
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
   return res.status(200).json({
     success: true,
-    sessionId,
-    status: 'starting',
-    mode,
-    prompt,
-    enhance: !!body.enhance,
-    quality,
-    fps,
-    model
+    sessionId: row.id,
+    externalSessionId: row.external_session_id,
+    status: row.status,
+    mode: row.mode,
+    prompt: row.prompt,
+    enhance: row.enhance,
+    quality: row.quality,
+    fps: row.fps,
+    model: row.model,
   });
 }
 
 export default async function handler(req, res) {
-  cors(res);
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
+  applyHttpHeaders(req, res, 'GET, POST, OPTIONS');
+  if (handleOptions(req, res)) return;
   try {
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const route = url.searchParams.get('route') || url.pathname.replace(/^\/api\//, '');
-    if (route === 'decart-token') {
-      return await handleDecartToken(req, res);
-    }
-    if (route === 'transform') {
-      return await handleTransform(req, res);
-    }
-    if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-
-    const doc = await db.collection('settings').doc('global_config').get();
-    let config = { notification: '' };
-    if (doc.exists) {
-      config = { ...config, ...doc.data() };
-    }
-    return res.status(200).json(config);
+    const route = routeFor(req);
+    if (route === 'decart-token') return await decartToken(req, res);
+    if (route === 'transform') return await transform(req, res);
+    if (!requireMethod(req, res, 'GET')) return;
+    return await publicConfig(res);
   } catch (error) {
-    console.error('Error fetching config:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Config API failed:', error);
+    return res.status(error.status || 500).json({ error: publicError(error) });
   }
 }

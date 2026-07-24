@@ -25,3 +25,15 @@ bin/
 **/bin/
 node_modules/
 
+# Local/server secrets
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+keystore.properties
+
+# Generated diagnostics and Android packages
+logcat.txt
+*.apk
+*.aab

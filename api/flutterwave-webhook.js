@@ -1,65 +1,69 @@
-import { db, admin } from './_shared/firebase.js';
-import fetch from 'node-fetch';
 import crypto from 'crypto';
+import { createServiceClient } from './_shared/supabase.js';
+import { publicError, requireMethod } from './_shared/http.js';
 
-function constantTimeEqual(a, b) {
-  if (typeof a !== 'string' || typeof b !== 'string') return false;
-  const aBuf = Buffer.from(a, 'utf8');
-  const bBuf = Buffer.from(b, 'utf8');
-  if (aBuf.length !== bBuf.length) {
-    return false;
+export const config = { api: { bodyParser: false } };
+
+function constantTimeEqual(left, right) {
+  if (typeof left !== 'string' || typeof right !== 'string') return false;
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+async function rawBody(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  return Buffer.concat(chunks);
+}
+
+function validSignature(req, body, secret) {
+  if (!secret) return false;
+  const signature = req.headers['flutterwave-signature'];
+  if (typeof signature === 'string') {
+    const expected = crypto.createHmac('sha256', secret).update(body).digest('base64');
+    return constantTimeEqual(signature, expected);
   }
-  return crypto.timingSafeEqual(aBuf, bBuf);
+  return constantTimeEqual(
+    req.headers['verif-hash'] || req.headers['x-verif-hash'],
+    secret,
+  );
 }
 
 export default async function handler(req, res) {
-  // Handle CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, verif-hash, x-verif-hash');
+  res.setHeader('Cache-Control', 'no-store');
+  if (!requireMethod(req, res, 'POST')) return;
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  // 1. Verify Webhook Signature Hash
-  const expectedHash = process.env.FLUTTERWAVE_WEBHOOK_HASH;
-  const suppliedHash = req.headers['verif-hash'] || req.headers['x-verif-hash'];
-  if (!expectedHash || !suppliedHash || !constantTimeEqual(suppliedHash, expectedHash)) {
+  const body = await rawBody(req);
+  if (!validSignature(req, body, String(process.env.FLUTTERWAVE_WEBHOOK_HASH || ''))) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   try {
-    const event = req.body;
-    if (event?.event !== 'charge.completed' || event?.data?.status !== 'successful') {
+    const event = JSON.parse(body.toString('utf8'));
+    const type = event?.type || event?.event;
+    if (
+      type !== 'charge.completed' ||
+      !['successful', 'succeeded'].includes(event?.data?.status)
+    ) {
       return res.status(200).json({ received: true });
     }
 
-    const transactionId = String(event.data.id || '');
-    const txRef = String(event.data.tx_ref || '');
-    if (!transactionId || !txRef) {
+    const providerId = String(event.data.id || '');
+    const txRef = String(event.data.tx_ref || event.data.reference || '');
+    if (!providerId || !txRef) {
       return res.status(400).json({ error: 'Webhook is missing payment identifiers' });
     }
 
-    // 2. Query Flutterwave API directly to verify transaction details
-    const flutterwaveSecret = process.env.FLUTTERWAVE_SECRET_KEY;
-    if (!flutterwaveSecret) {
-      throw new Error("Missing required secret: FLUTTERWAVE_SECRET_KEY");
-    }
-
-    const verificationResponse = await fetch(
-      `https://api.flutterwave.com/v3/transactions/${encodeURIComponent(transactionId)}/verify`,
-      { headers: { Authorization: `Bearer ${flutterwaveSecret}` } }
+    const secret = String(process.env.FLUTTERWAVE_SECRET_KEY || '');
+    const verifyResponse = await fetch(
+      `https://api.flutterwave.com/v3/transactions/${encodeURIComponent(providerId)}/verify`,
+      { headers: { Authorization: `Bearer ${secret}` } },
     );
-    
-    const verification = await verificationResponse.json();
+    const verification = await verifyResponse.json().catch(() => ({}));
     const verified = verification?.data;
     if (
-      !verificationResponse.ok ||
+      !verifyResponse.ok ||
       verification?.status !== 'success' ||
       verified?.status !== 'successful' ||
       String(verified?.tx_ref || '') !== txRef
@@ -67,99 +71,25 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Payment verification failed' });
     }
 
-    // 3. Find transaction in Firestore
-    const txQuerySnap = await db.collection('payment_transactions')
-      .where('txRef', '==', txRef)
-      .limit(1)
-      .get();
-
-    if (txQuerySnap.empty) {
-      return res.status(400).json({ error: 'unknown payment reference' });
-    }
-
-    const txDocId = txQuerySnap.docs[0].id;
-    const txDocRef = db.collection('payment_transactions').doc(txDocId);
-
-    // 4. Update transaction status and user wallet atomically in a transaction
-    await db.runTransaction(async (transaction) => {
-      const txDocSnap = await transaction.get(txDocRef);
-      if (!txDocSnap.exists) {
-        throw new Error('unknown payment reference');
-      }
-
-      const txData = txDocSnap.data();
-      if (txData.status === 'verified') {
-        if (txData.providerTransactionId !== String(verified.id)) {
-          throw new Error('payment reference was already verified by a different transaction');
-        }
-        return; // Idempotent success
-      }
-
-      if (txData.status !== 'pending') {
-        throw new Error('payment is not pending');
-      }
-
-      if (String(verified.currency).toUpperCase() !== txData.currency.toUpperCase()) {
-        throw new Error('currency mismatch');
-      }
-
-      if (Number(verified.amount) !== txData.expectedAmount) {
-        throw new Error('amount mismatch');
-      }
-
-      // Update payment transaction document
-      transaction.update(txDocRef, {
-        status: 'verified',
-        providerTransactionId: String(verified.id),
-        verificationPayload: {
-          provider: 'flutterwave',
-          id: verified.id,
-          txRef: verified.tx_ref,
-          amount: verified.amount,
-          currency: verified.currency,
-          status: verified.status,
-        },
-        verifiedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-
-      // Update user wallet document
-      const walletRef = db.collection('wallets').doc(txData.userId);
-      const walletDocSnap = await transaction.get(walletRef);
-      
-      let currentBalance = 0;
-      if (walletDocSnap.exists) {
-        currentBalance = walletDocSnap.data().balance || 0;
-      }
-
-      const newBalance = currentBalance + txData.credits;
-      transaction.set(walletRef, {
-        user_id: txData.userId,
-        balance: newBalance,
-        currency: txData.currency,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-
-      // Add to credit ledger
-      const ledgerRef = db.collection('credit_ledger').doc();
-      transaction.set(ledgerRef, {
-        id: ledgerRef.id,
-        userId: txData.userId,
-        delta: txData.credits,
-        balanceAfter: newBalance,
-        reason: 'payment',
-        paymentTransactionId: txDocId,
-        streamSessionId: null,
-        metadata: {
-          provider: 'flutterwave',
-          txRef: txRef
-        },
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      });
+    const { data, error } = await createServiceClient().rpc('fulfill_payment_sm', {
+      p_tx_ref: txRef,
+      p_provider: 'flutterwave',
+      p_provider_transaction_id: String(verified.id),
+      p_verified_amount: Number(verified.amount),
+      p_verified_currency: String(verified.currency || '').toUpperCase(),
+      p_verification_payload: {
+        provider: 'flutterwave',
+        id: verified.id,
+        txRef: verified.tx_ref,
+        amount: verified.amount,
+        currency: verified.currency,
+        status: verified.status,
+      },
     });
-
-    return res.status(200).json({ received: true });
+    if (error) throw error;
+    return res.status(200).json({ received: true, result: Array.isArray(data) ? data[0] : data });
   } catch (error) {
-    console.error('Webhook processing failed:', error);
-    return res.status(500).json({ error: error.message || 'Webhook processing failed' });
+    console.error('Flutterwave webhook failed:', error);
+    return res.status(500).json({ error: publicError(error, 'Webhook processing failed') });
   }
 }

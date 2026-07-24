@@ -1,11 +1,13 @@
 {
   "name": "morphly-backend",
   "version": "1.0.0",
-  "description": "Morphly Vercel Serverless Backend with Firebase Integration",
+  "description": "Morphly Vercel serverless backend with Supabase Auth and Postgres",
   "main": "api/login.js",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "firebase-admin": "^12.0.0",
-    "node-fetch": "^2.6.7"
+    "@supabase/supabase-js": "^2.110.8"
   }
 }

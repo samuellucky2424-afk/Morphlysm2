@@ -199,8 +199,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div style="background:#ffffff; color:#3CD070; padding:6px 16px; border-radius:6px; font-family:var(--font); font-size:18px; font-weight:800; letter-spacing:2px; border: 1px solid #3CD070; display:inline-block; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(60, 208, 112, 0.25);">MORPHLY</div>
     <div class="tb-name" style="font-size:18px; font-weight:700; margin-bottom:24px; letter-spacing:1px;">ADMIN PORTAL</div>
     
-    <label class="f-label" style="text-align:left;">Admin Secret Key</label>
-    <input class="f-input" type="password" id="adminPass" placeholder="Enter secret key..." style="text-align:center; font-size:14px; margin-bottom:16px;">
+    <label class="f-label" style="text-align:left;">Admin Email</label>
+    <input class="f-input" type="email" id="adminEmail" placeholder="admin@example.com" autocomplete="username" style="font-size:14px; margin-bottom:12px;">
+    <label class="f-label" style="text-align:left;">Password</label>
+    <input class="f-input" type="password" id="adminPass" placeholder="Enter password..." autocomplete="current-password" style="font-size:14px; margin-bottom:16px;">
     
     <div class="f-err" id="loginErr" style="margin-bottom:16px;"></div>
     
@@ -256,14 +258,18 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <button class="tab-btn" onclick="showTab('users')">👥 USERS</button>
       <button class="tab-btn" onclick="showTab('engine')">⚙️ ENGINE KEY</button>
       <button class="tab-btn" onclick="showTab('referral')">🎁 REFERRAL</button>
+      <button class="tab-btn" onclick="showTab('creators')">👤 CREATORS</button>
       
       <button class="tab-btn" onclick="showTab('payments')">💰 PAYMENTS</button>
       <button class="tab-btn" onclick="showTab('crypto')">₿ CRYPTO</button>
       
       <button class="tab-btn" onclick="showTab('monitor')">🔴 LIVE MONITOR</button>
+      <button class="tab-btn" onclick="showTab('backgrounds')">🖼 BACKGROUNDS</button>
+      <button class="tab-btn" onclick="showTab('support')">🛟 SUPPORT</button>
       
       <button class="tab-btn" onclick="showTab('branding')">⚙️ SETTINGS</button>
       <button class="tab-btn" onclick="showTab('notifications')">📢 NOTIFICATIONS</button>
+      <button class="tab-btn" onclick="showTab('massemail')">✉ MASS EMAIL</button>
       
     </div>
 
@@ -424,8 +430,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
         <div class="card">
           <div class="card-title"><span class="dot"></span>Referral Program Settings</div>
           <p style="font-family:var(--mono);font-size:9px;color:var(--dim2);line-height:1.8;margin-bottom:16px">
-            Control whether the referral code field appears on the signup form.
-            Per-creator activation bonuses are managed under the Creators tab.
+            Every new account receives 50 credits. A referrer receives this reward
+            once, after the referred user completes their first verified credit purchase.
           </p>
 
           <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--s2);border:1px solid var(--b);border-radius:8px;margin-bottom:16px">
@@ -440,8 +446,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
             </label>
           </div>
           <div style="margin-bottom: 16px;">
-            <label class="f-label">Credit Reward per Referral</label>
-            <input class="f-input" type="number" id="refRewardAmount" value="100">
+            <label class="f-label">Referrer Reward After First Purchase</label>
+            <input class="f-input" type="number" id="refRewardAmount" value="250" readonly>
           </div>
           <button class="btn btn-gold btn-full" onclick="saveReferralSettings()">💾 SAVE REFERRAL SETTINGS</button>
           <div style="font-family:var(--mono);font-size:8px;letter-spacing:1px;text-align:center;margin-top:14px" id="refToggleStatus">Loading...</div>
@@ -450,10 +456,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
         <div class="card">
           <div class="card-title"><span class="dot"></span>How Referrals Work</div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--dim);line-height:2.2">
-            <div>1. User signs up with a creator referral code</div>
-            <div>2. Referred user pays the one-time activation fee</div>
-            <div>3. Creator earns commission on the activation payment</div>
-            <div>4. Referred user may receive a creator-specific activation bonus</div>
+            <div>1. Every new user receives 50 signup credits</div>
+            <div>2. A valid referral code links the two accounts</div>
+            <div>3. The referred user buys a credit package</div>
+            <div>4. The referrer receives 250 credits once</div>
           </div>
         </div>
       </div>
@@ -513,7 +519,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
               <label class="f-label">Commission %</label>
               <input class="f-input" type="number" id="newCreatorComm" value="30">
               <label class="f-label">Referral Bonus Credits</label>
-              <input class="f-input" type="number" id="newCreatorBonusCredits" value="500">
+              <input class="f-input" type="number" id="newCreatorBonusCredits" value="250">
             </div>
           </div>
           <div style="margin:8px 0 14px;">
@@ -777,7 +783,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   </div>
 </div>
 
-<script>
+<script type="text/plain" id="removed-legacy-firebase-dashboard">
 // ════════════════════════════════════════════════════
 //  ADMIN SESSION & VERIFICATION
 // ════════════════════════════════════════════════════
@@ -1259,7 +1265,8 @@ async function saveReferralSettings() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', restoreAdminSessionIfLoggedIn);
+// Supabase-authenticated dashboard behavior is loaded below.
 </script>
+<script src="/admin-dashboard.js"></script>
 </body>
 </html>
