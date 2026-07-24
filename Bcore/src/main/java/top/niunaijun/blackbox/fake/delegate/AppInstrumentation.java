@@ -249,17 +249,17 @@ public final class AppInstrumentation extends BaseInstrumentationDelegate implem
 
     @Override
     public void callActivityOnPause(Activity activity) {
-        if (shouldKeepVirtualCameraActivityResumed(activity, "onPause")) {
-            return;
-        }
+        // Android requires every Activity lifecycle dispatch to reach the base
+        // Instrumentation. Skipping it leaves WhatsApp activities in a resumed
+        // state and eventually throws SuperNotCalledException during a call.
+        // The camera hook/service own stream lifetime independently of Activity.
+        shouldKeepVirtualCameraActivityResumed(activity, "onPause");
         super.callActivityOnPause(activity);
     }
 
     @Override
     public void callActivityOnStop(Activity activity) {
-        if (shouldKeepVirtualCameraActivityResumed(activity, "onStop")) {
-            return;
-        }
+        shouldKeepVirtualCameraActivityResumed(activity, "onStop");
         super.callActivityOnStop(activity);
     }
 

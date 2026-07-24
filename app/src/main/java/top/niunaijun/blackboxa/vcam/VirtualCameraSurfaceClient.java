@@ -57,6 +57,10 @@ public final class VirtualCameraSurfaceClient {
             if (registry != null && transactRegisterLocked(packageName, processName, cameraId, sessionId, streamId, surface, width, height, surfaceFormat)) {
                 return true;
             }
+            // WhatsApp can replace an OutputConfiguration while the host service is
+            // still binding. Keep only the newest Surface for a stream so stale
+            // binder-held Surfaces do not accumulate and get rendered later.
+            removePendingLocked(packageName, sessionId, streamId);
             SurfaceRegistration registration = new SurfaceRegistration(packageName, processName, cameraId, sessionId, streamId, surface, width, height, surfaceFormat);
             PENDING.add(registration);
             boolean bound = ensureBoundLocked(context);
@@ -126,6 +130,9 @@ public final class VirtualCameraSurfaceClient {
         ArrayList<SurfaceRegistration> pending = new ArrayList<>(PENDING);
         PENDING.clear();
         for (SurfaceRegistration registration : pending) {
+            if (registration.surface == null || !registration.surface.isValid()) {
+                continue;
+            }
             if (!transactRegisterLocked(
                     registration.packageName,
                     registration.processName,

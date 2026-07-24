@@ -80,6 +80,11 @@ public final class VirtualCameraSurfaceWorker {
         if (released || rawFrame == null || width <= 0 || height <= 0) {
             return;
         }
+        if (surface == null || !surface.isValid()) {
+            Log.i(TAG, "worker_surface_invalid_release label=" + label);
+            release();
+            return;
+        }
         int length = Math.min(rawFrame.length, width * height * 3 / 2);
         if (length <= 0) {
             return;
@@ -104,6 +109,9 @@ public final class VirtualCameraSurfaceWorker {
     }
 
     public void release() {
+        if (released) {
+            return;
+        }
         released = true;
         synchronized (frameLock) {
             pendingFrameBuffer = null;

@@ -3,6 +3,29 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 
+def morphlyBackendUrl = providers.gradleProperty("MORPHLY_BACKEND_BASE_URL")
+        .orElse(providers.environmentVariable("MORPHLY_BACKEND_BASE_URL"))
+        .orElse("https://morphlysm2.vercel.app/api")
+        .get()
+def releaseKeystorePath = providers.gradleProperty("MORPHLY_KEYSTORE_FILE")
+        .orElse(providers.environmentVariable("MORPHLY_KEYSTORE_FILE"))
+        .orNull
+def releaseKeystorePassword = providers.gradleProperty("MORPHLY_KEYSTORE_PASSWORD")
+        .orElse(providers.environmentVariable("MORPHLY_KEYSTORE_PASSWORD"))
+        .orNull
+def releaseKeyAlias = providers.gradleProperty("MORPHLY_KEY_ALIAS")
+        .orElse(providers.environmentVariable("MORPHLY_KEY_ALIAS"))
+        .orNull
+def releaseKeyPassword = providers.gradleProperty("MORPHLY_KEY_PASSWORD")
+        .orElse(providers.environmentVariable("MORPHLY_KEY_PASSWORD"))
+        .orNull
+def hasReleaseSigning = [
+        releaseKeystorePath,
+        releaseKeystorePassword,
+        releaseKeyAlias,
+        releaseKeyPassword
+].every { it != null && !it.toString().isBlank() }
+
 android {
 
     namespace 'top.niunaijun.blackboxa'
@@ -16,8 +39,14 @@ android {
         targetSdk rootProject.ext.targetSdkVersion
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionName
+        buildConfigField "String", "BACKEND_BASE_URL",
+                "\"${morphlyBackendUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        }
 
         splits {
             abi {
@@ -30,9 +59,26 @@ android {
         }
     }
 
+    if (hasReleaseSigning) {
+        signingConfigs {
+            release {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseKeystorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+                enableV1Signing true
+                enableV2Signing true
+                enableV3Signing true
+                enableV4Signing true
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -44,6 +90,7 @@ android {
     buildFeatures {
         viewBinding true
         aidl true
+        buildConfig true
     }
     kotlinOptions {
         jvmTarget = '21'
@@ -105,6 +152,6 @@ dependencies {
 
 
     
-    implementation 'androidx.work:work-runtime:2.7.1'
+    implementation 'androidx.work:work-runtime:2.11.2'
 
 }

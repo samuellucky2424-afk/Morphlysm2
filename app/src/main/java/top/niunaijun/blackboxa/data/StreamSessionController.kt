@@ -17,8 +17,6 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.example.vcam.Nv21Converter
-import com.example.vcam.VirtualCameraBridge
 import top.niunaijun.blackboxa.R
 import top.niunaijun.blackboxa.view.main.MainActivity
 import java.util.Locale
@@ -42,24 +40,12 @@ object StreamSessionController {
     private var touchStartY = 0f
     private var previewListener: ((Bitmap) -> Unit)? = null
     private var stopCallback: (() -> Unit)? = null
-    private var appContext: Context? = null
-    private var lastSharedPreviewCounter = 0L
-    private const val MINI_PREVIEW_POLL_MS = 333L
 
     private val tickRunnable = object : Runnable {
         override fun run() {
             updateWindow()
             if (session != null) {
                 mainHandler.postDelayed(this, 1000)
-            }
-        }
-    }
-
-    private val previewPollRunnable = object : Runnable {
-        override fun run() {
-            refreshSharedPreviewFromStore(force = false)
-            if (session != null && windowView != null) {
-                mainHandler.postDelayed(this, MINI_PREVIEW_POLL_MS)
             }
         }
     }
@@ -95,7 +81,6 @@ object StreamSessionController {
         onStopRequested: (() -> Unit)? = null
     ) {
         hideWindow()
-        appContext = context.applicationContext
         session = Session(
             sessionId = sessionId,
             model = model,
@@ -104,9 +89,7 @@ object StreamSessionController {
         )
         stopCallback = onStopRequested
         expanded = false
-        lastSharedPreviewCounter = 0L
         mainHandler.removeCallbacks(tickRunnable)
-        mainHandler.removeCallbacks(previewPollRunnable)
     }
 
     fun showMiniWindow(context: Context): Boolean {
@@ -115,11 +98,8 @@ object StreamSessionController {
         }
         showWindow(context.applicationContext)
         updateWindow()
-        refreshSharedPreviewFromStore(force = true)
         mainHandler.removeCallbacks(tickRunnable)
         mainHandler.post(tickRunnable)
-        mainHandler.removeCallbacks(previewPollRunnable)
-        mainHandler.post(previewPollRunnable)
         return windowView != null
     }
 
@@ -127,7 +107,6 @@ object StreamSessionController {
         session = null
         stopCallback = null
         mainHandler.removeCallbacks(tickRunnable)
-        mainHandler.removeCallbacks(previewPollRunnable)
         hideWindow()
     }
 
@@ -149,7 +128,6 @@ object StreamSessionController {
 
         val inflater = LayoutInflater.from(context)
         val view = inflater.inflate(R.layout.view_stream_session_window, null)
-        appContext = context.applicationContext
         val manager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -221,7 +199,6 @@ object StreamSessionController {
         }
         previewListener = listener
         StreamPreviewBridge.addListener(listener)
-        refreshSharedPreviewFromStore(force = true)
     }
 
     private fun hideWindow() {
@@ -234,26 +211,6 @@ object StreamSessionController {
         previewListener = null
         windowView = null
         windowManager = null
-    }
-
-    private fun refreshSharedPreviewFromStore(force: Boolean) {
-        val context = appContext ?: return
-        if (windowView == null) {
-            return
-        }
-        val frame = VirtualCameraBridge.latestOrPlaceholder(
-            VirtualCameraBridge.DEFAULT_SLOT,
-            320,
-            568
-        )
-        val marker = if (frame.counter != 0L) frame.counter else frame.timestampNs
-        if (!force && marker == lastSharedPreviewCounter) {
-            return
-        }
-        lastSharedPreviewCounter = marker
-        runCatching {
-            StreamPreviewBridge.publish(Nv21Converter.nv21ToBitmap(frame.nv21, frame.width, frame.height))
-        }
     }
 
     private fun setExpanded(value: Boolean) {

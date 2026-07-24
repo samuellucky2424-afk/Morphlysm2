@@ -2,9 +2,24 @@ package top.niunaijun.blackboxa.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
+import java.security.KeyStore
+import java.security.SecureRandom
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 
 object StreamAuthManager {
     private const val PREF_NAME = "MorphlyStreamPrefs"
+    private const val KEYSTORE_ALIAS = "MorphlySessionKeyV1"
     private const val KEY_IS_LOGGED_IN = "is_logged_in"
     private const val KEY_USER_NAME = "user_name"
     private const val KEY_USER_EMAIL = "user_email"
@@ -12,242 +27,295 @@ object StreamAuthManager {
     private const val KEY_USER_CREDITS = "user_credits"
     private const val KEY_USER_DEVICE_ID = "user_device_id"
     private const val KEY_USER_REFERRAL_CODE = "user_referral_code"
-    private const val KEY_USER_TOKEN = "user_token"
-    private val ID_TOKEN_PATTERN = Regex("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$")
+    private const val KEY_USER_TOKEN = "user_token_enc"
+    private const val KEY_REFRESH_TOKEN = "refresh_token_enc"
+    private const val KEY_TOKEN_EXPIRES_AT = "token_expires_at"
+    private const val LEGACY_TOKEN_KEY = "user_token"
+    private val JWT_PATTERN = Regex("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$")
+    private val secureRandom = SecureRandom()
 
-    private fun getPrefs(context: Context): SharedPreferences {
-        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    private fun getPrefs(context: Context): SharedPreferences =
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+
+    private fun sessionKey(): SecretKey {
+        val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        (keyStore.getKey(KEYSTORE_ALIAS, null) as? SecretKey)?.let { return it }
+        val generator = KeyGenerator.getInstance(
+            KeyProperties.KEY_ALGORITHM_AES,
+            "AndroidKeyStore"
+        )
+        generator.init(
+            KeyGenParameterSpec.Builder(
+                KEYSTORE_ALIAS,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+            )
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setRandomizedEncryptionRequired(true)
+                .build()
+        )
+        return generator.generateKey()
     }
 
-    private fun isUsableIdToken(token: String?): Boolean {
-        val value = token?.trim() ?: return false
-        if (value.contains("PRIVATE KEY", ignoreCase = true) ||
-            value.contains("BEGIN ") ||
-            value.contains('\n') ||
-            value.contains('\r') ||
-            value.startsWith("Bearer ", ignoreCase = true)
-        ) {
-            return false
+    private fun encrypt(value: String): String {
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, sessionKey())
+        val encrypted = cipher.doFinal(value.toByteArray(Charsets.UTF_8))
+        val combined = ByteArray(cipher.iv.size + encrypted.size)
+        System.arraycopy(cipher.iv, 0, combined, 0, cipher.iv.size)
+        System.arraycopy(encrypted, 0, combined, cipher.iv.size, encrypted.size)
+        return Base64.encodeToString(combined, Base64.NO_WRAP)
+    }
+
+    private fun decrypt(value: String?): String? {
+        if (value.isNullOrBlank()) return null
+        return try {
+            val combined = Base64.decode(value, Base64.NO_WRAP)
+            if (combined.size <= 12) return null
+            val iv = combined.copyOfRange(0, 12)
+            val encrypted = combined.copyOfRange(12, combined.size)
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, sessionKey(), GCMParameterSpec(128, iv))
+            String(cipher.doFinal(encrypted), Charsets.UTF_8)
+        } catch (_: Exception) {
+            null
         }
-        return ID_TOKEN_PATTERN.matches(value)
+    }
+
+    private fun usableAccessToken(token: String?): Boolean {
+        val value = token?.trim() ?: return false
+        return !value.contains('\n') &&
+            !value.contains('\r') &&
+            !value.startsWith("Bearer ", ignoreCase = true) &&
+            JWT_PATTERN.matches(value)
     }
 
     private fun clearInvalidAuth(context: Context) {
-        getPrefs(context).edit().apply {
-            putBoolean(KEY_IS_LOGGED_IN, false)
-            putString(KEY_USER_TOKEN, null)
+        getPrefs(context).edit()
+            .putBoolean(KEY_IS_LOGGED_IN, false)
+            .remove(KEY_USER_TOKEN)
+            .remove(KEY_REFRESH_TOKEN)
+            .remove(KEY_TOKEN_EXPIRES_AT)
+            .remove(LEGACY_TOKEN_KEY)
+            .apply()
+    }
+
+    private fun randomHex(bytes: Int): String {
+        val value = ByteArray(bytes)
+        secureRandom.nextBytes(value)
+        return value.joinToString("") { "%02X".format(it) }
+    }
+
+    private fun generateDeviceId(): String =
+        "MP-${randomHex(2)}-${randomHex(2)}-${randomHex(2)}"
+
+    private fun readResponse(connection: HttpURLConnection): Pair<Int, JSONObject> {
+        val code = connection.responseCode
+        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+        val text = stream?.let {
+            BufferedReader(InputStreamReader(it)).use(BufferedReader::readText)
+        }.orEmpty()
+        return code to JSONObject(if (text.isBlank()) "{}" else text)
+    }
+
+    private fun saveSession(
+        context: Context,
+        response: JSONObject,
+        fallbackEmail: String,
+        fallbackName: String? = null,
+        fallbackPhone: String? = null
+    ) {
+        val token = response.optString("token").trim()
+        val refreshToken = response.optString("refreshToken").trim()
+        if (!usableAccessToken(token) || refreshToken.isBlank()) {
+            throw IllegalStateException("The server returned an invalid session.")
+        }
+        val user = response.optJSONObject("user") ?: JSONObject()
+        val expiresAtSeconds = response.optLong(
+            "expiresAt",
+            (System.currentTimeMillis() / 1000L) + response.optLong("expiresIn", 3600L)
+        )
+        val prefs = getPrefs(context)
+        val email = user.optString("email", fallbackEmail).ifBlank { fallbackEmail }.lowercase()
+        val existingEmail = prefs.getString(KEY_USER_EMAIL, "")
+        prefs.edit().apply {
+            putBoolean(KEY_IS_LOGGED_IN, true)
+            putString(KEY_USER_NAME, user.optString("name", fallbackName ?: email.substringBefore('@')))
+            putString(KEY_USER_EMAIL, email)
+            putString(KEY_USER_PHONE, user.optString("phone", fallbackPhone ?: ""))
+            putInt(KEY_USER_CREDITS, user.optInt("balance", 0).coerceAtLeast(0))
+            putString(KEY_USER_REFERRAL_CODE, user.optString("referralCode", ""))
+            putString(KEY_USER_TOKEN, encrypt(token))
+            putString(KEY_REFRESH_TOKEN, encrypt(refreshToken))
+            putLong(KEY_TOKEN_EXPIRES_AT, expiresAtSeconds)
+            remove(LEGACY_TOKEN_KEY)
+            if (existingEmail != email || prefs.getString(KEY_USER_DEVICE_ID, null) == null) {
+                putString(KEY_USER_DEVICE_ID, generateDeviceId())
+            }
             apply()
         }
     }
 
-    private fun generateRandomHex(length: Int): String {
-        val chars = "0123456789ABCDEF"
-        return (1..length)
-            .map { chars.random() }
-            .joinToString("")
-    }
-
-    private fun generateDeviceId(): String {
-        return "MP-${generateRandomHex(4)}-${generateRandomHex(4)}-${generateRandomHex(4)}"
-    }
-
-    /**
-     * Checks if the user is currently authenticated/logged into the streaming flow.
-     */
     fun isLoggedIn(context: Context): Boolean {
         val prefs = getPrefs(context)
-        val token = prefs.getString(KEY_USER_TOKEN, null)
-        val loggedIn = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
-        if (loggedIn && !isUsableIdToken(token)) {
+        if (!prefs.getBoolean(KEY_IS_LOGGED_IN, false)) return false
+        if (!usableAccessToken(decrypt(prefs.getString(KEY_USER_TOKEN, null)))) {
             clearInvalidAuth(context)
             return false
         }
-        return loggedIn
+        return true
     }
 
-    fun getUserReferralCode(context: Context): String {
-        return getPrefs(context).getString(KEY_USER_REFERRAL_CODE, "N/A") ?: "N/A"
-    }
-
-    /**
-     * Signs in the user by calling the Vercel API backend, which proxies to Supabase Auth.
-     * Returns null on success, or an error string on failure.
-     */
     fun login(context: Context, baseUrl: String, email: String, password: String): String? {
-        try {
-            val url = java.net.URL("$baseUrl/login")
-            val connection = url.openConnection() as java.net.HttpURLConnection
-            connection.requestMethod = "POST"
-            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            connection.doOutput = true
-            connection.connectTimeout = 8000
-            connection.readTimeout = 8000
-
-            val payload = org.json.JSONObject().apply {
-                put("email", email)
-                put("password", password)
-            }.toString()
-
-            val os = connection.outputStream
-            os.write(payload.toByteArray(charset("UTF-8")))
-            os.close()
-
-            val responseCode = connection.responseCode
-            val stream = if (responseCode == 200) connection.inputStream else connection.errorStream
-            val reader = java.io.BufferedReader(java.io.InputStreamReader(stream))
-            val response = java.lang.StringBuilder()
-            var line: String?
-            while (reader.readLine().also { line = it } != null) {
-                response.append(line)
+        return try {
+            val connection = (URL("$baseUrl/login").openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                doOutput = true
+                connectTimeout = 10_000
+                readTimeout = 15_000
             }
-            reader.close()
-
-            val responseJson = org.json.JSONObject(response.toString())
-            if (responseCode == 200) {
-                val userJson = responseJson.getJSONObject("user")
-                val name = userJson.getString("name")
-                val balance = userJson.getInt("balance")
-                val refCode = userJson.optString("referralCode", "")
-                val token = responseJson.optString("token", "").trim()
-                if (!isUsableIdToken(token)) {
-                    return "Sign-in token is invalid. Please check the backend Firebase API key and sign in again."
-                }
-
-                val prefs = getPrefs(context)
-                val existingEmail = prefs.getString(KEY_USER_EMAIL, "")
-
-                prefs.edit().apply {
-                    putBoolean(KEY_IS_LOGGED_IN, true)
-                    putString(KEY_USER_NAME, name)
-                    putString(KEY_USER_EMAIL, email)
-                    putInt(KEY_USER_CREDITS, balance)
-                    putString(KEY_USER_REFERRAL_CODE, refCode)
-                    putString(KEY_USER_TOKEN, token)
-
-                    if (existingEmail != email) {
-                        putString(KEY_USER_DEVICE_ID, generateDeviceId())
-                    } else {
-                        if (prefs.getString(KEY_USER_DEVICE_ID, null) == null) {
-                            putString(KEY_USER_DEVICE_ID, generateDeviceId())
-                        }
-                    }
-                    apply()
-                }
-                return null // Success
-            } else {
-                return responseJson.optString("error", "Invalid credentials")
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return e.message ?: "Connection error"
+            val payload = JSONObject().put("email", email).put("password", password).toString()
+            connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
+            val (code, response) = readResponse(connection)
+            connection.disconnect()
+            if (code !in 200..299) return response.optString("error", "Invalid credentials")
+            saveSession(context, response, email)
+            null
+        } catch (error: Exception) {
+            error.printStackTrace()
+            error.message ?: "Connection error"
         }
     }
 
-    /**
-     * Registers a new user by calling the Vercel API backend, which proxies to Supabase Auth.
-     * Returns null on success, or an error string on failure.
-     */
-    fun signUp(context: Context, baseUrl: String, name: String, email: String, phone: String, password: String, referredByCode: String? = null): String? {
-        try {
-            val url = java.net.URL("$baseUrl/signup")
-            val connection = url.openConnection() as java.net.HttpURLConnection
-            connection.requestMethod = "POST"
-            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            connection.doOutput = true
-            connection.connectTimeout = 8000
-            connection.readTimeout = 8000
-
-            val payload = org.json.JSONObject().apply {
-                put("name", name)
-                put("email", email)
-                put("phone", phone)
-                put("password", password)
-                if (!referredByCode.isNullOrEmpty()) {
-                    put("referredByCode", referredByCode)
-                }
-            }.toString()
-
-            val os = connection.outputStream
-            os.write(payload.toByteArray(charset("UTF-8")))
-            os.close()
-
-            val responseCode = connection.responseCode
-            val stream = if (responseCode == 200) connection.inputStream else connection.errorStream
-            val reader = java.io.BufferedReader(java.io.InputStreamReader(stream))
-            val response = java.lang.StringBuilder()
-            var line: String?
-            while (reader.readLine().also { line = it } != null) {
-                response.append(line)
+    fun signUp(
+        context: Context,
+        baseUrl: String,
+        name: String,
+        email: String,
+        phone: String,
+        password: String,
+        referredByCode: String? = null
+    ): String? {
+        return try {
+            val connection = (URL("$baseUrl/signup").openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                doOutput = true
+                connectTimeout = 10_000
+                readTimeout = 20_000
             }
-            reader.close()
-
-            val responseJson = org.json.JSONObject(response.toString())
-            if (responseCode == 200) {
-                // Auto sign in locally on signup success
-                val userJson = responseJson.optJSONObject("user")
-                val refCode = userJson?.optString("referralCode", "") ?: ""
-                val balance = userJson?.optInt("balance", 0) ?: 0
-                val token = responseJson.optString("token", "").trim()
-
-                if (!isUsableIdToken(token)) {
-                    return login(context, baseUrl, email, password)
+            val payload = JSONObject()
+                .put("name", name)
+                .put("email", email)
+                .put("phone", phone)
+                .put("password", password)
+                .put("deviceId", getDeviceId(context))
+                .apply {
+                    if (!referredByCode.isNullOrBlank()) put("referredByCode", referredByCode)
                 }
-
-                val prefs = getPrefs(context)
-                prefs.edit().apply {
-                    putBoolean(KEY_IS_LOGGED_IN, true)
-                    putString(KEY_USER_NAME, name)
-                    putString(KEY_USER_EMAIL, email)
-                    putString(KEY_USER_PHONE, phone)
-                    putInt(KEY_USER_CREDITS, balance)
-                    putString(KEY_USER_REFERRAL_CODE, refCode)
-                    putString(KEY_USER_TOKEN, token)
-                    putString(KEY_USER_DEVICE_ID, generateDeviceId())
-                    apply()
-                }
-                return null // Success
-            } else {
-                return responseJson.optString("error", "Registration failed")
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return e.message ?: "Connection error"
+                .toString()
+            connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
+            val (code, response) = readResponse(connection)
+            connection.disconnect()
+            if (code !in 200..299) return response.optString("error", "Registration failed")
+            saveSession(context, response, email, name, phone)
+            null
+        } catch (error: Exception) {
+            error.printStackTrace()
+            error.message ?: "Connection error"
         }
     }
 
-    /**
-     * Logs the user out and clears the local session.
-     */
+    fun requestPasswordReset(baseUrl: String, email: String): String? {
+        return try {
+            val connection = (
+                URL("$baseUrl/request-password-reset").openConnection() as HttpURLConnection
+                ).apply {
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                doOutput = true
+                connectTimeout = 10_000
+                readTimeout = 15_000
+            }
+            val payload = JSONObject().put("email", email).toString()
+            connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
+            val (code, response) = readResponse(connection)
+            connection.disconnect()
+            if (code in 200..299) null
+            else response.optString("error", "Could not send a password reset link.")
+        } catch (error: Exception) {
+            error.printStackTrace()
+            error.message ?: "Connection error"
+        }
+    }
+
+    @Synchronized
+    fun getValidIdToken(context: Context, baseUrl: String): String? {
+        val prefs = getPrefs(context)
+        val current = decrypt(prefs.getString(KEY_USER_TOKEN, null))
+        val expiresAt = prefs.getLong(KEY_TOKEN_EXPIRES_AT, 0L)
+        if (usableAccessToken(current) && expiresAt > (System.currentTimeMillis() / 1000L) + 60L) {
+            return current
+        }
+        val refreshToken = decrypt(prefs.getString(KEY_REFRESH_TOKEN, null))
+        if (refreshToken.isNullOrBlank()) {
+            clearInvalidAuth(context)
+            return null
+        }
+        return try {
+            val connection = (URL("$baseUrl/refresh").openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                doOutput = true
+                connectTimeout = 10_000
+                readTimeout = 15_000
+            }
+            val payload = JSONObject().put("refreshToken", refreshToken).toString()
+            connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
+            val (code, response) = readResponse(connection)
+            connection.disconnect()
+            if (code !in 200..299) {
+                clearInvalidAuth(context)
+                null
+            } else {
+                saveSession(
+                    context,
+                    response,
+                    getUserEmail(context),
+                    getUserName(context),
+                    prefs.getString(KEY_USER_PHONE, "")
+                )
+                decrypt(getPrefs(context).getString(KEY_USER_TOKEN, null))
+            }
+        } catch (error: Exception) {
+            error.printStackTrace()
+            if (usableAccessToken(current) && expiresAt > System.currentTimeMillis() / 1000L) current else null
+        }
+    }
+
     fun logout(context: Context) {
-        getPrefs(context).edit().apply {
-            putBoolean(KEY_IS_LOGGED_IN, false)
-            putString(KEY_USER_NAME, null)
-            putString(KEY_USER_EMAIL, null)
-            putString(KEY_USER_PHONE, null)
-            putInt(KEY_USER_CREDITS, 0)
-            putString(KEY_USER_DEVICE_ID, null)
-            putString(KEY_USER_TOKEN, null)
-            apply()
-        }
+        val deviceId = getDeviceId(context)
+        getPrefs(context).edit()
+            .clear()
+            .putString(KEY_USER_DEVICE_ID, deviceId)
+            .apply()
     }
 
+    fun getUserName(context: Context): String =
+        getPrefs(context).getString(KEY_USER_NAME, "User") ?: "User"
 
-    fun getUserName(context: Context): String {
-        return getPrefs(context).getString(KEY_USER_NAME, "User") ?: "User"
-    }
+    fun getUserEmail(context: Context): String =
+        getPrefs(context).getString(KEY_USER_EMAIL, "") ?: ""
 
-    fun getUserEmail(context: Context): String {
-        return getPrefs(context).getString(KEY_USER_EMAIL, "user@gmail.com") ?: "user@gmail.com"
-    }
+    fun getUserReferralCode(context: Context): String =
+        getPrefs(context).getString(KEY_USER_REFERRAL_CODE, "N/A") ?: "N/A"
 
-    fun getWalletBalance(context: Context): Int {
-        return getPrefs(context).getInt(KEY_USER_CREDITS, 0)
-    }
+    fun getWalletBalance(context: Context): Int =
+        getPrefs(context).getInt(KEY_USER_CREDITS, 0)
 
     fun setWalletBalance(context: Context, balance: Int) {
-        getPrefs(context).edit()
-            .putInt(KEY_USER_CREDITS, balance.coerceAtLeast(0))
-            .apply()
+        getPrefs(context).edit().putInt(KEY_USER_CREDITS, balance.coerceAtLeast(0)).apply()
     }
 
     fun updateUserProfile(
@@ -268,28 +336,20 @@ object StreamAuthManager {
 
     fun getDeviceId(context: Context): String {
         val prefs = getPrefs(context)
-        var devId = prefs.getString(KEY_USER_DEVICE_ID, null)
-        if (devId == null) {
-            devId = generateDeviceId()
-            prefs.edit().putString(KEY_USER_DEVICE_ID, devId).apply()
-        }
-        return devId
+        return prefs.getString(KEY_USER_DEVICE_ID, null)
+            ?: generateDeviceId().also { prefs.edit().putString(KEY_USER_DEVICE_ID, it).apply() }
     }
 
     fun getIdToken(context: Context): String? {
-        val token = getPrefs(context).getString(KEY_USER_TOKEN, null)?.trim()
-        if (!isUsableIdToken(token)) {
+        val token = decrypt(getPrefs(context).getString(KEY_USER_TOKEN, null))
+        if (!usableAccessToken(token)) {
             clearInvalidAuth(context)
             return null
         }
         return token
     }
 
- 
-
     fun addCredits(context: Context, amount: Int) {
-        val prefs = getPrefs(context)
-        val currentCredits = prefs.getInt(KEY_USER_CREDITS, 0)
-        prefs.edit().putInt(KEY_USER_CREDITS, currentCredits + amount).apply()
+        setWalletBalance(context, getWalletBalance(context) + amount)
     }
 }

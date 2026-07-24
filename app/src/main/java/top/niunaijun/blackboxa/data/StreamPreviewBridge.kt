@@ -4,29 +4,46 @@ import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Looper
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.atomic.AtomicBoolean
 
 object StreamPreviewBridge {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val listeners = CopyOnWriteArraySet<(Bitmap) -> Unit>()
+    private val deliveryScheduled = AtomicBoolean(false)
     @Volatile private var latestBitmap: Bitmap? = null
 
     fun publish(bitmap: Bitmap) {
         val previous = latestBitmap
         latestBitmap = bitmap
+        recycleWhenSuperseded(previous, bitmap)
+        scheduleLatestDelivery()
+    }
+
+    private fun scheduleLatestDelivery() {
+        if (!deliveryScheduled.compareAndSet(false, true)) {
+            return
+        }
         mainHandler.post {
-            listeners.forEach { listener ->
-                if (!bitmap.isRecycled) {
-                    listener(bitmap)
-                }
+            val bitmap = latestBitmap
+            if (bitmap != null && !bitmap.isRecycled) {
+                listeners.forEach { listener -> listener(bitmap) }
             }
-            if (previous != null && previous !== bitmap && !previous.isRecycled) {
-                mainHandler.postDelayed({
-                    if (latestBitmap !== previous && !previous.isRecycled) {
-                        previous.recycle()
-                    }
-                }, 2000L)
+            deliveryScheduled.set(false)
+            if (latestBitmap !== bitmap) {
+                scheduleLatestDelivery()
             }
         }
+    }
+
+    private fun recycleWhenSuperseded(previous: Bitmap?, replacement: Bitmap?) {
+        if (previous == null || previous === replacement || previous.isRecycled) {
+            return
+        }
+        mainHandler.postDelayed({
+            if (latestBitmap !== previous && !previous.isRecycled) {
+                previous.recycle()
+            }
+        }, 750L)
     }
 
     fun addListener(listener: (Bitmap) -> Unit) {
@@ -45,12 +62,6 @@ object StreamPreviewBridge {
     fun clear() {
         val previous = latestBitmap
         latestBitmap = null
-        if (previous != null && !previous.isRecycled) {
-            mainHandler.postDelayed({
-                if (!previous.isRecycled) {
-                    previous.recycle()
-                }
-            }, 2000L)
-        }
+        recycleWhenSuperseded(previous, null)
     }
 }

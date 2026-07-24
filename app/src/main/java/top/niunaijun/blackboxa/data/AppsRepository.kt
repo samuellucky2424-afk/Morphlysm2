@@ -258,15 +258,6 @@ class AppsRepository {
                     }
 
                     
-                    if (applicationInfo == null) {
-                        Log.w(
-                                TAG,
-                                "getVmInstallList: Skipping null applicationInfo at index $index"
-                        )
-                        return@forEachIndexed
-                    }
-
-                    
                     if (applicationInfo.packageName.isNullOrBlank()) {
                         Log.w(
                                 TAG,

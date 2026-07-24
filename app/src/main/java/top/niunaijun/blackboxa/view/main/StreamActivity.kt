@@ -19,6 +19,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.vcam.VirtualCameraBridge
 import org.json.JSONObject
+import top.niunaijun.blackboxa.BuildConfig
 import top.niunaijun.blackboxa.R
 import top.niunaijun.blackboxa.databinding.ActivityStreamBinding
 import top.niunaijun.blackboxa.data.DecartRealtimeBridge
@@ -40,7 +41,7 @@ class StreamActivity : BaseActivity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val TAG_STREAM_LIFECYCLE = "STREAM_LIFECYCLE"
 
-    private val BACKEND_BASE_URL = "https://morphlysm2.vercel.app/api"
+    private val BACKEND_BASE_URL = BuildConfig.BACKEND_BASE_URL.trimEnd('/')
     private val DECART_REALTIME_MODEL = "lucy-2.1"
     private val REQUEST_DECART_PERMISSIONS = 2202
     private val networkExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
@@ -48,6 +49,9 @@ class StreamActivity : BaseActivity() {
     private var isFullscreenCamera = false
     private var currentStreamSessionId: String = ""
     private var currentStreamModel: String = ""
+    private var creditUsageSequence = 0L
+    private var consecutiveCreditSyncFailures = 0
+    @Volatile private var isCreditSyncInFlight = false
 
     private var selectedPlanName: String = "Test"
     private var selectedPlanPrice: Double = 10.0
@@ -64,87 +68,95 @@ class StreamActivity : BaseActivity() {
 
     private val creditUsageRunnable = object : Runnable {
         override fun run() {
-            if (isStreaming) {
-                val email = StreamAuthManager.getUserEmail(this@StreamActivity)
-                val remaining = StreamAuthManager.getWalletBalance(this@StreamActivity)
-                if (remaining > 0) {
-                    val decrease = 2
-                    
-                    networkExecutor.execute {
-                        try {
-                            val url = java.net.URL("$BACKEND_BASE_URL/consume")
-                            val connection = url.openConnection() as java.net.HttpURLConnection
-                            connection.requestMethod = "POST"
-                            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                            connection.doOutput = true
-                            connection.connectTimeout = 5000
-                            connection.readTimeout = 5000
-                            
-                            val payload = "{\"email\":\"$email\",\"amount\":$decrease}"
-                            val os = connection.outputStream
-                            os.write(payload.toByteArray(charset("UTF-8")))
-                            os.close()
-                            
-                            val responseCode = connection.responseCode
-                            if (responseCode == 200) {
-                                val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream))
-                                val response = java.lang.StringBuilder()
-                                var line: String?
-                                while (reader.readLine().also { line = it } != null) {
-                                    response.append(line)
-                                }
-                                reader.close()
-                                
-                                val jsonStr = response.toString()
-                                val balancePattern = java.util.regex.Pattern.compile("\"balance\"\\s*:\\s*(\\d+)")
-                                val usedPattern = java.util.regex.Pattern.compile("\"used\"\\s*:\\s*(\\d+)")
-                                val balanceMatcher = balancePattern.matcher(jsonStr)
-                                val usedMatcher = usedPattern.matcher(jsonStr)
-                                
-                                var fetchedBalance = -1
-                                var fetchedUsed = -1
-                                if (balanceMatcher.find()) {
-                                    fetchedBalance = balanceMatcher.group(1).toInt()
-                                }
-                                if (usedMatcher.find()) {
-                                    fetchedUsed = usedMatcher.group(1).toInt()
-                                }
-                                
-                                if (fetchedBalance >= 0) {
-                                    val currentLocal = StreamAuthManager.getWalletBalance(this@StreamActivity)
-                                    StreamAuthManager.addCredits(this@StreamActivity, fetchedBalance - currentLocal)
-                                    runOnUiThread {
-                                        updateSessionBalanceUI(fetchedBalance, fetchedUsed)
-                                        if (fetchedBalance <= 0) {
-                                            Toast.makeText(this@StreamActivity, "Credits exhausted! Please buy a plan to continue.", Toast.LENGTH_LONG).show()
-                                            stopLiveStream()
-                                            showPlanSelectionState()
-                                        }
-                                    }
-                                }
-                            } else {
-                                handleLocalCreditUsage(decrease)
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            handleLocalCreditUsage(decrease)
+            if (!isStreaming) return
+            if (StreamAuthManager.getWalletBalance(this@StreamActivity) <= 0) {
+                stopForCreditFailure("Credits exhausted. Buy a plan to continue.")
+                return
+            }
+            if (isCreditSyncInFlight) {
+                mainHandler.postDelayed(this, 3_000)
+                return
+            }
+            val sequence = ++creditUsageSequence
+            isCreditSyncInFlight = true
+            networkExecutor.execute {
+                try {
+                    val token = StreamAuthManager.getValidIdToken(
+                        this@StreamActivity,
+                        BACKEND_BASE_URL
+                    ) ?: throw IllegalStateException("Your session expired. Sign in again.")
+                    val connection = (
+                        java.net.URL("$BACKEND_BASE_URL/consume").openConnection()
+                            as java.net.HttpURLConnection
+                        ).apply {
+                        requestMethod = "POST"
+                        setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                        setRequestProperty("Authorization", "Bearer $token")
+                        setRequestProperty(
+                            "Idempotency-Key",
+                            "$currentStreamSessionId:$sequence"
+                        )
+                        doOutput = true
+                        connectTimeout = 8_000
+                        readTimeout = 10_000
+                    }
+                    val payload = JSONObject()
+                        .put("amount", 2)
+                        .put("streamSessionId", currentStreamSessionId)
+                        .put("idempotencyKey", "$currentStreamSessionId:$sequence")
+                        .put("deviceId", StreamAuthManager.getDeviceId(this@StreamActivity))
+                        .toString()
+                    connection.outputStream.use {
+                        it.write(payload.toByteArray(Charsets.UTF_8))
+                    }
+                    val responseCode = connection.responseCode
+                    val stream = if (responseCode in 200..299) {
+                        connection.inputStream
+                    } else {
+                        connection.errorStream
+                    }
+                    val responseText = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                    connection.disconnect()
+                    if (responseCode !in 200..299) {
+                        val message = runCatching {
+                            JSONObject(responseText).optString("error")
+                        }.getOrDefault("Credit verification failed")
+                        throw IllegalStateException(message)
+                    }
+                    val response = JSONObject(responseText)
+                    val balance = response.optInt("balance", -1)
+                    val used = response.optInt("used", -1)
+                    if (balance < 0) throw IllegalStateException("Invalid credit response")
+                    consecutiveCreditSyncFailures = 0
+                    StreamAuthManager.setWalletBalance(this@StreamActivity, balance)
+                    runOnUiThread {
+                        updateSessionBalanceUI(balance, used)
+                        if (balance <= 0) {
+                            stopForCreditFailure("Credits exhausted. Buy a plan to continue.")
                         }
                     }
-                    
-                    mainHandler.postDelayed(this, 3000)
+                } catch (error: Exception) {
+                    Log.e(TAG_STREAM_LIFECYCLE, "credit_sync_failed", error)
+                    consecutiveCreditSyncFailures += 1
+                    if (consecutiveCreditSyncFailures >= 2) {
+                        stopForCreditFailure(
+                            error.message ?: "Credit verification failed. Reconnect to continue."
+                        )
+                    }
+                } finally {
+                    isCreditSyncInFlight = false
                 }
             }
+            mainHandler.postDelayed(this, 3_000)
         }
     }
 
-    private fun handleLocalCreditUsage(decrease: Int) {
+    private fun stopForCreditFailure(message: String) {
         runOnUiThread {
-            StreamAuthManager.addCredits(this@StreamActivity, -decrease)
-            updateSessionBalanceUI()
-            val remaining = StreamAuthManager.getWalletBalance(this@StreamActivity)
-            if (remaining <= 0) {
-                Toast.makeText(this@StreamActivity, "Credits exhausted! Please buy a plan to continue.", Toast.LENGTH_LONG).show()
-                stopLiveStream()
+            if (!isStreaming) return@runOnUiThread
+            Toast.makeText(this@StreamActivity, message, Toast.LENGTH_LONG).show()
+            stopLiveStream()
+            if (StreamAuthManager.getWalletBalance(this@StreamActivity) <= 0) {
                 showPlanSelectionState()
             }
         }
@@ -234,11 +246,24 @@ class StreamActivity : BaseActivity() {
         if (StreamAuthManager.isLoggedIn(this)) {
             Toast.makeText(this, "Payment complete. Refreshing your credits...", Toast.LENGTH_LONG).show()
             showDashboardState()
+            schedulePaymentBalanceRefresh()
         } else {
             Toast.makeText(this, "Payment complete. Sign in to refresh your credits.", Toast.LENGTH_LONG).show()
             showAuthState()
         }
         return true
+    }
+
+    private fun schedulePaymentBalanceRefresh() {
+        // The browser redirect can arrive before Flutterwave finishes delivering
+        // the webhook, so retry briefly instead of leaving a stale balance onscreen.
+        listOf(2_000L, 5_000L, 10_000L, 20_000L).forEach { delayMs ->
+            mainHandler.postDelayed({
+                if (!isFinishing && !isDestroyed && StreamAuthManager.isLoggedIn(this)) {
+                    fetchBalanceFromBackend()
+                }
+            }, delayMs)
+        }
     }
 
     private fun showSplashState() {
@@ -349,14 +374,18 @@ class StreamActivity : BaseActivity() {
         startCameraPreview()
     }
     private fun fetchBalanceFromBackend() {
-        val email = StreamAuthManager.getUserEmail(this)
         networkExecutor.execute {
             try {
-                val url = java.net.URL("$BACKEND_BASE_URL/balance?email=${java.net.URLEncoder.encode(email, "UTF-8")}")
+                val token = StreamAuthManager.getValidIdToken(
+                    this@StreamActivity,
+                    BACKEND_BASE_URL
+                ) ?: throw IllegalStateException("Your session expired. Sign in again.")
+                val url = java.net.URL("$BACKEND_BASE_URL/balance")
                 val connection = url.openConnection() as java.net.HttpURLConnection
                 connection.requestMethod = "GET"
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                connection.connectTimeout = 8_000
+                connection.readTimeout = 10_000
                 
                 val responseCode = connection.responseCode
                 if (responseCode == 200) {
@@ -379,6 +408,16 @@ class StreamActivity : BaseActivity() {
                         runOnUiThread {
                             updateSessionBalanceUI()
                         }
+                    }
+                } else if (responseCode == 401 || responseCode == 403) {
+                    StreamAuthManager.logout(this@StreamActivity)
+                    runOnUiThread {
+                        Toast.makeText(
+                            this@StreamActivity,
+                            "Your session ended. Sign in again.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        showAuthState()
                     }
                 } else {
                     runOnUiThread {
@@ -414,20 +453,20 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun selectSignInTab() {
-        binding.tvTabSignIn.setBackgroundColor(resources.getColor(R.color.primary_gold)) // Gold Accent
-        binding.tvTabSignIn.setTextColor(resources.getColor(R.color.dark_bg)) // Dark background color
-        binding.tvTabCreateAccount.setBackgroundColor(resources.getColor(android.R.color.transparent))
-        binding.tvTabCreateAccount.setTextColor(resources.getColor(R.color.secondary_text)) // Gray
+        binding.tvTabSignIn.setBackgroundColor(ContextCompat.getColor(this, R.color.primary_gold)) // Gold Accent
+        binding.tvTabSignIn.setTextColor(ContextCompat.getColor(this, R.color.dark_bg)) // Dark background color
+        binding.tvTabCreateAccount.setBackgroundColor(ContextCompat.getColor(this, android.R.color.transparent))
+        binding.tvTabCreateAccount.setTextColor(ContextCompat.getColor(this, R.color.secondary_text)) // Gray
 
         binding.formSignIn.visibility = View.VISIBLE
         binding.formCreateAccount.visibility = View.GONE
     }
 
     private fun selectCreateAccountTab() {
-        binding.tvTabCreateAccount.setBackgroundColor(resources.getColor(R.color.primary_gold)) // Gold Accent
-        binding.tvTabCreateAccount.setTextColor(resources.getColor(R.color.dark_bg)) // Dark background color
-        binding.tvTabSignIn.setBackgroundColor(resources.getColor(android.R.color.transparent))
-        binding.tvTabSignIn.setTextColor(resources.getColor(R.color.secondary_text)) // Gray
+        binding.tvTabCreateAccount.setBackgroundColor(ContextCompat.getColor(this, R.color.primary_gold)) // Gold Accent
+        binding.tvTabCreateAccount.setTextColor(ContextCompat.getColor(this, R.color.dark_bg)) // Dark background color
+        binding.tvTabSignIn.setBackgroundColor(ContextCompat.getColor(this, android.R.color.transparent))
+        binding.tvTabSignIn.setTextColor(ContextCompat.getColor(this, R.color.secondary_text)) // Gray
 
         binding.formSignIn.visibility = View.GONE
         binding.formCreateAccount.visibility = View.VISIBLE
@@ -466,35 +505,12 @@ class StreamActivity : BaseActivity() {
         binding.etPromptDescription.setText(prompt)
     }
 
-    private fun startLiveStream() {
-        val progressDialog = android.app.ProgressDialog(this).apply {
-            setMessage("Connecting to live AI transformation engine...")
-            setCancelable(false)
-            show()
-        }
-        
-        mainHandler.postDelayed({
-            progressDialog.dismiss()
-            isStreaming = true
-            
-            binding.btnStopStream.isEnabled = true
-            binding.btnStopStream.setBackgroundColor(Color.parseColor("#FFFF5252"))
-            binding.btnStopStream.setTextColor(Color.parseColor("#0B0C10"))
-            
-            binding.btnConnectStream.isEnabled = false
-            binding.btnConnectStream.setBackgroundColor(Color.parseColor("#1D2030"))
-            binding.btnConnectStream.setTextColor(Color.parseColor("#3A3F55"))
-            
-            Toast.makeText(this, "AI transformation engine connected!", Toast.LENGTH_SHORT).show()
-            
-            mainHandler.post(creditUsageRunnable)
-        }, 1200)
-    }
-
     private fun stopLiveStream() {
         isStreaming = false
         currentStreamSessionId = ""
         currentStreamModel = ""
+        creditUsageSequence = 0
+        consecutiveCreditSyncFailures = 0
         mainHandler.removeCallbacks(creditUsageRunnable)
         DecartRealtimeBridge.disconnect()
         StreamSessionController.stop()
@@ -773,7 +789,23 @@ class StreamActivity : BaseActivity() {
 
         // Links click handlers
         binding.tvForgotPassword.setOnClickListener {
-            Toast.makeText(this, "Password reset link sent to your email.", Toast.LENGTH_LONG).show()
+            val email = binding.etSignInEmail.text.toString().trim()
+            if (email.isBlank() || !email.contains("@")) {
+                Toast.makeText(this, "Enter your account email first.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            binding.tvForgotPassword.isEnabled = false
+            networkExecutor.execute {
+                val error = StreamAuthManager.requestPasswordReset(BACKEND_BASE_URL, email)
+                runOnUiThread {
+                    binding.tvForgotPassword.isEnabled = true
+                    Toast.makeText(
+                        this,
+                        error ?: "If that account exists, a reset link has been sent.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
         }
 
         binding.tvTermsLink.setOnClickListener {
@@ -1186,18 +1218,51 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun readFaceImageForDecart(uri: Uri): Pair<String, String> {
-        val mimeType = contentResolver.getType(uri) ?: "image/png"
-        val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            ?: throw IllegalStateException("Could not read selected face image.")
-        return Pair(android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP), mimeType)
+        val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        contentResolver.openInputStream(uri)?.use {
+            android.graphics.BitmapFactory.decodeStream(it, null, bounds)
+        } ?: throw IllegalStateException("Could not read selected face image.")
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            throw IllegalStateException("The selected face image is invalid.")
+        }
+        var sampleSize = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / sampleSize > 1_024) {
+            sampleSize *= 2
+        }
+        val options = android.graphics.BitmapFactory.Options().apply {
+            inSampleSize = sampleSize
+            inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
+        }
+        val bitmap = contentResolver.openInputStream(uri)?.use {
+            android.graphics.BitmapFactory.decodeStream(it, null, options)
+        } ?: throw IllegalStateException("Could not decode selected face image.")
+        val output = java.io.ByteArrayOutputStream()
+        try {
+            if (!bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, output)) {
+                throw IllegalStateException("Could not prepare selected face image.")
+            }
+            if (output.size() > 4 * 1024 * 1024) {
+                throw IllegalStateException("The selected face image is too large.")
+            }
+            return Pair(
+                android.util.Base64.encodeToString(output.toByteArray(), android.util.Base64.NO_WRAP),
+                "image/jpeg"
+            )
+        } finally {
+            bitmap.recycle()
+            output.close()
+        }
     }
 
     private fun postBackendJson(path: String, payload: JSONObject): Pair<Int, String> {
+        val token = StreamAuthManager.getValidIdToken(this, BACKEND_BASE_URL)
+            ?: throw IllegalStateException("Your session expired. Sign in again.")
         val url = java.net.URL("$BACKEND_BASE_URL/$path")
         val connection = url.openConnection() as java.net.HttpURLConnection
         connection.requestMethod = "POST"
         connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
         connection.setRequestProperty("Accept", "application/json")
+        connection.setRequestProperty("Authorization", "Bearer $token")
         connection.doOutput = true
         connection.connectTimeout = 15000
         connection.readTimeout = 20000
@@ -1298,7 +1363,6 @@ class StreamActivity : BaseActivity() {
         binding.btnConnectStream.setTextColor(Color.parseColor("#3A3F55"))
 
         val deviceId = StreamAuthManager.getDeviceId(this)
-        val email = StreamAuthManager.getUserEmail(this)
         val prompt = currentDecartPrompt()
         val preset = selectedPresetLabel()
         val quality = selectedQualityKey()
@@ -1320,7 +1384,6 @@ class StreamActivity : BaseActivity() {
                     "decart-token",
                     JSONObject()
                         .put("deviceId", deviceId)
-                        .put("email", email)
                         .put("model", DECART_REALTIME_MODEL)
                 )
                 if (tokenResponse.first !in 200..299) {
@@ -1336,7 +1399,6 @@ class StreamActivity : BaseActivity() {
                     "transform",
                     JSONObject()
                         .put("deviceId", deviceId)
-                        .put("email", email)
                         .put("mode", mode)
                         .put("prompt", prompt)
                         .put("preset", preset)
@@ -1345,7 +1407,7 @@ class StreamActivity : BaseActivity() {
                         .put("quality", quality)
                         .put("fps", fps)
                         .put("model", DECART_REALTIME_MODEL)
-                        .put("faceImage", base64Image)
+                        .put("hasFaceImage", base64Image.isNotBlank())
                         .put("faceImageMimeType", faceImageMimeType)
                 )
                 if (transformResponse.first !in 200..299) {
@@ -1421,79 +1483,6 @@ class StreamActivity : BaseActivity() {
         }
     }
 
-    private fun connectToVercelBackend() {
-        val progressDialog = android.app.ProgressDialog(this).apply {
-            setMessage("Connecting to Vercel API backend...")
-            setCancelable(false)
-            show()
-        }
-
-        val deviceId = StreamAuthManager.getDeviceId(this)
-        val email = StreamAuthManager.getUserEmail(this)
-        val mode = if (binding.layoutFaceSwapUpload.visibility == View.VISIBLE) "face_swap" else "style"
-        val prompt = if (binding.switchLiveUpdate.isChecked) binding.etPromptDescription.text.toString() else ""
-        val preset = if (binding.switchEnhance.isChecked) selectedPresetView?.text?.toString() ?: "" else ""
-
-        networkExecutor.execute {
-            var base64Image = ""
-            if (mode == "face_swap" && selectedFaceImageUri != null) {
-                try {
-                    val inputStream = contentResolver.openInputStream(selectedFaceImageUri!!)
-                    val bytes = inputStream?.readBytes()
-                    inputStream?.close()
-                    if (bytes != null) {
-                        base64Image = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
-                    }
-                } catch (e: java.lang.Exception) {
-                    e.printStackTrace()
-                }
-            }
-
-            try {
-                val url = java.net.URL("$BACKEND_BASE_URL/transform")
-                val connection = url.openConnection() as java.net.HttpURLConnection
-                connection.requestMethod = "POST"
-                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                connection.doOutput = true
-                connection.connectTimeout = 8000
-                connection.readTimeout = 8000
-
-                val escapedPrompt = prompt.replace("\"", "\\\"").replace("\n", "\\n")
-                val payload = "{" +
-                        "\"deviceId\":\"$deviceId\"," +
-                        "\"email\":\"$email\"," +
-                        "\"mode\":\"$mode\"," +
-                        "\"prompt\":\"$escapedPrompt\"," +
-                        "\"preset\":\"$preset\"," +
-                        "\"faceImage\":\"${if (base64Image.length > 200) base64Image.substring(0, 200) + "..." else base64Image}\"" +
-                        "}"
-
-                val os = connection.outputStream
-                os.write(payload.toByteArray(charset("UTF-8")))
-                os.close()
-
-                val responseCode = connection.responseCode
-                runOnUiThread {
-                    progressDialog.dismiss()
-                    if (responseCode == 200 || responseCode == 201) {
-                        Toast.makeText(this@StreamActivity, "Connected to Vercel API backend!", Toast.LENGTH_SHORT).show()
-                        startLiveStreamState()
-                    } else {
-                        Toast.makeText(this@StreamActivity, "Vercel API error ($responseCode). Running local AI engine...", Toast.LENGTH_SHORT).show()
-                        startLiveStreamState()
-                    }
-                }
-            } catch (e: java.lang.Exception) {
-                e.printStackTrace()
-                runOnUiThread {
-                    progressDialog.dismiss()
-                    Toast.makeText(this@StreamActivity, "Vercel engine offline. Connecting to local AI engine...", Toast.LENGTH_SHORT).show()
-                    startLiveStreamState()
-                }
-            }
-        }
-    }
-
     private fun startLiveStreamState(
         sessionId: String = "morphly_${System.currentTimeMillis()}",
         model: String = DECART_REALTIME_MODEL,
@@ -1502,6 +1491,8 @@ class StreamActivity : BaseActivity() {
         isStreaming = true
         currentStreamSessionId = sessionId
         currentStreamModel = model
+        creditUsageSequence = 0
+        consecutiveCreditSyncFailures = 0
         StreamSessionController.start(this, sessionId, model, maxSessionDurationSeconds) {
             stopLiveStream()
         }
@@ -1538,188 +1529,17 @@ class StreamActivity : BaseActivity() {
 
  
 
-    private fun syncBalanceWithBackend(creditsAdded: Int) {
-        val email = StreamAuthManager.getUserEmail(this)
-        networkExecutor.execute {
-            try {
-                val url = java.net.URL("$BACKEND_BASE_URL/consume")
-                val connection = url.openConnection() as java.net.HttpURLConnection
-                connection.requestMethod = "POST"
-                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                connection.doOutput = true
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
-                
-                // consume negative credits adds balance on the server!
-                val payload = "{\"email\":\"$email\",\"amount\":${-creditsAdded}}"
-                val os = connection.outputStream
-                os.write(payload.toByteArray(charset("UTF-8")))
-                os.close()
-                
-                connection.responseCode
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
     private fun openCheckoutPopup(title: String, checkoutUrl: String) {
-        val checkoutDialog = android.app.Dialog(this)
-        val progressBar = android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            isIndeterminate = true
-            visibility = View.VISIBLE
+        val uri = Uri.parse(checkoutUrl)
+        if (uri.scheme != "https") {
+            Toast.makeText(this, "The payment link is invalid.", Toast.LENGTH_LONG).show()
+            return
         }
-        val webView = android.webkit.WebView(this).apply {
-            setBackgroundColor(Color.WHITE)
-            isVerticalScrollBarEnabled = true
-            isHorizontalScrollBarEnabled = false
-        }
-
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
-        webView.settings.databaseEnabled = true
-        webView.settings.loadWithOverviewMode = true
-        webView.settings.useWideViewPort = true
-        webView.settings.loadsImagesAutomatically = true
-        webView.settings.javaScriptCanOpenWindowsAutomatically = true
-        webView.settings.setSupportMultipleWindows(false)
-        webView.settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-            android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
-        }
-        android.webkit.CookieManager.getInstance().setAcceptCookie(true)
-        webView.webChromeClient = object : android.webkit.WebChromeClient() {
-            override fun onProgressChanged(view: android.webkit.WebView?, newProgress: Int) {
-                progressBar.visibility = if (newProgress >= 100) View.GONE else View.VISIBLE
-            }
-        }
-        webView.webViewClient = object : android.webkit.WebViewClient() {
-            override fun shouldOverrideUrlLoading(
-                view: android.webkit.WebView?,
-                request: android.webkit.WebResourceRequest?
-            ): Boolean {
-                return handleCheckoutNavigation(checkoutDialog, request?.url)
-            }
-
-            @Deprecated("Deprecated in Android framework")
-            override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, url: String?): Boolean {
-                return handleCheckoutNavigation(checkoutDialog, url?.let { Uri.parse(it) })
-            }
-
-            override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
-                progressBar.visibility = View.GONE
-                super.onPageFinished(view, url)
-            }
-        }
-
-        val header = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
-            setPadding(dpToPx(18), 0, dpToPx(12), 0)
-            setBackgroundColor(Color.WHITE)
-            addView(
-                android.widget.TextView(this@StreamActivity).apply {
-                    text = title
-                    textSize = 20f
-                    setTextColor(Color.rgb(28, 30, 36))
-                    typeface = android.graphics.Typeface.DEFAULT_BOLD
-                    isSingleLine = true
-                },
-                android.widget.LinearLayout.LayoutParams(
-                    0,
-                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                    1f
-                )
-            )
-            addView(
-                android.widget.TextView(this@StreamActivity).apply {
-                    text = "CLOSE"
-                    textSize = 14f
-                    letterSpacing = 0.12f
-                    setTextColor(Color.rgb(45, 48, 56))
-                    typeface = android.graphics.Typeface.DEFAULT_BOLD
-                    gravity = android.view.Gravity.CENTER
-                    setPadding(dpToPx(16), 0, dpToPx(4), 0)
-                    setOnClickListener { checkoutDialog.dismiss() }
-                },
-                android.widget.LinearLayout.LayoutParams(
-                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
-                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT
-                )
-            )
-        }
-
-        val root = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setBackgroundColor(Color.WHITE)
-            addView(
-                header,
-                android.widget.LinearLayout.LayoutParams(
-                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                    dpToPx(58)
-                )
-            )
-            addView(
-                progressBar,
-                android.widget.LinearLayout.LayoutParams(
-                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                    dpToPx(3)
-                )
-            )
-            addView(
-                webView,
-                android.widget.LinearLayout.LayoutParams(
-                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                    0,
-                    1f
-                )
-            )
-        }
-
-        checkoutDialog.setContentView(root)
-        checkoutDialog.setOnDismissListener {
-            webView.stopLoading()
-            webView.destroy()
-            if (StreamAuthManager.isLoggedIn(this)) {
-                fetchBalanceFromBackend()
-            }
-        }
-        checkoutDialog.show()
-        checkoutDialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.WHITE))
-        checkoutDialog.window?.setDimAmount(0.72f)
-        checkoutDialog.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-        checkoutDialog.window?.setLayout(
-            android.view.WindowManager.LayoutParams.MATCH_PARENT,
-            (resources.displayMetrics.heightPixels * 0.94f).toInt()
-        )
-        webView.post { webView.loadUrl(checkoutUrl) }
-    }
-
-    private fun handleCheckoutNavigation(dialog: android.app.Dialog?, uri: Uri?): Boolean {
-        uri ?: return false
-        if (uri.scheme == "morphly" && uri.host == "payment-return") {
-            dialog?.dismiss()
-            handlePaymentReturn(Intent(Intent.ACTION_VIEW, uri))
-            return true
-        }
-
-        val scheme = uri.scheme?.lowercase()
-        if (scheme == "http" || scheme == "https" || scheme == "about") {
-            return false
-        }
-
-        return try {
-            val intent = if (scheme == "intent") {
-                Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME)
-            } else {
-                Intent(Intent.ACTION_VIEW, uri)
-            }
-            startActivity(intent)
-            true
-        } catch (e: Exception) {
-            Toast.makeText(this, "No app can open this payment link.", Toast.LENGTH_LONG).show()
-            true
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, uri))
+        } catch (error: Exception) {
+            Log.e(TAG_STREAM_LIFECYCLE, "checkout_browser_failed", error)
+            Toast.makeText(this, "No browser can open the $title link.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1942,7 +1762,10 @@ class StreamActivity : BaseActivity() {
         
         networkExecutor.execute {
             try {
-                val token = StreamAuthManager.getIdToken(this@StreamActivity) ?: throw Exception("Not logged in")
+                val token = StreamAuthManager.getValidIdToken(
+                    this@StreamActivity,
+                    BACKEND_BASE_URL
+                ) ?: throw Exception("Your session expired. Sign in again.")
                 val url = java.net.URL("$BACKEND_BASE_URL/create-checkout")
                 val connection = url.openConnection() as java.net.HttpURLConnection
                 connection.requestMethod = "POST"
@@ -2011,7 +1834,10 @@ class StreamActivity : BaseActivity() {
 
         networkExecutor.execute {
             try {
-                val token = StreamAuthManager.getIdToken(this@StreamActivity) ?: throw Exception("Not logged in")
+                val token = StreamAuthManager.getValidIdToken(
+                    this@StreamActivity,
+                    BACKEND_BASE_URL
+                ) ?: throw Exception("Your session expired. Sign in again.")
                 val url = java.net.URL("$BACKEND_BASE_URL/create-crypto-checkout")
                 val connection = url.openConnection() as java.net.HttpURLConnection
                 connection.requestMethod = "POST"
@@ -2217,4 +2043,15 @@ class StreamActivity : BaseActivity() {
         }
     }
 
+    override fun onDestroy() {
+        isStreaming = false
+        mainHandler.removeCallbacksAndMessages(null)
+        DecartRealtimeBridge.disconnect()
+        StreamSessionController.stop()
+        StreamPreviewBridge.clear()
+        releaseCamera()
+        stopBackgroundThread()
+        networkExecutor.shutdownNow()
+        super.onDestroy()
+    }
 }

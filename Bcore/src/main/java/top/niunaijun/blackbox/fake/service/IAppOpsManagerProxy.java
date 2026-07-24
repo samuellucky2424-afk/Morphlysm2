@@ -47,11 +47,11 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
         
         
         
-        if (methodName.startsWith("check") || 
-            methodName.startsWith("note") || 
+        if (methodName.startsWith("check") ||
+            methodName.startsWith("note") ||
             methodName.startsWith("start")) {
             Slog.d(TAG, "AppOps invoke: Bypassing system for " + methodName + ", allowing operation");
-            return AppOpsManager.MODE_ALLOWED;
+            return allowedResult(method);
         }
         
         
@@ -68,11 +68,11 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
         } catch (SecurityException e) {
             
             Slog.w(TAG, "AppOps invoke: SecurityException caught for " + methodName + ", allowing operation", e);
-            return AppOpsManager.MODE_ALLOWED;
+            return allowedResult(method);
         } catch (Exception e) {
             Slog.e(TAG, "AppOps invoke: Error in method " + methodName, e);
             
-            return AppOpsManager.MODE_ALLOWED;
+            return allowedResult(method);
         }
     }
 
@@ -85,7 +85,7 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
     public static class NoteProxyOperation extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            return AppOpsManager.MODE_ALLOWED;
+            return allowedResult(method);
         }
     }
 
@@ -94,7 +94,7 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             
-            return AppOpsManager.MODE_ALLOWED;
+            return allowedResult(method);
         }
     }
 
@@ -105,7 +105,7 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
             
             
             Slog.d(TAG, "AppOps CheckOperation: Bypassing system check, allowing operation");
-            return AppOpsManager.MODE_ALLOWED;
+            return allowedResult(method);
         }
     }
 
@@ -116,7 +116,7 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             
             Slog.d(TAG, "AppOps CheckOperationForDevice: Bypassing system check, allowing operation");
-            return AppOpsManager.MODE_ALLOWED;
+            return allowedResult(method);
         }
     }
 
@@ -126,7 +126,7 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             
             Slog.d(TAG, "AppOps NoteOperation: Bypassing system check, allowing operation");
-            return AppOpsManager.MODE_ALLOWED;
+            return allowedResult(method);
         }
     }
 
@@ -136,7 +136,7 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             
             Slog.d(TAG, "AppOps CheckOpNoThrow: Bypassing system check, allowing operation");
-            return AppOpsManager.MODE_ALLOWED;
+            return allowedResult(method);
         }
     }
 
@@ -147,7 +147,7 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             
             Slog.d(TAG, "AppOps StartOp: Bypassing system check, allowing operation");
-            return AppOpsManager.MODE_ALLOWED;
+            return allowedResult(method);
         }
     }
 
@@ -157,7 +157,7 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             
             Slog.d(TAG, "AppOps StartOpNoThrow: Bypassing system check, allowing operation");
-            return AppOpsManager.MODE_ALLOWED;
+            return allowedResult(method);
         }
     }
 
@@ -188,7 +188,7 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
                 String name = getOpPublicName(op);
                 if (name != null && (name.contains("RECORD_AUDIO") || name.contains("AUDIO") || name.contains("MICROPHONE"))) {
                     Slog.d(TAG, "AppOps NoteOp: Allowing RECORD_AUDIO operation: " + name);
-                    return AppOpsManager.MODE_ALLOWED;
+                    return allowedResult(method);
                 }
             } catch (Throwable ignored) {
             }
@@ -206,7 +206,7 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
                 String name = getOpPublicName(op);
                 if (name != null && (name.contains("RECORD_AUDIO") || name.contains("AUDIO") || name.contains("MICROPHONE"))) {
                     Slog.d(TAG, "AppOps NoteOpNoThrow: Allowing RECORD_AUDIO operation: " + name);
-                    return AppOpsManager.MODE_ALLOWED;
+                    return allowedResult(method);
                 }
             } catch (Throwable ignored) {
             }
@@ -248,5 +248,26 @@ public class IAppOpsManagerProxy extends BinderInvocationStub {
         } catch (Throwable ignored) {
             return null;
         }
+    }
+
+    private static Object allowedResult(Method method) {
+        Class<?> returnType = method.getReturnType();
+        if (returnType == Void.TYPE) {
+            return null;
+        }
+        if (returnType == Integer.TYPE || returnType == Integer.class) {
+            return AppOpsManager.MODE_ALLOWED;
+        }
+        if (returnType == Boolean.TYPE || returnType == Boolean.class) {
+            return true;
+        }
+        if ("android.app.SyncNotedAppOp".equals(returnType.getName())) {
+            try {
+                return returnType.getConstructor(int.class, String.class)
+                        .newInstance(AppOpsManager.MODE_ALLOWED, null);
+            } catch (Throwable ignored) {
+            }
+        }
+        return null;
     }
 }

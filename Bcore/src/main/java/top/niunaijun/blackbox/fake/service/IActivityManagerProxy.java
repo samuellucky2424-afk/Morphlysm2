@@ -101,6 +101,24 @@ public class IActivityManagerProxy extends ClassInvocationStub {
         addMethodHook(new PkgMethodProxy("reportJunkFromApp"));
     }
 
+    @ProxyMethod("clearApplicationUserData")
+    public static class ClearApplicationUserData extends ClearApplicationUserDataBase {
+    }
+
+    @ProxyMethod("clearApplicationUserDataWithObserver")
+    public static class ClearApplicationUserDataWithObserver extends ClearApplicationUserDataBase {
+    }
+
+    public static class ClearApplicationUserDataBase extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            String packageName = firstStringArg(args);
+            Slog.w(TAG, "clearApplicationUserData: bypassing data wipe request for " + packageName);
+            notifyPackageDataObserver(args, packageName);
+            return activityManagerSuccessResult(method);
+        }
+    }
+
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         try {
@@ -849,6 +867,54 @@ public class IActivityManagerProxy extends ClassInvocationStub {
                 return true;
         }
         return false;
+    }
+
+    private static String firstStringArg(Object[] args) {
+        if (args == null) {
+            return BActivityThread.getAppPackageName();
+        }
+        for (Object arg : args) {
+            if (arg instanceof String) {
+                return (String) arg;
+            }
+        }
+        return BActivityThread.getAppPackageName();
+    }
+
+    private static Object activityManagerSuccessResult(Method method) {
+        Class<?> returnType = method.getReturnType();
+        if (returnType == Void.TYPE) {
+            return null;
+        }
+        if (returnType == Boolean.TYPE || returnType == Boolean.class) {
+            return true;
+        }
+        if (returnType == Integer.TYPE || returnType == Integer.class) {
+            return 0;
+        }
+        return null;
+    }
+
+    private static void notifyPackageDataObserver(Object[] args, String packageName) {
+        if (args == null) {
+            return;
+        }
+        for (Object arg : args) {
+            if (arg == null) {
+                continue;
+            }
+            try {
+                for (Method callback : arg.getClass().getMethods()) {
+                    if ("onRemoveCompleted".equals(callback.getName())
+                            && callback.getParameterTypes().length == 2) {
+                        callback.setAccessible(true);
+                        callback.invoke(arg, packageName, true);
+                        return;
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+        }
     }
 
     

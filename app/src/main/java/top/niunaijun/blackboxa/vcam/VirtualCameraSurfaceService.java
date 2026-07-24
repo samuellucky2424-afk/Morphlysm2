@@ -49,6 +49,19 @@ public final class VirtualCameraSurfaceService extends Service {
         return binder;
     }
 
+    @Override
+    public void onDestroy() {
+        ArrayList<VirtualCameraSurfaceWorker> workers;
+        synchronized (LOCK) {
+            workers = new ArrayList<>(WORKERS.values());
+            WORKERS.clear();
+        }
+        for (VirtualCameraSurfaceWorker worker : workers) {
+            releaseWorker(worker);
+        }
+        super.onDestroy();
+    }
+
     public static void queueFrameProcessing(byte[] rawFrame, int width, int height) {
         if (rawFrame == null || width <= 0 || height <= 0) {
             return;
