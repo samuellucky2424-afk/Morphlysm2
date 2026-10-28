@@ -87,7 +87,11 @@ object StreamAuthManager {
         return !value.contains('\n') &&
             !value.contains('\r') &&
             !value.startsWith("Bearer ", ignoreCase = true) &&
-            JWT_PATTERN.matches(value)
+            JWT_PATTERN.matches(value) && runCatching {
+                val claims = JSONObject(String(Base64.decode(value.split('.')[1], Base64.URL_SAFE or Base64.NO_WRAP), Charsets.UTF_8))
+                claims.optString("iss") == "https://securetoken.google.com/${FirebaseBackend.PROJECT_ID}" &&
+                    claims.optString("aud") == FirebaseBackend.PROJECT_ID
+            }.getOrDefault(false)
     }
 
     private fun clearInvalidAuth(context: Context) {
@@ -143,7 +147,7 @@ object StreamAuthManager {
             putString(KEY_USER_NAME, user.optString("name", fallbackName ?: email.substringBefore('@')))
             putString(KEY_USER_EMAIL, email)
             putString(KEY_USER_PHONE, user.optString("phone", fallbackPhone ?: ""))
-            putInt(KEY_USER_CREDITS, user.optInt("balance", 0).coerceAtLeast(0))
+            putInt(KEY_USER_CREDITS, user.optInt("balance", if (getUserEmail(context) == email) getWalletBalance(context) else 0).coerceAtLeast(0))
             putString(KEY_USER_REFERRAL_CODE, user.optString("referralCode", ""))
             putString(KEY_USER_TOKEN, encrypt(token))
             putString(KEY_REFRESH_TOKEN, encrypt(refreshToken))
@@ -168,86 +172,52 @@ object StreamAuthManager {
 
     fun login(context: Context, baseUrl: String, email: String, password: String): String? {
         return try {
-            val connection = (URL("$baseUrl/login").openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                doOutput = true
-                connectTimeout = 10_000
-                readTimeout = 15_000
-            }
-            val payload = JSONObject().put("email", email).put("password", password).toString()
-            connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
-            val (code, response) = readResponse(connection)
-            connection.disconnect()
-            if (code !in 200..299) return response.optString("error", "Invalid credentials")
-            saveSession(context, response, email)
+            val response = FirebaseBackend.auth(baseUrl, "signInWithPassword", JSONObject()
+                .put("email", email.trim()).put("password", password).put("returnSecureToken", true))
+            val normalized = FirebaseBackend.session(response, email.trim(), email.substringBefore('@'))
+            val token = normalized.getString("token")
+            FirebaseBackend.request("$baseUrl/firebase-register", JSONObject(), token)
+            saveSession(context, normalized, email.trim())
+            refreshWallet(context, baseUrl, token)
             null
         } catch (error: Exception) {
-            error.printStackTrace()
-            error.message ?: "Connection error"
+            error.message ?: "Unable to reach Firebase. Check your connection."
         }
     }
 
-    fun signUp(
-        context: Context,
-        baseUrl: String,
-        name: String,
-        email: String,
-        phone: String,
-        password: String,
-        referredByCode: String? = null
-    ): String? {
+    fun signUp(context: Context, baseUrl: String, name: String, email: String,
+               phone: String, password: String, referredByCode: String? = null): String? {
         return try {
-            val connection = (URL("$baseUrl/signup").openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                doOutput = true
-                connectTimeout = 10_000
-                readTimeout = 20_000
-            }
-            val payload = JSONObject()
-                .put("name", name)
-                .put("email", email)
-                .put("phone", phone)
-                .put("password", password)
-                .put("deviceId", getDeviceId(context))
-                .apply {
-                    if (!referredByCode.isNullOrBlank()) put("referredByCode", referredByCode)
-                }
-                .toString()
-            connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
-            val (code, response) = readResponse(connection)
-            connection.disconnect()
-            if (code !in 200..299) return response.optString("error", "Registration failed")
-            saveSession(context, response, email, name, phone)
+            val response = FirebaseBackend.auth(baseUrl, "signUp", JSONObject()
+                .put("email", email.trim()).put("password", password).put("returnSecureToken", true))
+            FirebaseBackend.auth(baseUrl, "update", JSONObject()
+                .put("idToken", response.getString("idToken")).put("displayName", name))
+            val normalized = FirebaseBackend.session(response, email.trim(), name)
+            val token = normalized.getString("token")
+            // The desktop endpoint provisions accounts idempotently in the existing database.
+            FirebaseBackend.request("$baseUrl/firebase-register", JSONObject()
+                .put("referralCode", referredByCode.orEmpty()), token)
+            saveSession(context, normalized, email.trim(), name, phone)
+            refreshWallet(context, baseUrl, token)
             null
         } catch (error: Exception) {
-            error.printStackTrace()
-            error.message ?: "Connection error"
+            error.message ?: "Registration could not finish. Sign in to retry account setup."
         }
     }
 
-    fun requestPasswordReset(baseUrl: String, email: String): String? {
-        return try {
-            val connection = (
-                URL("$baseUrl/request-password-reset").openConnection() as HttpURLConnection
-                ).apply {
-                requestMethod = "POST"
-                setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                doOutput = true
-                connectTimeout = 10_000
-                readTimeout = 15_000
-            }
-            val payload = JSONObject().put("email", email).toString()
-            connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
-            val (code, response) = readResponse(connection)
-            connection.disconnect()
-            if (code in 200..299) null
-            else response.optString("error", "Could not send a password reset link.")
-        } catch (error: Exception) {
-            error.printStackTrace()
-            error.message ?: "Connection error"
+    private fun refreshWallet(context: Context, baseUrl: String, token: String) {
+        runCatching {
+            val wallet = FirebaseBackend.request("$baseUrl/wallet", token = token)
+            setWalletBalance(context, wallet.getDouble("credits").toInt())
         }
+    }
+
+    fun requestPasswordReset(baseUrl: String, email: String): String? = try {
+        FirebaseBackend.auth(baseUrl, "sendOobCode", JSONObject()
+            .put("requestType", "PASSWORD_RESET").put("email", email.trim()))
+        null
+    } catch (error: Exception) {
+        error.message ?: "Could not send a password reset link."
     }
 
     @Synchronized
@@ -255,41 +225,14 @@ object StreamAuthManager {
         val prefs = getPrefs(context)
         val current = decrypt(prefs.getString(KEY_USER_TOKEN, null))
         val expiresAt = prefs.getLong(KEY_TOKEN_EXPIRES_AT, 0L)
-        if (usableAccessToken(current) && expiresAt > (System.currentTimeMillis() / 1000L) + 60L) {
-            return current
-        }
-        val refreshToken = decrypt(prefs.getString(KEY_REFRESH_TOKEN, null))
-        if (refreshToken.isNullOrBlank()) {
-            clearInvalidAuth(context)
-            return null
-        }
+        if (usableAccessToken(current) && expiresAt > System.currentTimeMillis() / 1000L + 60L) return current
+        val refreshToken = decrypt(prefs.getString(KEY_REFRESH_TOKEN, null)) ?: return null
         return try {
-            val connection = (URL("$baseUrl/refresh").openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                doOutput = true
-                connectTimeout = 10_000
-                readTimeout = 15_000
-            }
-            val payload = JSONObject().put("refreshToken", refreshToken).toString()
-            connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
-            val (code, response) = readResponse(connection)
-            connection.disconnect()
-            if (code !in 200..299) {
-                clearInvalidAuth(context)
-                null
-            } else {
-                saveSession(
-                    context,
-                    response,
-                    getUserEmail(context),
-                    getUserName(context),
-                    prefs.getString(KEY_USER_PHONE, "")
-                )
-                decrypt(getPrefs(context).getString(KEY_USER_TOKEN, null))
-            }
-        } catch (error: Exception) {
-            error.printStackTrace()
+            val refreshed = FirebaseBackend.refresh(baseUrl, refreshToken)
+            val normalized = FirebaseBackend.session(refreshed, getUserEmail(context), getUserName(context))
+            saveSession(context, normalized, getUserEmail(context), getUserName(context))
+            normalized.getString("token")
+        } catch (_: Exception) {
             if (usableAccessToken(current) && expiresAt > System.currentTimeMillis() / 1000L) current else null
         }
     }
