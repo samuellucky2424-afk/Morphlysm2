@@ -36,8 +36,8 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/28.2.13676358/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI=x86_64 -DANDROID_PLATFORM=android-24 \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-            -DDOBBY_BUILD_EXAMPLE=OFF -DDOBBY_BUILD_TEST=OFF
-          cmake --build /tmp/dobby-build --target dobby_static --parallel 2
+            -DDOBBY_GENERATE_SHARED=OFF -DBUILD_EXAMPLE=OFF -DBUILD_TEST=OFF
+          cmake --build /tmp/dobby-build --target dobby --parallel 2
           mkdir -p Bcore/src/main/cpp/Dobby/x86_64
           cp /tmp/dobby-build/libdobby.a Bcore/src/main/cpp/Dobby/x86_64/libdobby.a
       - name: Build debug APKs
