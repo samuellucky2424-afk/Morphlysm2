@@ -11,17 +11,17 @@ import top.niunaijun.blackbox.fake.service.base.PkgMethodProxy;
 
 public class IFingerprintManagerProxy extends BinderInvocationStub {
     public IFingerprintManagerProxy() {
-        super(BRServiceManager.get().getService(Context.FINGERPRINT_SERVICE));
+        super(BRServiceManager.get().getService("fingerprint" /* Context.FINGERPRINT_SERVICE, removed in API 37 */));
     }
 
     @Override
     protected Object getWho() {
-        return BRIGraphicsStatsStub.get().asInterface(BRServiceManager.get().getService(Context.FINGERPRINT_SERVICE));
+        return BRIGraphicsStatsStub.get().asInterface(BRServiceManager.get().getService("fingerprint" /* Context.FINGERPRINT_SERVICE, removed in API 37 */));
     }
 
     @Override
     protected void inject(Object baseInvocation, Object proxyInvocation) {
-        replaceSystemService(Context.FINGERPRINT_SERVICE);
+        replaceSystemService("fingerprint" /* Context.FINGERPRINT_SERVICE, removed in API 37 */);
     }
 
     @Override
