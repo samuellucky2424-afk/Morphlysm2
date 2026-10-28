@@ -1188,9 +1188,11 @@ class StreamActivity : BaseActivity() {
 
     private fun readFaceImageForDecart(uri: Uri): Pair<String, String> {
         val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        contentResolver.openInputStream(uri)?.use {
+        val boundsStream = contentResolver.openInputStream(uri)
+            ?: throw IllegalStateException("Could not read selected face image.")
+        boundsStream.use {
             android.graphics.BitmapFactory.decodeStream(it, null, bounds)
-        } ?: throw IllegalStateException("Could not read selected face image.")
+        }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
             throw IllegalStateException("The selected face image is invalid.")
         }
