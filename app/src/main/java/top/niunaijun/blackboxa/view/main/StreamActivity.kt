@@ -350,20 +350,20 @@ class StreamActivity : BaseActivity() {
                     this@StreamActivity,
                     BACKEND_BASE_URL
                 ) ?: throw IllegalStateException("Your session expired. Sign in again.")
-                val url = java.net.URL("$BACKEND_BASE_URL/wallet")
+                val url = java.net.URL("$BACKEND_BASE_URL/balance")
                 val connection = url.openConnection() as java.net.HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Authorization", "Bearer $token")
                 connection.connectTimeout = 8_000
                 connection.readTimeout = 10_000
-                
+
                 val responseCode = connection.responseCode
                 if (responseCode == 200) {
                     val jsonStr = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream)).use { reader ->
                         reader.readText()
                     }
                     val balanceJson = JSONObject(jsonStr)
-                    val fetchedBalance = balanceJson.optDouble("credits", -1.0).toInt()
+                    val fetchedBalance = balanceJson.optDouble("balance", -1.0).toInt()
                     val fetchedUsed = balanceJson.optInt("used", -1)
 
                     if (fetchedBalance >= 0) {
@@ -407,14 +407,14 @@ class StreamActivity : BaseActivity() {
         val remaining = overrideRemaining ?: StreamAuthManager.getWalletBalance(this)
         val used = (overrideUsed ?: 0).coerceAtLeast(0)
         val planTotal = maxOf(remaining + used, remaining, 1)
-        
+
         binding.tvSessionPlanTotal.text = "$planTotal CR"
         binding.tvSessionUsed.text = "$used CR"
         binding.tvSessionRemaining.text = "$remaining CR"
-        
+
         val progressPercent = ((remaining.coerceAtLeast(0) * 100) / planTotal).coerceIn(0, 100)
         binding.progressSessionRemaining.progress = progressPercent
-        
+
         if (progressPercent < 20) {
             binding.progressSessionRemaining.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FF5252")))
         } else {
@@ -459,7 +459,7 @@ class StreamActivity : BaseActivity() {
         }
     }
 
- 
+
     private fun selectPreset(textView: android.widget.TextView, prompt: String) {
         if (!binding.switchEnhance.isChecked) {
             Toast.makeText(this, "Please enable ENHANCE to select presets.", Toast.LENGTH_SHORT).show()
@@ -491,21 +491,21 @@ class StreamActivity : BaseActivity() {
         binding.layoutAiOutputPlaceholder.visibility = View.VISIBLE
         binding.tvAiOutputTitle.text = "AI OUTPUT WILL APPEAR HERE"
         binding.tvAiOutputStatus.text = "Ready to connect live output"
-        
+
         binding.btnConnectStream.isEnabled = true
         binding.btnConnectStream.setBackgroundColor(Color.parseColor("#FF3CD070"))
         binding.btnConnectStream.setTextColor(Color.parseColor("#0B0C10"))
-        
+
         binding.btnStopStream.isEnabled = false
         binding.btnStopStream.setBackgroundColor(Color.parseColor("#1D2030"))
         binding.btnStopStream.setTextColor(Color.parseColor("#3A3F55"))
-        
+
         Toast.makeText(this, "AI transformation engine stopped.", Toast.LENGTH_SHORT).show()
     }
 
     private fun showAccountOverlay() {
         binding.layoutAccount.visibility = View.VISIBLE
-        
+
         val email = StreamAuthManager.getUserEmail(this)
         val name = StreamAuthManager.getUserName(this)
         val remaining = StreamAuthManager.getWalletBalance(this)
@@ -517,7 +517,7 @@ class StreamActivity : BaseActivity() {
         binding.tvAccountLicenseExpires.text = "Checking..."
         binding.tvAccountCreditsRemaining.text = "$remaining CR"
         binding.tvAccountCreditsUsed.text = "..."
-        
+
         val referralCode = StreamAuthManager.getUserReferralCode(this)
         binding.tvAccountReferralCode.text = "YOUR CODE: $referralCode"
         binding.btnCopyReferral.setOnClickListener {
@@ -526,21 +526,21 @@ class StreamActivity : BaseActivity() {
             clipboard.setPrimaryClip(clip)
             Toast.makeText(this, "Referral Code copied to clipboard!", Toast.LENGTH_SHORT).show()
         }
-        
+
         binding.btnAccountBack.setOnClickListener {
             binding.layoutAccount.visibility = View.GONE
         }
-        
+
         binding.btnAccountBuyCredits.setOnClickListener {
             binding.layoutAccount.visibility = View.GONE
             showStarterPackState()
         }
-        
+
         binding.btnAccountReplayTour.setOnClickListener {
             Toast.makeText(this, "Starting feature tour...", Toast.LENGTH_SHORT).show()
             binding.layoutAccount.visibility = View.GONE
         }
-        
+
         binding.btnAccountSignOut.setOnClickListener {
             binding.layoutAccount.visibility = View.GONE
             if (currentStreamSessionId.isNotBlank()) stopLiveStream()
@@ -559,7 +559,7 @@ class StreamActivity : BaseActivity() {
     private fun updateAccountOverlayFromBalance(balanceJson: JSONObject) {
         val userJson = balanceJson.optJSONObject("user")
         val licenseJson = balanceJson.optJSONObject("license")
-        val remaining = balanceJson.optDouble("credits", StreamAuthManager.getWalletBalance(this).toDouble()).toInt()
+        val remaining = balanceJson.optDouble("balance", StreamAuthManager.getWalletBalance(this).toDouble()).toInt()
         val used = balanceJson.optInt("used", 0).coerceAtLeast(0)
         val name = userJson?.optString("name")?.takeIf { it.isNotBlank() } ?: StreamAuthManager.getUserName(this)
         val email = userJson?.optString("email")?.takeIf { it.isNotBlank() } ?: StreamAuthManager.getUserEmail(this)
@@ -686,11 +686,11 @@ class StreamActivity : BaseActivity() {
         val texture = binding.textureViewUserCam.surfaceTexture ?: return
         texture.setDefaultBufferSize(640, 480)
         val surface = android.view.Surface(texture)
-        
+
         try {
             val builder = device.createCaptureRequest(android.hardware.camera2.CameraDevice.TEMPLATE_PREVIEW)
             builder.addTarget(surface)
-            
+
             val callback = object : android.hardware.camera2.CameraCaptureSession.StateCallback() {
                 override fun onConfigured(session: android.hardware.camera2.CameraCaptureSession) {
                     captureSession = session
@@ -928,7 +928,7 @@ class StreamActivity : BaseActivity() {
             val time = binding.tvPlanVipTime.text.toString()
             showPlanPaymentState(pkgVipId, "VIP plan", price, credits, time)
         }
- 
+
         binding.btnStarterMinimize.setOnClickListener {
             minimizeApp()
         }
@@ -953,7 +953,7 @@ class StreamActivity : BaseActivity() {
         binding.btnCheckoutEmail.setOnClickListener {
             openEmailContact()
         }
- 
+
         binding.btnCheckoutBack.setOnClickListener {
             showPlanSelectionState()
         }
@@ -971,7 +971,7 @@ class StreamActivity : BaseActivity() {
             openTelegram()
         }
 
- 
+
 
         // Dashboard Top Bar Navigation - Hamburger Dropdown Menu
         binding.btnHamburgerMenu.setOnClickListener { view ->
@@ -1434,11 +1434,11 @@ class StreamActivity : BaseActivity() {
         binding.btnStopStream.isEnabled = true
         binding.btnStopStream.setBackgroundColor(Color.parseColor("#FFFF5252"))
         binding.btnStopStream.setTextColor(Color.parseColor("#0B0C10"))
-        
+
         binding.btnConnectStream.isEnabled = false
         binding.btnConnectStream.setBackgroundColor(Color.parseColor("#1D2030"))
         binding.btnConnectStream.setTextColor(Color.parseColor("#3A3F55"))
-        
+
         mainHandler.post(creditUsageRunnable)
     }
 
@@ -1462,7 +1462,7 @@ class StreamActivity : BaseActivity() {
         return (dp * resources.displayMetrics.density).toInt()
     }
 
- 
+
 
     private fun openCheckoutPopup(title: String, checkoutUrl: String) {
         val uri = Uri.parse(checkoutUrl)
@@ -1682,11 +1682,158 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun processCheckoutPayment(gateway: String) {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://live.morphly.fun/#/subscription")))
+        if (gateway == "Crypto") {
+            processCryptoCheckoutPayment()
+            return
+        }
+
+        val packageId = selectedPackageId
+
+        val progressDialog = android.app.ProgressDialog(this).apply {
+            setMessage("Redirecting to $gateway payment gateway...")
+            setCancelable(false)
+            show()
+        }
+
+        networkExecutor.execute {
+            try {
+                val token = StreamAuthManager.getValidIdToken(
+                    this@StreamActivity,
+                    BACKEND_BASE_URL
+                ) ?: throw Exception("Your session expired. Sign in again.")
+                val url = java.net.URL("$BACKEND_BASE_URL/create-checkout")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                connection.doOutput = true
+
+                val jsonInputString = "{\"packageId\": \"$packageId\", \"redirectUrl\": \"morphly://payment-return\"}"
+                connection.outputStream.use { os ->
+                    val input = jsonInputString.toByteArray(Charsets.UTF_8)
+                    os.write(input, 0, input.size)
+                }
+
+                if (connection.responseCode == 200) {
+                    val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream))
+                    val response = java.lang.StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        response.append(line)
+                    }
+                    reader.close()
+
+                    val jsonObject = org.json.JSONObject(response.toString())
+                    if (jsonObject.has("checkoutUrl")) {
+                        val checkoutUrl = jsonObject.getString("checkoutUrl")
+                        runOnUiThread {
+                            progressDialog.dismiss()
+                            openCheckoutPopup("$gateway Checkout", checkoutUrl)
+                        }
+                    } else {
+                        throw Exception("Missing checkoutUrl")
+                    }
+                } else {
+                    val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.errorStream))
+                    val response = java.lang.StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        response.append(line)
+                    }
+                    reader.close()
+                    val errorObj = org.json.JSONObject(response.toString())
+                    throw Exception(errorObj.optString("error", "Failed to create checkout"))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread {
+                    progressDialog.dismiss()
+                    val message = checkoutErrorMessage(e)
+                    Toast.makeText(this@StreamActivity, "Checkout Error: $message", Toast.LENGTH_LONG).show()
+                    if (message.contains("sign in again", ignoreCase = true)) {
+                        showAuthState()
+                    }
+                }
+            }
+        }
     }
 
     private fun processCryptoCheckoutPayment() {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://live.morphly.fun/#/subscription")))
+        val packageId = selectedPackageId
+
+        val progressDialog = android.app.ProgressDialog(this).apply {
+            setMessage("Generating Crypto Invoice...")
+            setCancelable(false)
+            show()
+        }
+
+        networkExecutor.execute {
+            try {
+                val token = StreamAuthManager.getValidIdToken(
+                    this@StreamActivity,
+                    BACKEND_BASE_URL
+                ) ?: throw Exception("Your session expired. Sign in again.")
+                val url = java.net.URL("$BACKEND_BASE_URL/create-crypto-checkout")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                connection.doOutput = true
+
+                val jsonInputString = "{\"packageId\": \"$packageId\", \"redirectUrl\": \"morphly://payment-return\"}"
+                connection.outputStream.use { os ->
+                    val input = jsonInputString.toByteArray(Charsets.UTF_8)
+                    os.write(input, 0, input.size)
+                }
+
+                if (connection.responseCode == 200) {
+                    val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream))
+                    val response = java.lang.StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        response.append(line)
+                    }
+                    reader.close()
+
+                    val jsonObject = org.json.JSONObject(response.toString())
+                    if (jsonObject.has("cryptoPayment")) {
+                        val cryptoPayment = jsonObject.getJSONObject("cryptoPayment")
+                        runOnUiThread {
+                            progressDialog.dismiss()
+                            showCryptoPaymentDetails(cryptoPayment)
+                        }
+                    } else if (jsonObject.has("checkoutUrl")) {
+                        val checkoutUrl = jsonObject.getString("checkoutUrl")
+                        runOnUiThread {
+                            progressDialog.dismiss()
+                            openCheckoutPopup("Crypto Checkout", checkoutUrl)
+                        }
+                    } else {
+                        throw Exception("Missing checkoutUrl")
+                    }
+                } else {
+                    val errorReader = java.io.BufferedReader(java.io.InputStreamReader(connection.errorStream))
+                    val errorResponse = java.lang.StringBuilder()
+                    var line: String?
+                    while (errorReader.readLine().also { line = it } != null) {
+                        errorResponse.append(line)
+                    }
+                    errorReader.close()
+                    val errorObj = org.json.JSONObject(errorResponse.toString())
+                    throw Exception(errorObj.optString("error", "Failed to create invoice"))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread {
+                    progressDialog.dismiss()
+                    val message = checkoutErrorMessage(e)
+                    Toast.makeText(this@StreamActivity, "Crypto checkout failed: $message", Toast.LENGTH_LONG).show()
+                    if (message.contains("sign in again", ignoreCase = true)) {
+                        showAuthState()
+                    }
+                }
+            }
+        }
     }
 
     private fun openWhatsAppContact() {
@@ -1718,12 +1865,12 @@ class StreamActivity : BaseActivity() {
     private fun fetchPackagesFromBackend() {
         networkExecutor.execute {
             try {
-                val url = java.net.URL("$BACKEND_BASE_URL/credit-packages")
+                val url = java.net.URL("$BACKEND_BASE_URL/packages")
                 val connection = url.openConnection() as java.net.HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
-                
+
                 if (connection.responseCode == 200) {
                     val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream))
                     val response = java.lang.StringBuilder()
@@ -1732,7 +1879,7 @@ class StreamActivity : BaseActivity() {
                         response.append(line)
                     }
                     reader.close()
-                    
+
                     val jsonStr = response.toString()
                     try {
                         val jsonObject = org.json.JSONObject(jsonStr)
@@ -1744,7 +1891,7 @@ class StreamActivity : BaseActivity() {
                                     val p1 = packagesArray.getJSONObject(0)
                                     pkgBasicId = p1.optString("id", "basic")
                                     binding.tvPlanBasicTitle.text = p1.optString("name", "Basic")
-                                    binding.tvPlanBasicPrice.text = formatNairaWhole(p1.optInt("priceNGN", 29000))
+                                    binding.tvPlanBasicPrice.text = formatNairaWhole(p1.optInt("price", 29000))
                                     binding.tvPlanBasicCredits.text = String.format("%,d", p1.optInt("credits", 1000)) + " Credits"
                                     binding.tvPlanBasicTime.text = p1.optString("timeLabel", "~8m 20s")
                                 }
@@ -1753,7 +1900,7 @@ class StreamActivity : BaseActivity() {
                                     val p2 = packagesArray.getJSONObject(1)
                                     pkgProId = p2.optString("id", "pro")
                                     binding.tvPlanProTitle.text = p2.optString("name", "Pro")
-                                    binding.tvPlanProPrice.text = formatNairaWhole(p2.optInt("priceNGN", 58000))
+                                    binding.tvPlanProPrice.text = formatNairaWhole(p2.optInt("price", 58000))
                                     binding.tvPlanProCredits.text = String.format("%,d", p2.optInt("credits", 2000)) + " Credits"
                                     binding.tvPlanProTime.text = p2.optString("timeLabel", "~16m 40s")
                                 }
@@ -1762,7 +1909,7 @@ class StreamActivity : BaseActivity() {
                                     val p3 = packagesArray.getJSONObject(2)
                                     pkgEnterpriseId = p3.optString("id", "enterprise")
                                     binding.tvPlanEnterpriseTitle.text = p3.optString("name", "Enterprise")
-                                    binding.tvPlanEnterprisePrice.text = formatNairaWhole(p3.optInt("priceNGN", 145000))
+                                    binding.tvPlanEnterprisePrice.text = formatNairaWhole(p3.optInt("price", 145000))
                                     binding.tvPlanEnterpriseCredits.text = String.format("%,d", p3.optInt("credits", 5000)) + " Credits"
                                     binding.tvPlanEnterpriseTime.text = p3.optString("timeLabel", "~41m 40s")
                                 }
@@ -1771,7 +1918,7 @@ class StreamActivity : BaseActivity() {
                                     val p4 = packagesArray.getJSONObject(3)
                                     pkgVipId = p4.optString("id", "vip")
                                     binding.tvPlanVipTitle.text = p4.optString("name", "VIP")
-                                    binding.tvPlanVipPrice.text = formatNairaWhole(p4.optInt("priceNGN", 290000))
+                                    binding.tvPlanVipPrice.text = formatNairaWhole(p4.optInt("price", 290000))
                                     binding.tvPlanVipCredits.text = String.format("%,d", p4.optInt("credits", 10000)) + " Credits"
                                     binding.tvPlanVipTime.text = p4.optString("timeLabel", "~83m 20s")
                                 }
@@ -1791,12 +1938,12 @@ class StreamActivity : BaseActivity() {
     private fun fetchNotificationFromBackend() {
         networkExecutor.execute {
             try {
-                val url = java.net.URL("$BACKEND_BASE_URL/public-config")
+                val url = java.net.URL("$BACKEND_BASE_URL/config")
                 val connection = url.openConnection() as java.net.HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
-                
+
                 if (connection.responseCode == 200) {
                     val reader = java.io.BufferedReader(java.io.InputStreamReader(connection.inputStream))
                     val response = java.lang.StringBuilder()
@@ -1805,7 +1952,7 @@ class StreamActivity : BaseActivity() {
                         response.append(line)
                     }
                     reader.close()
-                    
+
                     val jsonStr = response.toString()
                     try {
                         val jsonObject = org.json.JSONObject(jsonStr)

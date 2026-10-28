@@ -4,7 +4,7 @@ import {
   createServiceClient,
   formatAccount,
   getAccountSummary,
-} from '../shared/supabase.js';
+} from '../shared/firebase.js';
 import {
   applyHttpHeaders,
   cleanString,
@@ -39,13 +39,11 @@ export default async function handler(req, res) {
   let createdUserId = null;
   try {
     service = createServiceClient();
-    // Server-created users are email-confirmed so the Android app can sign in
-    // immediately. The database Auth trigger atomically provisions the profile,
-    // 50-credit signup bonus, wallet, and optional referral link.
+    // Firebase identities and Android profiles are provisioned idempotently.
+    // A transient profile failure never deletes the identity.
     const { data: created, error: createError } = await service.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
       user_metadata: {
         name,
         display_name: name,
@@ -98,10 +96,6 @@ export default async function handler(req, res) {
       user: formatAccount(summary),
     });
   } catch (error) {
-    if (createdUserId && service) {
-      const { error: cleanupError } = await service.auth.admin.deleteUser(createdUserId);
-      if (cleanupError) console.error('Signup rollback failed:', cleanupError);
-    }
     console.error('Signup API failed:', error);
     return res.status(error.status || 400).json({
       error: publicError(error, 'Registration failed. Please try again.'),

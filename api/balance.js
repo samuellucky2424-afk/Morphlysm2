@@ -2,7 +2,7 @@ import {
   formatAccount,
   getAccountSummary,
   requireUser,
-} from '../server/shared/supabase.js';
+} from '../server/shared/firebase.js';
 import {
   applyHttpHeaders,
   handleOptions,

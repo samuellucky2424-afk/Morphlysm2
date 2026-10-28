@@ -1,4 +1,4 @@
-import { requireAdmin } from '../server/shared/supabase.js';
+import { requireAdmin } from '../server/shared/firebase.js';
 import {
   applyHttpHeaders,
   cleanString,

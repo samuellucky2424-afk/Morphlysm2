@@ -3,7 +3,7 @@ import {
   createServiceClient,
   formatAccount,
   getAccountSummary,
-} from '../shared/supabase.js';
+} from '../shared/firebase.js';
 import {
   applyHttpHeaders,
   handleOptions,

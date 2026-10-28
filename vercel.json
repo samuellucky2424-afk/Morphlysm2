@@ -40,6 +40,18 @@
     {
       "source": "/api/transform",
       "destination": "/api/config.js?route=transform"
+    },
+    {
+      "source": "/api/start-session",
+      "destination": "/api/config.js?route=start-session"
+    },
+    {
+      "source": "/api/heartbeat",
+      "destination": "/api/config.js?route=heartbeat"
+    },
+    {
+      "source": "/api/end-session",
+      "destination": "/api/config.js?route=end-session"
     }
   ],
   "functions": {

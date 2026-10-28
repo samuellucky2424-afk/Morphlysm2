@@ -1,4 +1,6 @@
-import { createServiceClient, requireUser } from '../server/shared/supabase.js';
+import { createServiceClient, requireUser, ensureFirebaseDefaults } from '../server/shared/firebase.js';
+import {FIREBASE_PROJECT} from '../server/shared/firebase-runtime.js';
+import {androidRealtime} from '../server/shared/firebase-realtime.js';
 import {
   applyHttpHeaders,
   cleanString,
@@ -13,6 +15,7 @@ function routeFor(req) {
 }
 
 async function publicConfig(res) {
+  await ensureFirebaseDefaults();
   const service = createServiceClient();
   const { data, error } = await service
     .from('app_setting_sm')
@@ -22,6 +25,7 @@ async function publicConfig(res) {
   if (error) throw error;
   const values = Object.fromEntries((data || []).map((row) => [row.key, row.value]));
   return res.status(200).json({
+    backend: 'firebase', firebaseProjectId: FIREBASE_PROJECT,
     notification: values.global_config?.notification || '',
     streamingEnabled: values.streaming_availability?.enabled !== false,
     referralEnabled: values.referral_program?.enabled !== false,
@@ -110,7 +114,15 @@ export default async function handler(req, res) {
   if (handleOptions(req, res)) return;
   try {
     const route = routeFor(req);
-    if (route === 'decart-token') return await decartToken(req, res);
+    if (['start-session','heartbeat','end-session'].includes(route)) {
+      if (!requireMethod(req,res,'POST')) return;
+      const context = await requireUser(req);
+      const realtime = androidRealtime(context.service.db);
+      return res.status(200).json(route === 'start-session'
+        ? await realtime.start(context.appUser,req.body||{},process.env.XMAX_API_KEY)
+        : await realtime.meter(context.appUser,req.body||{},route==='end-session'));
+    }
+    if (route === 'decart-token') return res.status(410).json({error:'Update Morphly to use XMax.'});
     if (route === 'transform') return await transform(req, res);
     if (!requireMethod(req, res, 'GET')) return;
     return await publicConfig(res);

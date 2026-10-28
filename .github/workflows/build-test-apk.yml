@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - codex/android-test-build
+      - codex/nova-firebase-backend
     paths:
       - '.github/workflows/build-test-apk.yml'
       - 'app/**'

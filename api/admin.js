@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { requireAdmin } from '../server/shared/supabase.js';
+import { requireAdmin } from '../server/shared/firebase.js';
 import {
   applyHttpHeaders,
   cleanString,
@@ -200,10 +200,8 @@ async function setUserStatus(context, req, res, forcedStatus = null) {
   }
   const { error } = await context.service.from('user_sm').update({ status }).eq('id', user.id);
   if (error) throw error;
-  const { error: authError } = await context.service.auth.admin.updateUserById(user.id, {
-    ban_duration: status === 'active' ? 'none' : '876000h',
-  });
-  if (authError) throw authError;
+  // Android account status is enforced on every authenticated request. Do not
+  // disable the shared Luckyweb identity used by other applications.
   await audit(context, 'user.status', 'user_sm', user.id, { status }, { status: user.status });
   return res.status(200).json({ success: true, message: `User status updated to ${status}` });
 }
