@@ -143,6 +143,13 @@ object XmaxRealtimeBridge {
                     if (frame.rotationDegrees == 90 || frame.rotationDegrees == 270) {
                         val old = width; width = height; height = old
                     }
+                    if (!loggedFrameShape) { loggedFrameShape = true; android.util.Log.i("XMAX_BRIDGE", "remote_frame ${frame.width}x${frame.height} rot=${frame.rotationDegrees}") }
+                    // Calls expect a portrait camera: center-crop landscape AI output to 9:16 (also cuts pixels to process).
+                    if (width > height) {
+                        val cw = (height * 9 / 16) / 2 * 2
+                        output = cropNv21(output, width, height, (width - cw) / 2 / 2 * 2, cw)
+                        width = cw
+                    }
                     val scale = minOf(1.0, 640.0 / maxOf(width, height))
                     val targetWidth = (width * scale).toInt() / 2 * 2
                     val targetHeight = (height * scale).toInt() / 2 * 2
@@ -167,11 +174,22 @@ object XmaxRealtimeBridge {
         }
     }
 
+    @Volatile private var loggedFrameShape = false
+    private var cropBuffer: ByteArray? = null
+    /** Horizontal NV21 crop [x0, x0+cw) keeping full height; reuses one buffer. */
+    private fun cropNv21(src: ByteArray, w: Int, h: Int, x0: Int, cw: Int): ByteArray {
+        val total = cw * h * 3 / 2
+        val dst = cropBuffer?.takeIf { it.size == total } ?: ByteArray(total).also { cropBuffer = it }
+        for (y in 0 until h) System.arraycopy(src, y * w + x0, dst, y * cw, cw)
+        val srcUv = w * h; val dstUv = cw * h
+        for (y in 0 until h / 2) System.arraycopy(src, srcUv + y * w + x0, dst, dstUv + y * cw, cw)
+        return dst
+    }
     @Volatile private var lastPreviewAtMs = 0L
     /** Feeds the floating mini window (StreamPreviewBridge) with ~5 fps snapshots of the AI output. */
     private fun publishPreview(nv21: ByteArray, width: Int, height: Int) {
         val now = SystemClock.elapsedRealtime()
-        if (now - lastPreviewAtMs < 500L || width <= 0 || height <= 0 || !StreamPreviewBridge.hasListeners()) return
+        if (now - lastPreviewAtMs < 1000L || width <= 0 || height <= 0 || !StreamPreviewBridge.hasListeners()) return
         lastPreviewAtMs = now
         runCatching {
             val yuv = android.graphics.YuvImage(nv21, android.graphics.ImageFormat.NV21, width, height, null)
