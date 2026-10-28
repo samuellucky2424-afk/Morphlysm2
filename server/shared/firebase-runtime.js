@@ -64,3 +64,24 @@ export async function firebaseAuthRequest(operation, body) {
   }
   return refresh ? {idToken: result.id_token, refreshToken: result.refresh_token, expiresIn: Number(result.expires_in)} : result;
 }
+
+// Diagnostic: try each usable credential independently (read-only counts; no secrets returned).
+export async function probeCredentials() {
+  const out = [];
+  for (const [i, c] of credentialCandidates().entries()) {
+    if (!usable(c)) { out.push({source: c.source, usable: false}); continue; }
+    const name = `probe-${i}`;
+    const app = getApps().find(a => a.name === name) || initializeApp({credential: cert(c), projectId: FIREBASE_PROJECT}, name);
+    const row = {source: c.source, usable: true, serviceAccountDomain: String(c.client_email).split('@')[1] || ''};
+    try { row.authUsers = (await getAuth(app).listUsers(1000)).users.length; } catch (e) { row.authError = String(e.code || e.message).slice(0, 120); }
+    try {
+      const db = getFirestore(app, process.env.FIREBASE_DATABASE_ID || '(default)');
+      row.user_sm = (await db.collection('user_sm').count().get()).data().count;
+      row.wallet_sm = (await db.collection('wallet_sm').count().get()).data().count;
+      row.walletsWithBalance = (await db.collection('wallet_sm').where('balance', '>', 0).count().get()).data().count;
+      row.topCollections = (await db.listCollections()).map(x => x.id).slice(0, 40);
+    } catch (e) { row.firestoreError = String(e.code || e.message).slice(0, 160); }
+    out.push(row);
+  }
+  return out;
+}
