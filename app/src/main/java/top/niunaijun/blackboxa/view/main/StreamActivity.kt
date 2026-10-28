@@ -1147,7 +1147,8 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun ensureDecartRuntimePermissions(): Boolean {
-        val required = mutableListOf(Manifest.permission.CAMERA)
+        // RECORD_AUDIO must be granted to the host uid, or the cloned app's AudioRecord fails (WhatsApp: 'problem with your device's microphone').
+        val required = mutableListOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
         val missing = required.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }

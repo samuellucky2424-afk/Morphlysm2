@@ -51,7 +51,7 @@ object XmaxRealtimeBridge {
         host = activity
         sessionToken = token
         clockOffsetMs = serverClockOffsetMs
-        VirtualCameraBridge.startSession(0, token, 640, 360, VirtualCameraPreset.LOW)
+        VirtualCameraBridge.startSession(0, token, 480, 640, VirtualCameraPreset.LOW)
         val currentScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         scope = currentScope
         currentScope.launch {
@@ -71,6 +71,11 @@ object XmaxRealtimeBridge {
                         onStatus("XMax: ${state.connectionState.value}")
                         if (state.reason is RealtimeReason.Failure) {
                             android.util.Log.e("XMAX_BRIDGE", "engine_failure state=$state")
+                            if (usingLowFps && SystemClock.elapsedRealtime() - connectStartedAt < 15_000L) {
+                                // 15 fps input rejected early: fall back to the known-working rate next start.
+                                activity.getSharedPreferences("xmax_bridge", android.content.Context.MODE_PRIVATE).edit().putBoolean("fps15_failed", true).apply()
+                                android.util.Log.w("XMAX_BRIDGE", "fps15_fallback_armed")
+                            }
                             onError(IllegalStateException("XMax stopped. Check your connection and start again."))
                         }
                     } }
@@ -94,8 +99,12 @@ object XmaxRealtimeBridge {
                 val reference = if (image != null) withContext(Dispatchers.IO) {
                     client.createStorageManager().uploadImageWithSafetyCheck(image, "reference.jpg", "image/jpeg").url
                 } else null
-                // XMAX X2_1 expects the original 1080p input format; 720p made the engine stop right after connecting.
-                val format = RealtimeVideoFormat(1920, 1080, fps.coerceIn(10, 24),
+                // X2_1 only accepts 1920x1080, 1080x1920, 1408x1408, 1152x1536, 1536x1152 (720p made it stop). 1152x1536 = native portrait 3:4, ~15% fewer pixels than 1080p.
+                val prefs = activity.getSharedPreferences("xmax_bridge", android.content.Context.MODE_PRIVATE)
+                val lowFps = !prefs.getBoolean("fps15_failed", false)
+                connectStartedAt = SystemClock.elapsedRealtime(); usingLowFps = lowFps
+                android.util.Log.i("XMAX_BRIDGE", "input_format 1152x1536 fps=" + (if (lowFps) 15 else fps.coerceIn(10, 24)))
+                val format = RealtimeVideoFormat(1152, 1536, if (lowFps) 15 else fps.coerceIn(10, 24),
                     minimumBitrate = 300, maximumBitrate = 1500)
                 val local = manager.createLocalCameraStream(format,
                     if (backCamera) CameraPosition.BACK else CameraPosition.FRONT, false)
@@ -144,9 +153,9 @@ object XmaxRealtimeBridge {
                         val old = width; width = height; height = old
                     }
                     if (!loggedFrameShape) { loggedFrameShape = true; android.util.Log.i("XMAX_BRIDGE", "remote_frame ${frame.width}x${frame.height} rot=${frame.rotationDegrees}") }
-                    // Calls expect a portrait camera: center-crop landscape AI output to 9:16 (also cuts pixels to process).
+                    // Calls expect a portrait camera: center-crop landscape AI output to 3:4 (9:16 looked too zoomed in).
                     if (width > height) {
-                        val cw = (height * 9 / 16) / 2 * 2
+                        val cw = (height * 3 / 4) / 2 * 2
                         output = cropNv21(output, width, height, (width - cw) / 2 / 2 * 2, cw)
                         width = cw
                     }
@@ -174,6 +183,8 @@ object XmaxRealtimeBridge {
         }
     }
 
+    @Volatile private var connectStartedAt = 0L
+    @Volatile private var usingLowFps = false
     @Volatile private var loggedFrameShape = false
     private var cropBuffer: ByteArray? = null
     /** Horizontal NV21 crop [x0, x0+cw) keeping full height; reuses one buffer. */
