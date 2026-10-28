@@ -51,7 +51,7 @@
         <service
             android:name=".data.DecartStreamingService"
             android:exported="false"
-            android:foregroundServiceType="camera" />
+            android:foregroundServiceType="camera|microphone|mediaProjection" />
 
         <service
             android:name=".vcam.VirtualCameraSurfaceService"

@@ -7,10 +7,6 @@ on:
       - codex/android-test-build
     paths:
       - '.github/workflows/build-test-apk.yml'
-      - 'app/**'
-      - 'android_virtual_cam/**'
-      - 'build.gradle'
-      - 'gradle/**'
 
 permissions:
   contents: read
