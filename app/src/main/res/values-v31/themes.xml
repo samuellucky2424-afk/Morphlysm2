@@ -1,0 +1,15 @@
+﻿<resources>
+    <!-- Android 12+ system splash: white background with the red Morphly mark instead of the grey launcher icon. -->
+    <style name="WelcomeTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:windowBackground">@color/white</item>
+        <item name="android:windowSplashScreenBackground">@color/white</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon_inset</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/white</item>
+        <item name="colorPrimary">@color/morphly_red</item>
+        <item name="colorAccent">@color/morphly_red</item>
+        <item name="android:statusBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/white</item>
+    </style>
+</resources>
+
