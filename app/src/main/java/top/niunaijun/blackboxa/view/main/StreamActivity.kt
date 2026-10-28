@@ -71,15 +71,7 @@ class StreamActivity : BaseActivity() {
     private val pendingUsageSeconds = java.util.TreeSet<Long>()
 
     private fun collectUsage(): List<Long> = synchronized(pendingUsageSeconds) {
-        val latestOutput = XmaxRealtimeBridge.lastOutputAtMs
-        if (latestOutput > 0) {
-            val end = minOf((latestOutput + serverClockOffsetMs) / 1000L,
-                (System.currentTimeMillis() + serverClockOffsetMs) / 1000L - 1L)
-            if (end > lastUsageEpoch) {
-                for (second in maxOf(lastUsageEpoch + 1L, end - 59L)..end) pendingUsageSeconds.add(second)
-                lastUsageEpoch = end
-            }
-        }
+        pendingUsageSeconds.addAll(XmaxRealtimeBridge.completedOutputSeconds())
         pendingUsageSeconds.take(60)
     }
 
@@ -1135,7 +1127,7 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun ensureDecartRuntimePermissions(): Boolean {
-        val required = mutableListOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+        val required = mutableListOf(Manifest.permission.CAMERA)
         val missing = required.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
@@ -1386,7 +1378,7 @@ class StreamActivity : BaseActivity() {
                         this@StreamActivity, binding.layoutDecartRemoteOutput,
                         clientApiKey, resolvedPrompt,
                         base64Image.takeIf { it.isNotBlank() }?.let { android.util.Base64.decode(it, android.util.Base64.DEFAULT) },
-                        useBackCamera, fps, sessionId,
+                        useBackCamera, fps, sessionId, serverClockOffsetMs,
                         { status -> binding.tvAiOutputStatus.text = status },
                         {
                             if (!isStreaming) startLiveStreamState(sessionId, model, maxSessionDuration)

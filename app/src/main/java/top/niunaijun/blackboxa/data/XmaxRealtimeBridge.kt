@@ -17,6 +17,7 @@ import top.niunaijun.blackboxa.vcam.VirtualCameraSurfaceService
 object XmaxRealtimeBridge {
     private var scope: CoroutineScope? = null
     private var realtime: XmaxRealtimeManaging? = null
+    private var closing: Job? = null
     private var view: XmaxRealtimeDualVideoView? = null
     private var host: Activity? = null
     private var sessionToken = ""
@@ -24,22 +25,33 @@ object XmaxRealtimeBridge {
     @Volatile var lastOutputAtMs = 0L
         private set
     @Volatile private var revision = 0
+    private val outputSeconds = java.util.concurrent.ConcurrentSkipListSet<Long>()
+    private var clockOffsetMs = 0L
+    fun completedOutputSeconds(): List<Long> {
+        val before = (System.currentTimeMillis() + clockOffsetMs) / 1000L
+        val completed = outputSeconds.headSet(before).toList()
+        outputSeconds.removeAll(completed.toSet())
+        return completed
+    }
     private val pendingFrame = AtomicReference<RealtimeVideoFrame?>()
     private val draining = AtomicBoolean(false)
     private val frameExecutor = Executors.newSingleThreadExecutor { r -> Thread(r, "XmaxCameraFrames") }
 
     fun connect(activity: Activity, container: FrameLayout, temporaryKey: String, prompt: String,
-                image: ByteArray?, backCamera: Boolean, fps: Int, token: String,
+                image: ByteArray?, backCamera: Boolean, fps: Int, token: String, serverClockOffsetMs: Long,
                 onStatus: (String) -> Unit, onFirstFrame: () -> Unit, onError: (Throwable) -> Unit) {
         disconnect()
         val currentRevision = revision
         host = activity
         sessionToken = token
+        clockOffsetMs = serverClockOffsetMs
         VirtualCameraBridge.startSession(0, token, 640, 360, VirtualCameraPreset.LOW)
         val currentScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         scope = currentScope
         currentScope.launch {
             try {
+                closing?.join()
+                ensureActive()
                 val client = XmaxClient(activity.applicationContext,
                     XmaxConfiguration(temporaryKey, XmaxEnvironment.GLOBAL))
                 val manager = client.createRealtimeManager(RealtimeConfiguration(model = RealtimeModel.X2_1))
@@ -48,12 +60,12 @@ object XmaxRealtimeBridge {
                 view = video
                 container.addView(video, FrameLayout.LayoutParams(-1, -1))
                 manager.setStateListener { state ->
-                    if (revision == currentRevision) {
+                    activity.runOnUiThread { if (revision == currentRevision) {
                         onStatus("XMax: ${state.connectionState.value}")
                         if (state.reason is RealtimeReason.Failure) {
                             onError(IllegalStateException("XMax stopped. Check your connection and start again."))
                         }
-                    }
+                    } }
                 }
                 var first = true
                 var lastFrameAt = 0L
@@ -124,6 +136,7 @@ object XmaxRealtimeBridge {
                     VirtualCameraBridge.publishNv21(0, token, output, targetWidth, targetHeight, System.nanoTime())
                     VirtualCameraSurfaceService.queueFrameProcessing(output, targetWidth, targetHeight)
                     lastOutputAtMs = System.currentTimeMillis()
+                    outputSeconds.add((lastOutputAtMs + clockOffsetMs) / 1000L)
                     published()
                     }
                 }
@@ -140,6 +153,7 @@ object XmaxRealtimeBridge {
         synchronized(publicationLock) {
             revision++
             lastOutputAtMs = 0L
+            outputSeconds.clear()
             VirtualCameraBridge.stopSession(0, sessionToken)
         }
         scope?.cancel()
@@ -147,7 +161,7 @@ object XmaxRealtimeBridge {
         pendingFrame.set(null)
         val previous = realtime
         realtime = null
-        if (previous != null) CoroutineScope(Dispatchers.Main).launch { runCatching { previous.close() } }
+        if (previous != null) closing = CoroutineScope(Dispatchers.Main).launch { runCatching { previous.close() } }
         view?.localTrack = null
         view?.remoteTrack = null
         view = null
