@@ -1,4 +1,5 @@
-import { createServiceClient, requireUser } from '../server/shared/supabase.js';
+import { createServiceClient, requireUser, ensureFirebaseDefaults } from '../server/shared/firebase.js';
+import * as mobile from '../server/shared/mobile-routes.js';
 import {
   applyHttpHeaders,
   cleanString,
@@ -12,23 +13,17 @@ function routeFor(req) {
   return url.searchParams.get('route') || url.pathname.replace(/^\/api\//, '');
 }
 
-async function publicConfig(res) {
-  const service = createServiceClient();
-  const { data, error } = await service
-    .from('app_setting_sm')
-    .select('key,value')
-    .eq('is_public', true)
-    .in('key', ['global_config', 'streaming_availability', 'referral_program']);
-  if (error) throw error;
-  const values = Object.fromEntries((data || []).map((row) => [row.key, row.value]));
-  return res.status(200).json({
-    notification: values.global_config?.notification || '',
-    streamingEnabled: values.streaming_availability?.enabled !== false,
-    referralEnabled: values.referral_program?.enabled !== false,
-    signupCredits: Number(values.referral_program?.signup_credits ?? 50),
-    referralPurchaseReward: Number(values.referral_program?.purchase_reward ?? 250),
-  });
-}
+const MOBILE_ROUTES = {
+  'public-config': mobile.publicConfig,
+  'firebase-register': mobile.firebaseRegister,
+  wallet: mobile.wallet,
+  'credit-packages': mobile.creditPackages,
+  'start-session': mobile.startSession,
+  heartbeat: (req, res) => mobile.heartbeat(req, res, false),
+  'end-session': (req, res) => mobile.heartbeat(req, res, true),
+  'session-status': mobile.sessionStatus,
+  diag: mobile.diag,
+};
 
 async function decartToken(req, res) {
   if (!requireMethod(req, res, 'POST')) return;
@@ -110,10 +105,11 @@ export default async function handler(req, res) {
   if (handleOptions(req, res)) return;
   try {
     const route = routeFor(req);
+    if (MOBILE_ROUTES[route]) return await MOBILE_ROUTES[route](req, res);
     if (route === 'decart-token') return await decartToken(req, res);
     if (route === 'transform') return await transform(req, res);
     if (!requireMethod(req, res, 'GET')) return;
-    return await publicConfig(res);
+    return await mobile.publicConfig(req, res);
   } catch (error) {
     console.error('Config API failed:', error);
     return res.status(error.status || 500).json({ error: publicError(error) });

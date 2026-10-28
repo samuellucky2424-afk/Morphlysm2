@@ -4,7 +4,7 @@ import {
   createServiceClient,
   formatAccount,
   getAccountSummary,
-} from '../shared/supabase.js';
+} from '../shared/firebase.js';
 import {
   applyHttpHeaders,
   cleanString,
@@ -98,10 +98,6 @@ export default async function handler(req, res) {
       user: formatAccount(summary),
     });
   } catch (error) {
-    if (createdUserId && service) {
-      const { error: cleanupError } = await service.auth.admin.deleteUser(createdUserId);
-      if (cleanupError) console.error('Signup rollback failed:', cleanupError);
-    }
     console.error('Signup API failed:', error);
     return res.status(error.status || 400).json({
       error: publicError(error, 'Registration failed. Please try again.'),

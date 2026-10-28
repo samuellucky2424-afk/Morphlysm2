@@ -1,13 +1,17 @@
 {
   "name": "morphly-backend",
   "version": "1.0.0",
-  "description": "Morphly Vercel serverless backend with Supabase Auth and Postgres",
+  "description": "Morphly Android backend with Luckyweb Firebase authentication and Firestore",
   "main": "api/login.js",
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.8"
+    "@supabase/supabase-js": "^2.110.8",
+    "firebase-admin": "13.10.0"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
   }
 }

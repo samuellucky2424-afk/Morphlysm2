@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { requireUser } from '../server/shared/supabase.js';
+import { requireUser } from '../server/shared/firebase.js';
 import {
   applyHttpHeaders,
   cleanString,

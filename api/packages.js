@@ -1,4 +1,4 @@
-import { createServiceClient } from '../server/shared/supabase.js';
+import { createServiceClient, ensureFirebaseDefaults } from '../server/shared/firebase.js';
 import {
   applyHttpHeaders,
   handleOptions,
@@ -11,6 +11,7 @@ export default async function handler(req, res) {
   if (handleOptions(req, res) || !requireMethod(req, res, 'GET')) return;
 
   try {
+    await ensureFirebaseDefaults();
     const { data, error } = await createServiceClient()
       .from('credit_package_sm')
       .select('code,name,description,credits,price,currency,time_label,sort_order')

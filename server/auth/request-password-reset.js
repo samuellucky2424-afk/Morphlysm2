@@ -1,4 +1,4 @@
-import { createPublicClient } from '../shared/supabase.js';
+import { createPublicClient } from '../shared/firebase.js';
 import {
   applyHttpHeaders,
   cleanString,
