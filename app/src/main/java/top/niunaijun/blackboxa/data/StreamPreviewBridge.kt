@@ -43,7 +43,7 @@ object StreamPreviewBridge {
             if (latestBitmap !== previous && !previous.isRecycled) {
                 previous.recycle()
             }
-        }, 750L)
+        }, 300L)
     }
 
     fun addListener(listener: (Bitmap) -> Unit) {
@@ -54,6 +54,8 @@ object StreamPreviewBridge {
             }
         }
     }
+
+    fun hasListeners(): Boolean = listeners.isNotEmpty()
 
     fun removeListener(listener: (Bitmap) -> Unit) {
         listeners.remove(listener)

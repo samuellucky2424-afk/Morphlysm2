@@ -20,6 +20,12 @@ object XmaxRealtimeBridge {
     private var closing: Job? = null
     private var view: XmaxRealtimeDualVideoView? = null
     private var host: Activity? = null
+    private var localTrackRef: RealtimeVideoTrack? = null
+    private var remoteTrackRef: RealtimeVideoTrack? = null
+    @Volatile private var renderingEnabled = true
+    private var convertBuffer: ByteArray? = null
+    private var chromaU: ByteArray? = null
+    private var chromaV: ByteArray? = null
     private var sessionToken = ""
     private val publicationLock = Any()
     @Volatile var lastOutputAtMs = 0L
@@ -86,15 +92,18 @@ object XmaxRealtimeBridge {
                 val reference = if (image != null) withContext(Dispatchers.IO) {
                     client.createStorageManager().uploadImageWithSafetyCheck(image, "reference.jpg", "image/jpeg").url
                 } else null
-                val format = RealtimeVideoFormat(1920, 1080, fps.coerceIn(10, 24),
+                // 720p/15fps: 1080p capture drove ~1.6 GB RSS + 200% CPU and got the app LMK-killed during calls.
+                val format = RealtimeVideoFormat(1280, 720, fps.coerceIn(10, 15),
                     minimumBitrate = 300, maximumBitrate = 1500)
                 val local = manager.createLocalCameraStream(format,
                     if (backCamera) CameraPosition.BACK else CameraPosition.FRONT, false)
-                video.localTrack = local.videoTrack
+                localTrackRef = local.videoTrack
+                if (renderingEnabled) video.localTrack = local.videoTrack
                 DecartStreamingService.start(activity.applicationContext)
                 val remote = manager.startGeneration(local, RealtimeContext(prompt, reference))
                 ensureActive()
-                video.remoteTrack = remote.videoTrack
+                remoteTrackRef = remote.videoTrack
+                if (renderingEnabled) video.remoteTrack = remote.videoTrack
             } catch (_: CancellationException) {
                 // disconnect owns cleanup; no late error or publication is delivered.
             } catch (_: Exception) {
@@ -114,13 +123,18 @@ object XmaxRealtimeBridge {
                     if (width % 2 != 0 || height % 2 != 0) continue
                     val ySize = width * height
                     val chroma = ySize / 4
-                    val bytes = ByteArray(ySize + chroma * 2)
-                    frame.yData.get(bytes, 0, ySize)
-                    val u = frame.uData
-                    val v = frame.vData
+                    // Reuse buffers + bulk plane copies (old per-byte ByteBuffer.get loop and fresh arrays per frame).
+                    val total = ySize + chroma * 2
+                    val bytes = convertBuffer?.takeIf { it.size == total } ?: ByteArray(total).also { convertBuffer = it }
+                    val uArr = chromaU?.takeIf { it.size == chroma } ?: ByteArray(chroma).also { chromaU = it }
+                    val vArr = chromaV?.takeIf { it.size == chroma } ?: ByteArray(chroma).also { chromaV = it }
+                    frame.yData.duplicate().get(bytes, 0, ySize)
+                    frame.uData.duplicate().get(uArr, 0, chroma)
+                    frame.vData.duplicate().get(vArr, 0, chroma)
+                    var j = ySize
                     for (i in 0 until chroma) {
-                        bytes[ySize + 2 * i] = v.get(i)
-                        bytes[ySize + 2 * i + 1] = u.get(i)
+                        bytes[j++] = vArr[i]
+                        bytes[j++] = uArr[i]
                     }
                     var output = Nv21Converter.rotateNv21(bytes, width, height, frame.rotationDegrees)
                     if (frame.rotationDegrees == 90 || frame.rotationDegrees == 270) {
@@ -154,15 +168,34 @@ object XmaxRealtimeBridge {
     /** Feeds the floating mini window (StreamPreviewBridge) with ~5 fps snapshots of the AI output. */
     private fun publishPreview(nv21: ByteArray, width: Int, height: Int) {
         val now = SystemClock.elapsedRealtime()
-        if (now - lastPreviewAtMs < 200L || width <= 0 || height <= 0) return
+        if (now - lastPreviewAtMs < 500L || width <= 0 || height <= 0 || !StreamPreviewBridge.hasListeners()) return
         lastPreviewAtMs = now
         runCatching {
             val yuv = android.graphics.YuvImage(nv21, android.graphics.ImageFormat.NV21, width, height, null)
             val out = java.io.ByteArrayOutputStream()
-            yuv.compressToJpeg(android.graphics.Rect(0, 0, width, height), 70, out)
+            yuv.compressToJpeg(android.graphics.Rect(0, 0, width, height), 55, out)
             val bytes = out.toByteArray()
-            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            val opts = android.graphics.BitmapFactory.Options().apply {
+                inSampleSize = 2
+                inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
+            }
+            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
         }.getOrNull()?.let { StreamPreviewBridge.publish(it) }
+    }
+
+    /** Stop drawing the full-screen local+remote preview while StreamActivity is in the background. */
+    fun setRendering(enabled: Boolean) {
+        renderingEnabled = enabled
+        val v = view ?: return
+        runCatching {
+            if (enabled) {
+                localTrackRef?.let { v.localTrack = it }
+                remoteTrackRef?.let { v.remoteTrack = it }
+            } else {
+                v.localTrack = null
+                v.remoteTrack = null
+            }
+        }
     }
 
     fun disconnect() {
@@ -178,6 +211,8 @@ object XmaxRealtimeBridge {
         val previous = realtime
         realtime = null
         if (previous != null) closing = CoroutineScope(Dispatchers.Main).launch { runCatching { previous.close() } }
+        localTrackRef = null
+        remoteTrackRef = null
         view?.localTrack = null
         view?.remoteTrack = null
         view = null

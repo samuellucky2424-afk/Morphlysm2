@@ -206,6 +206,16 @@ class StreamActivity : BaseActivity() {
         handlePaymentReturn(intent)
     }
 
+    override fun onStart() {
+        super.onStart()
+        XmaxRealtimeBridge.setRendering(true)
+    }
+
+    override fun onStop() {
+        XmaxRealtimeBridge.setRendering(false)
+        super.onStop()
+    }
+
     override fun onPause() {
         releaseCamera()
         super.onPause()
@@ -345,7 +355,7 @@ class StreamActivity : BaseActivity() {
         binding.layoutDashboard.visibility = View.VISIBLE
 
         fetchBalanceFromBackend()
-        startCameraPreview()
+        if (!isStreaming) startCameraPreview()
     }
     private fun fetchBalanceFromBackend() {
         networkExecutor.execute {
