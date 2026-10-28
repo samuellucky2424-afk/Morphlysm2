@@ -22,6 +22,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          cache: gradle
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -35,7 +36,7 @@ jobs:
           sed -i '1i#include <android/log.h>' /tmp/dobby-source/external/logging/logging.c
           cmake -S /tmp/dobby-source -B /tmp/dobby-build \
             -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/28.2.13676358/build/cmake/android.toolchain.cmake" \
-            -DANDROID_ABI=x86_64 -DANDROID_PLATFORM=android-24 \
+            -DANDROID_ABI=x86_64 -DANDROID_PLATFORM=android-21 \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DDOBBY_GENERATE_SHARED=OFF -DBUILD_EXAMPLE=OFF -DBUILD_TEST=OFF
           cmake --build /tmp/dobby-build --target dobby --parallel 2
