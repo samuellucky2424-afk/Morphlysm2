@@ -1307,6 +1307,12 @@ public final class VirtualCameraServiceHook {
 
     private static int[][] streamConfigurationEntries() {
         return new int[][]{
+                {ImageFormat.PRIVATE, 960, 720},
+                {ImageFormat.PRIVATE, 720, 960},
+                {ImageFormat.YUV_420_888, 960, 720},
+                {ImageFormat.YUV_420_888, 720, 960},
+                {HAL_PIXEL_FORMAT_BLOB, 960, 720},
+                {HAL_PIXEL_FORMAT_BLOB, 720, 960},
                 {ImageFormat.PRIVATE, 1280, 720},
                 {ImageFormat.PRIVATE, 720, 1280},
                 {ImageFormat.PRIVATE, 640, 480},

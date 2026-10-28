@@ -51,7 +51,7 @@ object XmaxRealtimeBridge {
         host = activity
         sessionToken = token
         clockOffsetMs = serverClockOffsetMs
-        VirtualCameraBridge.startSession(0, token, 480, 640, VirtualCameraPreset.LOW)
+        VirtualCameraBridge.startSession(0, token, 720, 960, VirtualCameraPreset.LOW)
         val currentScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         scope = currentScope
         currentScope.launch {
@@ -73,7 +73,7 @@ object XmaxRealtimeBridge {
                             android.util.Log.e("XMAX_BRIDGE", "engine_failure state=$state")
                             if (usingLowFps && SystemClock.elapsedRealtime() - connectStartedAt < 15_000L) {
                                 // 15 fps input rejected early: fall back to the known-working rate next start.
-                                activity.getSharedPreferences("xmax_bridge", android.content.Context.MODE_PRIVATE).edit().putBoolean("fps15_failed", true).apply()
+                                activity.getSharedPreferences("xmax_bridge", android.content.Context.MODE_PRIVATE).edit().putBoolean("fps20_failed", true).apply()
                                 android.util.Log.w("XMAX_BRIDGE", "fps15_fallback_armed")
                             }
                             onError(IllegalStateException("XMax stopped. Check your connection and start again."))
@@ -86,7 +86,7 @@ object XmaxRealtimeBridge {
                     val frame = (packet.content as? RealtimeMediaFrame.Content.Video)?.frame
                         ?: return@setRemoteMediaFrameListener
                     val now = SystemClock.elapsedRealtime()
-                    if (revision != currentRevision || now - lastFrameAt < 66L) return@setRemoteMediaFrameListener
+                    if (revision != currentRevision || now - lastFrameAt < 48L) return@setRemoteMediaFrameListener
                     lastFrameAt = now
                     pendingFrame.set(frame)
                     drainFrames(activity, currentRevision, token) {
@@ -101,10 +101,10 @@ object XmaxRealtimeBridge {
                 } else null
                 // X2_1 only accepts 1920x1080, 1080x1920, 1408x1408, 1152x1536, 1536x1152 (720p made it stop). 1152x1536 = native portrait 3:4, ~15% fewer pixels than 1080p.
                 val prefs = activity.getSharedPreferences("xmax_bridge", android.content.Context.MODE_PRIVATE)
-                val lowFps = !prefs.getBoolean("fps15_failed", false)
+                val lowFps = !prefs.getBoolean("fps20_failed", false)
                 connectStartedAt = SystemClock.elapsedRealtime(); usingLowFps = lowFps
-                android.util.Log.i("XMAX_BRIDGE", "input_format 1152x1536 fps=" + (if (lowFps) 15 else fps.coerceIn(10, 24)))
-                val format = RealtimeVideoFormat(1152, 1536, if (lowFps) 15 else fps.coerceIn(10, 24),
+                android.util.Log.i("XMAX_BRIDGE", "input_format 1152x1536 fps=" + (if (lowFps) 20 else 15))
+                val format = RealtimeVideoFormat(1152, 1536, if (lowFps) 20 else 15,
                     minimumBitrate = 300, maximumBitrate = 1500)
                 val local = manager.createLocalCameraStream(format,
                     if (backCamera) CameraPosition.BACK else CameraPosition.FRONT, false)
@@ -159,10 +159,10 @@ object XmaxRealtimeBridge {
                         output = cropNv21(output, width, height, (width - cw) / 2 / 2 * 2, cw)
                         width = cw
                     }
-                    val scale = minOf(1.0, 640.0 / maxOf(width, height))
+                    val scale = minOf(1.0, 960.0 / maxOf(width, height))
                     val targetWidth = (width * scale).toInt() / 2 * 2
                     val targetHeight = (height * scale).toInt() / 2 * 2
-                    if (scale < 1) output = Nv21Converter.resizeNv21(output, width, height, targetWidth, targetHeight)
+                    if (scale < 1) output = resizeNv21Bilinear(output, width, height, targetWidth, targetHeight)
                     synchronized(publicationLock) {
                     if (revision != currentRevision) return@synchronized
                     VirtualCameraBridge.setActiveSource(activity.applicationContext, VirtualCameraBridge.SOURCE_XMAX)
@@ -183,6 +183,34 @@ object XmaxRealtimeBridge {
         }
     }
 
+    private var resizeBuffer: ByteArray? = null
+    /** Bilinear luma + nearest chroma NV21 downscale into a reused buffer (old resize was nearest-neighbour). */
+    private fun resizeNv21Bilinear(src: ByteArray, sw: Int, sh: Int, dw: Int, dh: Int): ByteArray {
+        val total = dw * dh * 3 / 2
+        val dst = resizeBuffer?.takeIf { it.size == total } ?: ByteArray(total).also { resizeBuffer = it }
+        val xr = ((sw - 1) shl 16) / maxOf(1, dw - 1); val yr = ((sh - 1) shl 16) / maxOf(1, dh - 1)
+        var o = 0
+        for (y in 0 until dh) {
+            val fy = y * yr; val y0 = fy shr 16; val wy = fy and 0xffff; val y1 = minOf(y0 + 1, sh - 1)
+            val r0 = y0 * sw; val r1 = y1 * sw
+            for (x in 0 until dw) {
+                val fx = x * xr; val x0 = fx shr 16; val wx = fx and 0xffff; val x1 = minOf(x0 + 1, sw - 1)
+                val a = src[r0 + x0].toInt() and 0xff; val b = src[r0 + x1].toInt() and 0xff
+                val c = src[r1 + x0].toInt() and 0xff; val d = src[r1 + x1].toInt() and 0xff
+                val top = a + (((b - a) * wx) shr 16); val bot = c + (((d - c) * wx) shr 16)
+                dst[o++] = (top + (((bot - top) * wy) shr 16)).toByte()
+            }
+        }
+        val sUv = sw * sh; val cw = dw / 2; val ch = dh / 2
+        for (y in 0 until ch) {
+            val sy = minOf(y * sh / dh, sh / 2 - 1) * sw
+            for (x in 0 until cw) {
+                val sx = minOf(x * sw / dw, sw / 2 - 1) * 2
+                dst[o++] = src[sUv + sy + sx]; dst[o++] = src[sUv + sy + sx + 1]
+            }
+        }
+        return dst
+    }
     @Volatile private var connectStartedAt = 0L
     @Volatile private var usingLowFps = false
     @Volatile private var loggedFrameShape = false

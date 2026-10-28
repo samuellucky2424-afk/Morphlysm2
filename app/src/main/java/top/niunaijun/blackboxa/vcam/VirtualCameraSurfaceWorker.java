@@ -20,7 +20,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class VirtualCameraSurfaceWorker {
     private static final String TAG = "VCAM_SURFACE_WORKER";
-    private static final int MAX_RENDER_WIDTH = 320;
+    private static final android.graphics.Paint FILTER_PAINT = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG);
+    private static final int MAX_RENDER_WIDTH = 720; // was 320: main cause of soft/blocky remote video
     private static final int FORMAT_UNKNOWN = Integer.MIN_VALUE;
 
     private final Surface surface;
@@ -195,7 +196,7 @@ public final class VirtualCameraSurfaceWorker {
                 return;
             }
             canvas.drawColor(Color.BLACK);
-            canvas.drawBitmap(bitmap, null, new Rect(0, 0, canvas.getWidth(), canvas.getHeight()), null);
+            canvas.drawBitmap(bitmap, null, new Rect(0, 0, canvas.getWidth(), canvas.getHeight()), FILTER_PAINT);
             renderedCount++;
             if (renderedCount == 1 || renderedCount % 30 == 0) {
                 Log.d(TAG, "worker_canvas_frame label=" + label
