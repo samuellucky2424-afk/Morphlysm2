@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0B0C10"
+    android:background="#FFFFFF"
     tools:context=".view.main.StreamActivity">
 
     <!-- 1. SPLASH / INITIALIZING SCREEN STATE -->
@@ -12,7 +12,7 @@
         android:id="@+id/layoutSplash"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0B0C10"
+        android:background="#FFFFFF"
         android:visibility="visible">
 
         <LinearLayout
@@ -57,7 +57,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="MORPHLY"
-                    android:textColor="#FF3CD070"
+                    android:textColor="#E53935"
                     android:textSize="28sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.1" />
@@ -72,7 +72,7 @@
                 android:layout_height="24dp"
                 android:layout_marginTop="32dp"
                 android:indeterminate="true"
-                android:indeterminateTint="#FF3CD070" />
+                android:indeterminateTint="#E53935" />
 
             <!-- Subtitle -->
             <TextView
@@ -80,7 +80,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="40dp"
                 android:text="INITIALIZING..."
-                android:textColor="#6F7380"
+                android:textColor="#757575"
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.25" />
@@ -94,7 +94,7 @@
         android:id="@+id/layoutAuth"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0B0C10"
+        android:background="#FFFFFF"
         android:visibility="gone">
 
         <!-- Scrollable Auth forms -->
@@ -116,7 +116,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:layout_marginBottom="24dp"
-                    android:background="#131520"
+                    android:background="#FFFFFF"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:padding="16dp">
@@ -147,7 +147,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="MORPHLY 1.6"
-                                android:textColor="#FF3CD070"
+                                android:textColor="#E53935"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
                                 android:letterSpacing="0.05" />
@@ -158,7 +158,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="REAL-TIME AI VIDEO TRANSFORMATION"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="9sp"
                             android:textStyle="bold"
                             android:letterSpacing="0.1" />
@@ -171,7 +171,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:background="#161928"
+                    android:background="#FFFFFF"
                     android:orientation="horizontal"
                     android:padding="2dp">
 
@@ -180,10 +180,10 @@
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:background="#FF3CD070"
+                        android:background="#E53935"
                         android:gravity="center"
                         android:text="SIGN IN"
-                        android:textColor="#0B0C10"
+                        android:textColor="#FFFFFF"
                         android:textSize="13sp"
                         android:textStyle="bold"
                         android:clickable="true"
@@ -197,7 +197,7 @@
                         android:background="@android:color/transparent"
                         android:gravity="center"
                         android:text="CREATE ACCOUNT"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="13sp"
                         android:textStyle="bold"
                         android:clickable="true"
@@ -219,7 +219,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="EMAIL ADDRESS"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05"
@@ -229,12 +229,12 @@
                         android:id="@+id/etSignInEmail"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
-                        android:background="#181B29"
+                        android:background="#FFF7F7"
                         android:paddingHorizontal="16dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="14sp"
                         android:hint="User@gmail.com"
-                        android:textColorHint="#3A3F55"
+                        android:textColorHint="#F3D4D4"
                         android:inputType="textEmailAddress"
                         android:importantForAutofill="no" />
 
@@ -243,7 +243,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="PASSWORD"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05"
@@ -254,12 +254,12 @@
                         android:id="@+id/etSignInPassword"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
-                        android:background="#181B29"
+                        android:background="#FFF7F7"
                         android:paddingHorizontal="16dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="14sp"
                         android:hint="........"
-                        android:textColorHint="#3A3F55"
+                        android:textColorHint="#F3D4D4"
                         android:inputType="textPassword"
                         android:importantForAutofill="no" />
 
@@ -271,7 +271,7 @@
                         android:layout_gravity="center_horizontal"
                         android:layout_marginTop="32dp"
                         android:text="Forgot password?"
-                        android:textColor="#FF3CD070"
+                        android:textColor="#E53935"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:clickable="true"
@@ -283,9 +283,9 @@
                         android:layout_width="match_parent"
                         android:layout_height="42dp"
                         android:layout_marginTop="32dp"
-                        android:backgroundTint="#FF3CD070"
+                        android:backgroundTint="#E53935"
                         android:text="SIGN IN"
-                        android:textColor="#0B0C10"
+                        android:textColor="#FFFFFF"
                         android:textSize="15sp"
                         android:textStyle="bold"  app:cornerRadius="2dp"/>
 
@@ -305,7 +305,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="FULL NAME"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05"
@@ -315,12 +315,12 @@
                         android:id="@+id/etSignUpName"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
-                        android:background="#181B29"
+                        android:background="#FFF7F7"
                         android:paddingHorizontal="16dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="14sp"
                         android:hint="Your Name"
-                        android:textColorHint="#3A3F55"
+                        android:textColorHint="#F3D4D4"
                         android:inputType="textPersonName"
                         android:importantForAutofill="no" />
 
@@ -329,7 +329,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="EMAIL ADDRESS"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05"
@@ -340,12 +340,12 @@
                         android:id="@+id/etSignUpEmail"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
-                        android:background="#181B29"
+                        android:background="#FFF7F7"
                         android:paddingHorizontal="16dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="14sp"
                         android:hint="your@email.com"
-                        android:textColorHint="#3A3F55"
+                        android:textColorHint="#F3D4D4"
                         android:inputType="textEmailAddress"
                         android:importantForAutofill="no" />
 
@@ -354,7 +354,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="PHONE NUMBER (OPTIONAL)"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05"
@@ -365,12 +365,12 @@
                         android:id="@+id/etSignUpPhone"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
-                        android:background="#181B29"
+                        android:background="#FFF7F7"
                         android:paddingHorizontal="16dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="14sp"
                         android:hint="e.g. 08012345678"
-                        android:textColorHint="#3A3F55"
+                        android:textColorHint="#F3D4D4"
                         android:inputType="phone"
                         android:importantForAutofill="no" />
 
@@ -379,7 +379,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="PASSWORD"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05"
@@ -390,12 +390,12 @@
                         android:id="@+id/etSignUpPassword"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
-                        android:background="#181B29"
+                        android:background="#FFF7F7"
                         android:paddingHorizontal="16dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="14sp"
                         android:hint="Min. 6 characters"
-                        android:textColorHint="#3A3F55"
+                        android:textColorHint="#F3D4D4"
                         android:inputType="textPassword"
                         android:importantForAutofill="no" />
 
@@ -404,7 +404,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="CONFIRM PASSWORD"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05"
@@ -415,12 +415,12 @@
                         android:id="@+id/etSignUpConfirmPassword"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
-                        android:background="#181B29"
+                        android:background="#FFF7F7"
                         android:paddingHorizontal="16dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="14sp"
                         android:hint="Repeat password"
-                        android:textColorHint="#3A3F55"
+                        android:textColorHint="#F3D4D4"
                         android:inputType="textPassword"
                         android:importantForAutofill="no" />
 
@@ -429,7 +429,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="REFERRAL CODE (OPTIONAL)"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05"
@@ -440,12 +440,12 @@
                         android:id="@+id/etSignUpReferral"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
-                        android:background="#181B29"
+                        android:background="#FFF7F7"
                         android:paddingHorizontal="16dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="14sp"
                         android:hint="ENTER FRIEND'S REFERRAL CODE"
-                        android:textColorHint="#3A3F55"
+                        android:textColorHint="#F3D4D4"
                         android:inputType="textCapCharacters"
                         android:importantForAutofill="no" />
 
@@ -461,7 +461,7 @@
                             android:id="@+id/cbTerms"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:buttonTint="#FF3CD070" />
+                            android:buttonTint="#E53935" />
 
                         <TextView
                             android:id="@+id/tvTermsLink"
@@ -469,7 +469,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
                             android:text="I ACCEPT THE TERMS &amp; CONDITIONS"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             android:letterSpacing="0.05"
@@ -485,9 +485,9 @@
                         android:layout_height="42dp"
                         android:layout_marginTop="24dp"
                         android:layout_marginBottom="24dp"
-                        android:backgroundTint="#FF3CD070"
+                        android:backgroundTint="#E53935"
                         android:text="CREATE ACCOUNT"
-                        android:textColor="#0B0C10"
+                        android:textColor="#FFFFFF"
                         android:textSize="15sp"
                         android:textStyle="bold"  app:cornerRadius="2dp"/>
 
@@ -503,7 +503,7 @@
             android:layout_width="match_parent"
             android:layout_height="72dp"
             android:layout_alignParentBottom="true"
-            android:background="#08080C"
+            android:background="#FFFFFF"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"
@@ -514,9 +514,9 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FF3CD070"
+                android:backgroundTint="#E53935"
                 android:text="MINIMIZE FOR VIDEO CALL"
-                android:textColor="#0B0C10"
+                android:textColor="#FFFFFF"
                 android:textSize="10.5sp"
                 android:textStyle="bold"
                 android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
@@ -529,7 +529,7 @@
                 android:layout_weight="1.0"
                 android:background="@drawable/outlined_button_bg"
                 android:text="CLONED APPS"
-                android:textColor="#FFFFFF"
+                android:textColor="#212121"
                 android:textSize="11sp"
                 android:textStyle="bold"  app:cornerRadius="2dp"/>
 
@@ -545,7 +545,7 @@
             android:layout_marginBottom="88dp"
             android:layout_marginEnd="16dp"
             android:src="@drawable/ic_telegram"
-            app:backgroundTint="#32A3E0"
+            app:backgroundTint="#E53935"
             app:tint="#FFFFFF"
             android:contentDescription="Telegram Contact" />
 
@@ -655,7 +655,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="CREDIT BALANCE"
-                                android:textColor="#8A8A8A"
+                                android:textColor="#757575"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
                                 android:letterSpacing="0.06" />
@@ -708,7 +708,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="0 CR"
-                            android:textColor="#8A8A8A"
+                            android:textColor="#757575"
                             android:textSize="11sp" />
 
                         <TextView
@@ -718,7 +718,7 @@
                             android:layout_weight="1"
                             android:gravity="end"
                             android:text="0 CR"
-                            android:textColor="#8A8A8A"
+                            android:textColor="#757575"
                             android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -753,7 +753,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="AI OUTPUT WILL APPEAR HERE"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="12sp"
                             android:textStyle="bold"
                             android:letterSpacing="0.1" />
@@ -793,7 +793,7 @@
                         android:layout_alignParentTop="true"
                         android:padding="14dp"
                         android:text="⛶"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="20sp"
                         android:clickable="true"
                         android:focusable="true" />
@@ -821,10 +821,10 @@
                                 android:id="@+id/tvUserCamFallback"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
-                                android:background="#2A2A2A"
+                                android:background="#F5F5F5"
                                 android:gravity="center"
                                 android:text="CAMERA"
-                                android:textColor="#FFFFFF"
+                                android:textColor="#212121"
                                 android:textSize="9sp"
                                 android:visibility="gone" />
                         </RelativeLayout>
@@ -934,7 +934,7 @@
                             android:layout_marginTop="14dp"
                             android:layout_marginBottom="6dp"
                             android:text="CAMERA"
-                            android:textColor="#8A8A8A"
+                            android:textColor="#757575"
                             android:textSize="11sp"
                             android:textStyle="bold" />
 
@@ -951,7 +951,7 @@
                             android:layout_marginTop="12dp"
                             android:layout_marginBottom="6dp"
                             android:text="QUALITY"
-                            android:textColor="#8A8A8A"
+                            android:textColor="#757575"
                             android:textSize="11sp"
                             android:textStyle="bold" />
 
@@ -1096,7 +1096,7 @@
             android:layout_marginBottom="88dp"
             android:layout_marginEnd="16dp"
             android:src="@drawable/ic_telegram"
-            app:backgroundTint="#32A3E0"
+            app:backgroundTint="#E53935"
             app:tint="#FFFFFF"
             android:contentDescription="Telegram Contact" />
 
@@ -1107,7 +1107,7 @@
         android:id="@+id/layoutAccount"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0E1017"
+        android:background="#FFFFFF"
         android:visibility="gone"
         android:clickable="true"
         android:focusable="true">
@@ -1131,7 +1131,7 @@
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:padding="16dp"
-                    android:background="#131520"
+                    android:background="#FFFFFF"
                     android:layout_marginTop="16dp"
                     android:layout_marginBottom="24dp">
 
@@ -1140,10 +1140,10 @@
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:background="@drawable/bg_nav_pill"
-                        android:backgroundTint="#FF3CD070"
+                        android:backgroundTint="#E53935"
                         android:gravity="center"
                         android:text="U"
-                        android:textColor="#0B0C10"
+                        android:textColor="#FFFFFF"
                         android:textSize="22sp"
                         android:textStyle="bold" />
 
@@ -1158,7 +1158,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="user"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="18sp"
                             android:textStyle="bold" />
 
@@ -1167,7 +1167,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="user@gmail.com"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="13sp" />
 
                     </LinearLayout>
@@ -1179,7 +1179,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:background="#131520"
+                    android:background="#FFFFFF"
                     android:padding="16dp"
                     android:layout_marginBottom="20dp">
 
@@ -1193,7 +1193,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="DEVICE ID"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -1203,13 +1203,13 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentRight="true"
                             android:text="SS-C468-A726-0788"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
                     </RelativeLayout>
 
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1E2338" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFF5F5" />
 
                     <!-- License Status -->
                     <RelativeLayout
@@ -1221,7 +1221,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="ACCOUNT"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -1231,13 +1231,13 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentRight="true"
                             android:text="ACTIVE"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
                     </RelativeLayout>
 
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1E2338" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFF5F5" />
 
                     <!-- License Expires -->
                     <RelativeLayout
@@ -1249,7 +1249,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="BILLING"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -1259,12 +1259,12 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentRight="true"
                             android:text="30 May 2027"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="12sp" />
 
                     </RelativeLayout>
 
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1E2338" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFF5F5" />
 
                     <!-- Credits Remaining -->
                     <RelativeLayout
@@ -1276,7 +1276,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="CREDITS REMAINING"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -1286,13 +1286,13 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentRight="true"
                             android:text="319 CR"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
                     </RelativeLayout>
 
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1E2338" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFF5F5" />
 
                     <!-- Credits Used -->
                     <RelativeLayout
@@ -1304,7 +1304,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="CREDITS USED"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -1314,12 +1314,12 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentRight="true"
                             android:text="16,983 CR"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="12sp" />
 
                     </RelativeLayout>
 
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1E2338" />
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFF5F5" />
 
                     <!-- Member Since -->
                     <RelativeLayout
@@ -1331,7 +1331,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="MEMBER SINCE"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -1340,7 +1340,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentRight="true"
                             android:text="-"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="12sp" />
 
                     </RelativeLayout>
@@ -1351,7 +1351,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="#131520"
+                    android:background="#FFFFFF"
                     android:orientation="vertical"
                     android:padding="16dp"
                     android:layout_marginBottom="24dp">
@@ -1373,7 +1373,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="REFERRAL PROGRAM"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             android:letterSpacing="0.05" />
@@ -1393,7 +1393,7 @@
                             android:layout_alignParentStart="true"
                             android:layout_centerVertical="true"
                             android:text="YOUR CODE: SS-USER-FVD9"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="13sp"
                             android:textStyle="bold" />
 
@@ -1404,9 +1404,9 @@
                             android:layout_height="42dp"
                             android:layout_alignParentRight="true"
                             android:layout_centerVertical="true"
-                            android:background="#1D2030"
+                            android:background="#FFF5F5"
                             android:text="COPY"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="10sp"
                             android:textStyle="bold"
                             android:paddingHorizontal="12dp"  app:cornerRadius="2dp"/>
@@ -1417,7 +1417,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Share your code with friends. When they sign up &amp; buy credits, you both earn 500 free credits.\nReferral credits earned: 0"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="11sp" />
 
                 </LinearLayout>
@@ -1431,7 +1431,7 @@
                     android:layout_height="42dp"
                     android:background="@drawable/outlined_button_bg"
                     android:text="← BACK"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#212121"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
@@ -1444,7 +1444,7 @@
                     android:layout_height="42dp"
                     android:background="@drawable/outlined_button_bg"
                     android:text="💳 BUY CREDITS"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#212121"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
@@ -1457,7 +1457,7 @@
                     android:layout_height="42dp"
                     android:background="@drawable/outlined_button_bg"
                     android:text="📖 REPLAY TOUR"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#212121"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
@@ -1470,7 +1470,7 @@
                     android:layout_height="42dp"
                     android:background="@drawable/outlined_button_bg"
                     android:text="⚖ TERMS AND POLICIES"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#212121"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="24dp"  app:cornerRadius="2dp"/>
@@ -1482,7 +1482,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="42dp"
                     android:background="@drawable/outlined_button_bg"
-                    android:backgroundTint="#2C121A"
+                    android:backgroundTint="#FFEBEE"
                     android:text="⏏ SIGN OUT"
                     android:textColor="#FF5252"
                     android:textSize="13sp"
@@ -1499,7 +1499,7 @@
             android:layout_width="match_parent"
             android:layout_height="72dp"
             android:layout_alignParentBottom="true"
-            android:background="#08080C"
+            android:background="#FFFFFF"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"
@@ -1510,9 +1510,9 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FF3CD070"
+                android:backgroundTint="#E53935"
                 android:text="MINIMIZE FOR VIDEO CALL"
-                android:textColor="#0B0C10"
+                android:textColor="#FFFFFF"
                 android:textSize="10.5sp"
                 android:textStyle="bold"
                 android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
@@ -1525,7 +1525,7 @@
                 android:layout_weight="1.0"
                 android:background="@drawable/outlined_button_bg"
                 android:text="CLONED APPS"
-                android:textColor="#FFFFFF"
+                android:textColor="#212121"
                 android:textSize="11sp"
                 android:textStyle="bold"  app:cornerRadius="2dp"/>
 
@@ -1541,7 +1541,7 @@
             android:layout_marginBottom="88dp"
             android:layout_marginEnd="16dp"
             android:src="@drawable/ic_telegram"
-            app:backgroundTint="#32A3E0"
+            app:backgroundTint="#E53935"
             app:tint="#FFFFFF"
             android:contentDescription="Telegram Contact" />
 
@@ -1552,7 +1552,7 @@
         android:id="@+id/layoutWelcome"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0B0C10"
+        android:background="#FFFFFF"
         android:visibility="gone">
 
         <ScrollView
@@ -1582,7 +1582,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
                     android:text="WELCOME TO SMOKE"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#212121"
                     android:textSize="22sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.08"
@@ -1592,7 +1592,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="SCREEN"
-                    android:textColor="#FF3CD070"
+                    android:textColor="#E53935"
                     android:textSize="22sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.08"
@@ -1604,7 +1604,7 @@
                     android:layout_marginTop="16dp"
                     android:layout_marginBottom="32dp"
                     android:text="CHOOSE HOW YOU WANT TO GET STARTED"
-                    android:textColor="#6F7380"
+                    android:textColor="#757575"
                     android:textSize="10.5sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.15" />
@@ -1638,7 +1638,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="ACTIVATE NOW"
-                            android:textColor="#0B0C10"
+                            android:textColor="#FFFFFF"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:letterSpacing="0.05" />
@@ -1648,7 +1648,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Pay $75 one-time activation fee – unlock full permanent access + buy credits"
-                            android:textColor="#2D303A"
+                            android:textColor="#F5F5F5"
                             android:textSize="12sp" />
 
                     </LinearLayout>
@@ -1662,7 +1662,7 @@
                     android:layout_marginBottom="24dp"
                     android:gravity="center"
                     android:text="Recommended for serious users. One-time fee, lifetime access to all features."
-                    android:textColor="#6F7380"
+                    android:textColor="#757575"
                     android:textSize="11sp" />
 
                 <!-- Option 2: Try First - $10 (Dark bordered Card) -->
@@ -1694,7 +1694,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="TRY FIRST – $10"
-                            android:textColor="#3CD070"
+                            android:textColor="#E53935"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:letterSpacing="0.05" />
@@ -1704,7 +1704,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:text="Purchase a Starter Pack with 500 credits and test the platform before activating"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="12sp" />
 
                     </LinearLayout>
@@ -1717,7 +1717,7 @@
                     android:layout_marginTop="8dp"
                     android:gravity="center"
                     android:text="Your Android and desktop apps use the same Morphly credit balance."
-                    android:textColor="#6F7380"
+                    android:textColor="#757575"
                     android:textSize="11sp" />
 
             </LinearLayout>
@@ -1730,7 +1730,7 @@
             android:layout_width="match_parent"
             android:layout_height="72dp"
             android:layout_alignParentBottom="true"
-            android:background="#08080C"
+            android:background="#FFFFFF"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"
@@ -1741,9 +1741,9 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FF3CD070"
+                android:backgroundTint="#E53935"
                 android:text="MINIMIZE FOR VIDEO CALL"
-                android:textColor="#0B0C10"
+                android:textColor="#FFFFFF"
                 android:textSize="10.5sp"
                 android:textStyle="bold"
                 android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
@@ -1756,7 +1756,7 @@
                 android:layout_weight="1.0"
                 android:background="@drawable/outlined_button_bg"
                 android:text="CLONED APPS"
-                android:textColor="#FFFFFF"
+                android:textColor="#212121"
                 android:textSize="11sp"
                 android:textStyle="bold"  app:cornerRadius="2dp"/>
 
@@ -1772,7 +1772,7 @@
             android:layout_marginBottom="88dp"
             android:layout_marginEnd="16dp"
             android:src="@drawable/ic_telegram"
-            app:backgroundTint="#32A3E0"
+            app:backgroundTint="#E53935"
             app:tint="#FFFFFF"
             android:contentDescription="Telegram Contact" />
 
@@ -1783,7 +1783,7 @@
         android:id="@+id/layoutStarterPack"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0B0C10"
+        android:background="#FFFFFF"
         android:visibility="gone">
 
         <!-- Plan Selection Header Bar -->
@@ -1811,7 +1811,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:text="MORPHLY"
-                    android:textColor="#FF3CD070"
+                    android:textColor="#E53935"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.05" />
@@ -1826,10 +1826,10 @@
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:background="@drawable/bg_nav_pill"
-                android:backgroundTint="#1D2030"
+                android:backgroundTint="#FFF5F5"
                 android:gravity="center"
                 android:text="✕"
-                android:textColor="#FFFFFF"
+                android:textColor="#212121"
                 android:textSize="12sp"
                 android:textStyle="bold"
                 android:clickable="true"
@@ -1857,7 +1857,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:text="SELECT A CREDIT PLAN"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#212121"
                     android:textSize="20sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.05"
@@ -1868,7 +1868,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:text="Credits power your live AI sessions at 120 credits/minute.\nPurchase once, use anytime - credits never expire."
-                    android:textColor="#888D9B"
+                    android:textColor="#757575"
                     android:textSize="11sp"
                     android:layout_marginTop="6dp"
                     android:layout_marginBottom="24dp" />
@@ -1888,7 +1888,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:background="#131520"
+                        android:background="#FFFFFF"
                         android:padding="12dp"
                         android:layout_marginEnd="6dp"
                         android:minHeight="295dp">
@@ -1907,7 +1907,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Basic"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -1916,7 +1916,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="₦29,000"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:layout_marginTop="8dp" />
@@ -1926,7 +1926,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="1,000 Credits"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="13sp"
                             android:textStyle="bold"
                             android:layout_marginTop="4dp" />
@@ -1936,21 +1936,21 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="~8m 20s"
-                            android:textColor="#6F7380"
+                            android:textColor="#757575"
                             android:textSize="10.5sp"
                             android:layout_marginTop="2dp" />
 
                         <View
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
-                            android:background="#222538"
+                            android:background="#FFF5F5"
                             android:layout_marginVertical="10dp" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ Full AI engine access"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -1958,7 +1958,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ All presets included"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -1966,7 +1966,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ OBS / Theatre mode"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -1974,7 +1974,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="- Priority support"
-                            android:textColor="#6F7380"
+                            android:textColor="#757575"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="12dp" />
 
@@ -1987,9 +1987,9 @@
                             android:id="@+id/btnSelectPlanBasic"
                             android:layout_width="match_parent"
                             android:layout_height="36dp"
-                            android:backgroundTint="#FF3CD070"
+                            android:backgroundTint="#E53935"
                             android:text="SELECT"
-                            android:textColor="#0B0C10"
+                            android:textColor="#FFFFFF"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             app:cornerRadius="2dp"
@@ -2003,7 +2003,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:background="#131520"
+                        android:background="#FFFFFF"
                         android:padding="12dp"
                         android:layout_marginStart="6dp"
                         android:minHeight="295dp">
@@ -2011,8 +2011,8 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="#FF3CD070"
-                            android:textColor="#0B0C10"
+                            android:background="#E53935"
+                            android:textColor="#FFFFFF"
                             android:text="MOST POPULAR"
                             android:textSize="8sp"
                             android:textStyle="bold"
@@ -2025,7 +2025,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Pro"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -2034,7 +2034,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="₦58,000"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:layout_marginTop="8dp" />
@@ -2044,7 +2044,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="2,000 Credits"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="13sp"
                             android:textStyle="bold"
                             android:layout_marginTop="4dp" />
@@ -2054,21 +2054,21 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="~16m 40s"
-                            android:textColor="#6F7380"
+                            android:textColor="#757575"
                             android:textSize="10.5sp"
                             android:layout_marginTop="2dp" />
 
                         <View
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
-                            android:background="#222538"
+                            android:background="#FFF5F5"
                             android:layout_marginVertical="10dp" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ Full AI engine access"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -2076,7 +2076,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ All presets included"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -2084,7 +2084,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ OBS / Theatre mode"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -2092,7 +2092,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ Priority support"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="12dp" />
 
@@ -2105,9 +2105,9 @@
                             android:id="@+id/btnSelectPlanPro"
                             android:layout_width="match_parent"
                             android:layout_height="36dp"
-                            android:backgroundTint="#FF3CD070"
+                            android:backgroundTint="#E53935"
                             android:text="SELECT"
-                            android:textColor="#0B0C10"
+                            android:textColor="#FFFFFF"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             app:cornerRadius="2dp"
@@ -2130,7 +2130,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:background="#131520"
+                        android:background="#FFFFFF"
                         android:padding="12dp"
                         android:layout_marginEnd="6dp"
                         android:minHeight="295dp">
@@ -2149,7 +2149,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Enterprise"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -2158,7 +2158,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="₦145,000"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:layout_marginTop="8dp" />
@@ -2168,7 +2168,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="5,000 Credits"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="13sp"
                             android:textStyle="bold"
                             android:layout_marginTop="4dp" />
@@ -2178,21 +2178,21 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="~41m 40s"
-                            android:textColor="#6F7380"
+                            android:textColor="#757575"
                             android:textSize="10.5sp"
                             android:layout_marginTop="2dp" />
 
                         <View
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
-                            android:background="#222538"
+                            android:background="#FFF5F5"
                             android:layout_marginVertical="10dp" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ Full AI engine access"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -2200,7 +2200,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ All presets included"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -2208,7 +2208,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ OBS / Theatre mode"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -2216,7 +2216,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ Priority support"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="12dp" />
 
@@ -2229,9 +2229,9 @@
                             android:id="@+id/btnSelectPlanEnterprise"
                             android:layout_width="match_parent"
                             android:layout_height="36dp"
-                            android:backgroundTint="#FF3CD070"
+                            android:backgroundTint="#E53935"
                             android:text="SELECT"
-                            android:textColor="#0B0C10"
+                            android:textColor="#FFFFFF"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             app:cornerRadius="2dp"
@@ -2245,7 +2245,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:background="#131520"
+                        android:background="#FFFFFF"
                         android:padding="12dp"
                         android:layout_marginStart="6dp"
                         android:minHeight="295dp">
@@ -2264,7 +2264,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="VIP plan"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -2273,7 +2273,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="₦290,000"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:layout_marginTop="8dp" />
@@ -2283,7 +2283,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="10,000 Credits"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="13sp"
                             android:textStyle="bold"
                             android:layout_marginTop="4dp" />
@@ -2293,21 +2293,21 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="~83m 20s"
-                            android:textColor="#6F7380"
+                            android:textColor="#757575"
                             android:textSize="10.5sp"
                             android:layout_marginTop="2dp" />
 
                         <View
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
-                            android:background="#222538"
+                            android:background="#FFF5F5"
                             android:layout_marginVertical="10dp" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ Full AI engine access"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -2315,7 +2315,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ All presets included"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -2323,7 +2323,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ OBS / Theatre mode"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="4dp" />
 
@@ -2331,7 +2331,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="✓ Priority support"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="9.5sp"
                             android:layout_marginBottom="12dp" />
 
@@ -2344,9 +2344,9 @@
                             android:id="@+id/btnSelectPlanVip"
                             android:layout_width="match_parent"
                             android:layout_height="36dp"
-                            android:backgroundTint="#FF3CD070"
+                            android:backgroundTint="#E53935"
                             android:text="SELECT"
-                            android:textColor="#0B0C10"
+                            android:textColor="#FFFFFF"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             app:cornerRadius="2dp"
@@ -2359,7 +2359,7 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#2E334D"
+                    android:background="#F3D4D4"
                     android:layout_marginVertical="16dp" />
 
                 <!-- Manual Credit Key Input Section -->
@@ -2368,7 +2368,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:text="After purchase via WhatsApp or email, you will receive a Credit Key to enter below."
-                    android:textColor="#888D9B"
+                    android:textColor="#757575"
                     android:textSize="11.5sp"
                     android:layout_marginBottom="12dp" />
             </LinearLayout>
@@ -2381,7 +2381,7 @@
             android:layout_width="match_parent"
             android:layout_height="72dp"
             android:layout_alignParentBottom="true"
-            android:background="#08080C"
+            android:background="#FFFFFF"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"
@@ -2392,9 +2392,9 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FF3CD070"
+                android:backgroundTint="#E53935"
                 android:text="MINIMIZE FOR VIDEO CALL"
-                android:textColor="#0B0C10"
+                android:textColor="#FFFFFF"
                 android:textSize="10.5sp"
                 android:textStyle="bold"
                 android:layout_marginEnd="8dp"
@@ -2408,7 +2408,7 @@
                 android:layout_weight="1.0"
                 android:background="@drawable/outlined_button_bg"
                 android:text="CLONED APPS"
-                android:textColor="#FFFFFF"
+                android:textColor="#212121"
                 android:textSize="11sp"
                 android:textStyle="bold"
                 app:cornerRadius="2dp" />
@@ -2425,7 +2425,7 @@
             android:layout_marginBottom="88dp"
             android:layout_marginEnd="16dp"
             android:src="@drawable/ic_telegram"
-            app:backgroundTint="#32A3E0"
+            app:backgroundTint="#E53935"
             app:tint="#FFFFFF"
             android:contentDescription="Telegram Contact" />
 
@@ -2436,7 +2436,7 @@
         android:id="@+id/layoutPlanPayment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0B0C10"
+        android:background="#FFFFFF"
         android:visibility="gone">
 
         <!-- Checkout Header -->
@@ -2464,7 +2464,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:text="CHECKOUT SECURE"
-                    android:textColor="#FF3CD070"
+                    android:textColor="#E53935"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.05" />
@@ -2505,7 +2505,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:text="TEST PLAN"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#212121"
                     android:textSize="20sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.05" />
@@ -2516,7 +2516,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:text="$10 • 500 CREDITS"
-                    android:textColor="#888D9B"
+                    android:textColor="#757575"
                     android:textSize="12sp"
                     android:layout_marginTop="4dp"
                     android:layout_marginBottom="20dp" />
@@ -2525,7 +2525,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="#131520"
+                    android:background="#FFFFFF"
                     android:orientation="vertical"
                     android:padding="16dp"
                     android:layout_marginBottom="24dp">
@@ -2540,7 +2540,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Plan"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="12.5sp"
                             android:textStyle="bold" />
 
@@ -2550,7 +2550,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
                             android:text="Test"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="12.5sp"
                             android:textStyle="bold" />
 
@@ -2566,7 +2566,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Credits"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="12.5sp"
                             android:textStyle="bold" />
 
@@ -2576,7 +2576,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
                             android:text="500 credits"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="12.5sp"
                             android:textStyle="bold" />
 
@@ -2592,7 +2592,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Stream time"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="12.5sp"
                             android:textStyle="bold" />
 
@@ -2602,7 +2602,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
                             android:text="~4 min"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="12.5sp" />
 
                     </RelativeLayout>
@@ -2611,7 +2611,7 @@
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="#2E334D"
+                        android:background="#F3D4D4"
                         android:layout_marginBottom="12dp" />
 
                     <!-- Total Row -->
@@ -2623,7 +2623,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Total"
-                            android:textColor="#FFFFFF"
+                            android:textColor="#212121"
                             android:textSize="14sp"
                             android:textStyle="bold" />
 
@@ -2633,7 +2633,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
                             android:text="$10.00"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#E53935"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -2646,9 +2646,9 @@
                     android:id="@+id/btnCheckoutFlutterwave"
                     android:layout_width="match_parent"
                     android:layout_height="42dp"
-                    android:backgroundTint="#FF3CD070"
+                    android:backgroundTint="#E53935"
                     android:text="🦋 PAY NOW – FLUTTERWAVE"
-                    android:textColor="#0B0C10"
+                    android:textColor="#FFFFFF"
                     android:textSize="12.5sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"
@@ -2659,9 +2659,9 @@
                     android:id="@+id/btnCheckoutCrypto"
                     android:layout_width="match_parent"
                     android:layout_height="42dp"
-                    android:backgroundTint="#FF3CD070"
+                    android:backgroundTint="#E53935"
                     android:text="₿ PAY WITH CRYPTO"
-                    android:textColor="#0B0C10"
+                    android:textColor="#FFFFFF"
                     android:textSize="12.5sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="20dp"
@@ -2672,7 +2672,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:text="OR CONTACT US DIRECTLY"
-                    android:textColor="#6F7380"
+                    android:textColor="#757575"
                     android:textSize="10sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.08"
@@ -2690,7 +2690,7 @@
                         android:layout_width="0dp"
                         android:layout_height="38dp"
                         android:layout_weight="1"
-                        android:backgroundTint="#0C5A30"
+                        android:backgroundTint="#B71C1C"
                         android:text="💬 WhatsApp"
                         android:textColor="#FFFFFF"
                         android:textSize="11.5sp"
@@ -2704,9 +2704,9 @@
                         android:layout_width="0dp"
                         android:layout_height="38dp"
                         android:layout_weight="1"
-                        android:backgroundTint="#1D2030"
+                        android:backgroundTint="#FFF5F5"
                         android:text="✉ Email"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="11.5sp"
                         android:textStyle="bold"
                         android:layout_marginStart="6dp"
@@ -2723,7 +2723,7 @@
                     android:layout_height="42dp"
                     android:background="@drawable/outlined_button_bg"
                     android:text="← BACK TO PLANS"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#212121"
                     android:textSize="12.5sp"
                     android:textStyle="bold"
                     android:layout_marginTop="24dp"
@@ -2739,7 +2739,7 @@
             android:layout_width="match_parent"
             android:layout_height="72dp"
             android:layout_alignParentBottom="true"
-            android:background="#08080C"
+            android:background="#FFFFFF"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"
@@ -2750,9 +2750,9 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FF3CD070"
+                android:backgroundTint="#E53935"
                 android:text="MINIMIZE FOR VIDEO CALL"
-                android:textColor="#0B0C10"
+                android:textColor="#FFFFFF"
                 android:textSize="10.5sp"
                 android:textStyle="bold"
                 android:layout_marginEnd="8dp"
@@ -2766,7 +2766,7 @@
                 android:layout_weight="1.0"
                 android:background="@drawable/outlined_button_bg"
                 android:text="CLONED APPS"
-                android:textColor="#FFFFFF"
+                android:textColor="#212121"
                 android:textSize="11sp"
                 android:textStyle="bold"
                 app:cornerRadius="2dp" />
@@ -2783,7 +2783,7 @@
             android:layout_marginBottom="88dp"
             android:layout_marginEnd="16dp"
             android:src="@drawable/ic_telegram"
-            app:backgroundTint="#32A3E0"
+            app:backgroundTint="#E53935"
             app:tint="#FFFFFF"
             android:contentDescription="Telegram Contact" />
 
@@ -2794,7 +2794,7 @@
         android:id="@+id/layoutActivation"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0B0C10"
+        android:background="#FFFFFF"
         android:visibility="gone">
 
         <ScrollView
@@ -2817,7 +2817,7 @@
                     android:layout_marginBottom="24dp"
                     android:gravity="center"
                     android:text="ANNUAL LICENSE ACTIVATION"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#212121"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.05" />
@@ -2826,7 +2826,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="#131520"
+                    android:background="#FFFFFF"
                     android:orientation="vertical"
                     android:padding="16dp"
                     android:layout_marginBottom="24dp">
@@ -2847,7 +2847,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="YOUR DEVICE ID"
-                            android:textColor="#888D9B"
+                            android:textColor="#757575"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             android:letterSpacing="0.05" />
@@ -2860,7 +2860,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:text="SS-C468-A726-0788"
-                        android:textColor="#FF3CD070"
+                        android:textColor="#E53935"
                         android:textSize="20sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05" />
@@ -2871,9 +2871,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="42dp"
                         android:layout_marginTop="8dp"
-                        android:background="#1D2030"
+                        android:background="#FFF5F5"
                         android:text="COPY"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:paddingHorizontal="16dp"  app:cornerRadius="2dp"/>
@@ -2883,7 +2883,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:text="This ID is unique to your device."
-                        android:textColor="#6F7380"
+                        android:textColor="#757575"
                         android:textSize="11sp" />
 
                 </LinearLayout>
@@ -2892,7 +2892,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="#131520"
+                    android:background="#FFFFFF"
                     android:orientation="vertical"
                     android:padding="16dp"
                     android:layout_marginBottom="24dp">
@@ -2902,7 +2902,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="center"
                         android:text="PAY $75 TO ACTIVATE YOUR LICENSE"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05"
@@ -2912,9 +2912,9 @@
                         android:id="@+id/btnActivationPayFlutterwave"
                         android:layout_width="match_parent"
                         android:layout_height="42dp"
-                        android:backgroundTint="#FF3CD070"
+                        android:backgroundTint="#E53935"
                         android:text="🦋 PAY $75 – FLUTTERWAVE"
-                        android:textColor="#0B0C10"
+                        android:textColor="#FFFFFF"
                         android:textSize="13sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
@@ -2923,9 +2923,9 @@
                         android:id="@+id/btnActivationPayCrypto"
                         android:layout_width="match_parent"
                         android:layout_height="42dp"
-                        android:backgroundTint="#FF3CD070"
+                        android:backgroundTint="#E53935"
                         android:text="₿ PAY $75 • CRYPTO"
-                        android:textColor="#0B0C10"
+                        android:textColor="#FFFFFF"
                         android:textSize="13sp"
                         android:textStyle="bold"  app:cornerRadius="2dp"/>
 
@@ -2935,7 +2935,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="#131520"
+                    android:background="#FFFFFF"
                     android:orientation="vertical"
                     android:padding="16dp"
                     android:layout_marginBottom="24dp">
@@ -2945,7 +2945,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="center"
                         android:text="OR ENTER EXISTING KEY"
-                        android:textColor="#888D9B"
+                        android:textColor="#757575"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.05"
@@ -2956,12 +2956,12 @@
                         android:id="@+id/etActivationKey"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
-                        android:background="#181B29"
+                        android:background="#FFF7F7"
                         android:paddingHorizontal="16dp"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#212121"
                         android:textSize="14sp"
                         android:hint="SS-XXXX-XXXX-XXXX-XXXX"
-                        android:textColorHint="#3A3F55"
+                        android:textColorHint="#F3D4D4"
                         android:inputType="textCapCharacters"
                         android:gravity="center"
                         android:importantForAutofill="no" />
@@ -2985,9 +2985,9 @@
                         android:layout_width="match_parent"
                         android:layout_height="42dp"
                         android:layout_marginTop="16dp"
-                        android:backgroundTint="#FF3CD070"
+                        android:backgroundTint="#E53935"
                         android:text="ACTIVATE LICENSE"
-                        android:textColor="#0B0C10"
+                        android:textColor="#FFFFFF"
                         android:textSize="14sp"
                         android:textStyle="bold"  app:cornerRadius="2dp"/>
 
@@ -3001,7 +3001,7 @@
                     android:layout_gravity="center_horizontal"
                     android:layout_marginBottom="24dp"
                     android:text="Having trouble? Contact support on Telegram"
-                    android:textColor="#FF3CD070"
+                    android:textColor="#E53935"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:clickable="true"
@@ -3015,7 +3015,7 @@
                     android:layout_height="42dp"
                     android:background="@drawable/outlined_button_bg"
                     android:text="← BACK TO OPTIONS"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#212121"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
@@ -3028,7 +3028,7 @@
                     android:layout_gravity="center_horizontal"
                     android:layout_marginBottom="32dp"
                     android:text="Sign out"
-                    android:textColor="#6F7380"
+                    android:textColor="#757575"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:clickable="true"
@@ -3044,7 +3044,7 @@
             android:layout_width="match_parent"
             android:layout_height="72dp"
             android:layout_alignParentBottom="true"
-            android:background="#08080C"
+            android:background="#FFFFFF"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"
@@ -3055,9 +3055,9 @@
                 android:layout_width="0dp"
                 android:layout_height="42dp"
                 android:layout_weight="1.3"
-                android:backgroundTint="#FF3CD070"
+                android:backgroundTint="#E53935"
                 android:text="MINIMIZE FOR VIDEO CALL"
-                android:textColor="#0B0C10"
+                android:textColor="#FFFFFF"
                 android:textSize="10.5sp"
                 android:textStyle="bold"
                 android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
@@ -3070,7 +3070,7 @@
                 android:layout_weight="1.0"
                 android:background="@drawable/outlined_button_bg"
                 android:text="CLONED APPS"
-                android:textColor="#FFFFFF"
+                android:textColor="#212121"
                 android:textSize="11sp"
                 android:textStyle="bold"  app:cornerRadius="2dp"/>
 
@@ -3086,7 +3086,7 @@
             android:layout_marginBottom="88dp"
             android:layout_marginEnd="16dp"
             android:src="@drawable/ic_telegram"
-            app:backgroundTint="#32A3E0"
+            app:backgroundTint="#E53935"
             app:tint="#FFFFFF"
             android:contentDescription="Telegram Contact" />
 

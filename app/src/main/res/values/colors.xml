@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#3F3F3F</color>
-    <color name="primary_dark">#3F3F3F</color>
-    <color name="primary_light">#3F3F3F</color>
-    <color name="accent">#ffffff</color>
-    <color name="primary_gold">#FF3CD070</color>
-    <color name="dark_bg">#FF0B0C10</color>
+    <!-- Morphly brand: red + white. Shared by every screen. -->
+    <color name="morphly_red">#E53935</color>
+    <color name="morphly_red_dark">#B71C1C</color>
+    <color name="morphly_red_soft">#FFEBEE</color>
+    <color name="morphly_border">#F3D4D4</color>
+    <color name="morphly_bg">#FFFFFF</color>
+    <color name="morphly_surface">#FFF7F7</color>
+
+    <color name="primary">@color/morphly_red</color>
+    <color name="primary_dark">@color/morphly_red_dark</color>
+    <color name="primary_light">#EF5350</color>
+    <color name="accent">@color/morphly_red</color>
+    <color name="primary_gold">@color/morphly_red</color>
+    <color name="dark_bg">#FFFFFF</color>
     <color name="primary_text">#212121</color>
     <color name="secondary_text">#757575</color>
     <color name="white">#FFFFFFFF</color>

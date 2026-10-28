@@ -482,8 +482,8 @@ class StreamActivity : BaseActivity() {
         selectedPresetView?.setBackgroundResource(R.drawable.bg_preset_pill)
         selectedPresetView?.setTextColor(Color.parseColor("#FFFFFF"))
 
-        textView.setBackgroundColor(Color.parseColor("#FF3CD070"))
-        textView.setTextColor(Color.parseColor("#0B0C10"))
+        textView.setBackgroundColor(Color.parseColor("#E53935"))
+        textView.setTextColor(Color.parseColor("#FFFFFF"))
 
         selectedPresetView = textView
         binding.etPromptDescription.setText(prompt)
@@ -527,7 +527,7 @@ class StreamActivity : BaseActivity() {
         binding.tvAccountEmail.text = email
         binding.tvAccountDeviceId.text = StreamAuthManager.getDeviceId(this)
         binding.tvAccountLicenseStatus.text = "LOADING"
-        binding.tvAccountLicenseStatus.setTextColor(Color.parseColor("#888D9B"))
+        binding.tvAccountLicenseStatus.setTextColor(Color.parseColor("#757575"))
         binding.tvAccountLicenseExpires.text = "Checking..."
         binding.tvAccountCreditsRemaining.text = "$remaining CR"
         binding.tvAccountCreditsUsed.text = "..."
@@ -594,7 +594,7 @@ class StreamActivity : BaseActivity() {
         binding.tvAccountLicenseStatus.text = licenseStatus.uppercase()
         binding.tvAccountLicenseStatus.setTextColor(
             if (licenseStatus.equals("active", ignoreCase = true) || licenseStatus == "signed in") {
-                Color.parseColor("#FF3CD070")
+                Color.parseColor("#2E7D32")
             } else {
                 Color.parseColor("#FF5252")
             }
@@ -1032,18 +1032,18 @@ class StreamActivity : BaseActivity() {
 
         // Mode Style / Face Swap toggle
         binding.btnModeStyle.setOnClickListener {
-            binding.btnModeStyle.setBackgroundColor(Color.parseColor("#FF3CD070"))
-            binding.btnModeStyle.setTextColor(Color.parseColor("#0B0C10"))
+            binding.btnModeStyle.setBackgroundColor(Color.parseColor("#E53935"))
+            binding.btnModeStyle.setTextColor(Color.parseColor("#FFFFFF"))
             binding.btnModeFaceSwap.setBackgroundColor(Color.TRANSPARENT)
-            binding.btnModeFaceSwap.setTextColor(Color.parseColor("#888D9B"))
+            binding.btnModeFaceSwap.setTextColor(Color.parseColor("#757575"))
             binding.layoutFaceSwapUpload.visibility = View.GONE
             Toast.makeText(this, "Style mode selected", Toast.LENGTH_SHORT).show()
         }
         binding.btnModeFaceSwap.setOnClickListener {
-            binding.btnModeFaceSwap.setBackgroundColor(Color.parseColor("#FF3CD070"))
-            binding.btnModeFaceSwap.setTextColor(Color.parseColor("#0B0C10"))
+            binding.btnModeFaceSwap.setBackgroundColor(Color.parseColor("#E53935"))
+            binding.btnModeFaceSwap.setTextColor(Color.parseColor("#FFFFFF"))
             binding.btnModeStyle.setBackgroundColor(Color.TRANSPARENT)
-            binding.btnModeStyle.setTextColor(Color.parseColor("#888D9B"))
+            binding.btnModeStyle.setTextColor(Color.parseColor("#757575"))
             binding.layoutFaceSwapUpload.visibility = View.VISIBLE
             Toast.makeText(this, "Face Swap mode selected", Toast.LENGTH_SHORT).show()
         }

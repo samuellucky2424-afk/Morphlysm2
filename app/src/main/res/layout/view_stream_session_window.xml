@@ -56,7 +56,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="LIVE OUTPUT PREVIEW"
-            android:textColor="#FFF0C243"
+            android:textColor="#FFFF8A80"
             android:textSize="10sp"
             android:textStyle="bold" />
 
@@ -99,7 +99,7 @@
                 android:layout_height="36dp"
                 android:layout_marginEnd="6dp"
                 android:layout_weight="1"
-                android:backgroundTint="#FFF0C243"
+                android:backgroundTint="#FFFF8A80"
                 android:text="CLONED APPS"
                 android:textColor="#0B0C10"
                 android:textSize="9sp"
