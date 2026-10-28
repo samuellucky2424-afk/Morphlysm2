@@ -3,21 +3,37 @@ import {getAuth} from 'firebase-admin/auth';
 import {getFirestore} from 'firebase-admin/firestore';
 
 export const FIREBASE_PROJECT = 'luckyweb-f546e';
+function parseServiceAccount(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return null;
+  for (const candidate of [text, Buffer.from(text, 'base64').toString('utf8')]) {
+    try { const value = JSON.parse(candidate); if (value && typeof value === 'object') return value; } catch {}
+  }
+  return {invalid: true};
+}
+function normalize(value, source) {
+  if (!value) return null;
+  return {...value, source, private_key: typeof value.private_key === 'string' ? value.private_key.replace(/\\n/g, '\n') : value.private_key};
+}
+function credentialCandidates(env = process.env) {
+  return [
+    normalize(parseServiceAccount(env.FIREBASE_SERVICE_ACCOUNT_JSON), 'FIREBASE_SERVICE_ACCOUNT_JSON'),
+    normalize(parseServiceAccount(env.FIREBASE_SERVICE_ACCOUNT_KEY), 'FIREBASE_SERVICE_ACCOUNT_KEY'),
+    env.FIREBASE_PRIVATE_KEY || env.FIREBASE_CLIENT_EMAIL ? normalize({project_id: env.FIREBASE_PROJECT_ID,
+      client_email: env.FIREBASE_CLIENT_EMAIL, private_key: env.FIREBASE_PRIVATE_KEY}, 'FIREBASE_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY') : null,
+  ].filter(Boolean);
+}
+const usable = c => !c.invalid && c.project_id === FIREBASE_PROJECT && Boolean(c.private_key) && Boolean(c.client_email);
+// Secret-free summary of which credential sources are configured (project IDs only).
+export function credentialReport(env = process.env) {
+  return credentialCandidates(env).map(c => ({source: c.source, parsed: !c.invalid, projectId: c.project_id || null,
+    hasClientEmail: Boolean(c.client_email), hasPrivateKey: Boolean(c.private_key), usable: usable(c)}));
+}
 let runtime;
 export function firebaseRuntime() {
   if (runtime) return runtime;
-  let credentials = process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (credentials) {
-    try { credentials = JSON.parse(credentials); }
-    catch { throw new Error('Firebase server credential is invalid.'); }
-  } else {
-    credentials = {project_id: process.env.FIREBASE_PROJECT_ID,
-      client_email: process.env.FIREBASE_CLIENT_EMAIL,
-      private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')};
-  }
-  if (credentials.project_id !== FIREBASE_PROJECT || !credentials.private_key || !credentials.client_email) {
-    throw new Error('Configure this backend with a Luckyweb Firebase service account.');
-  }
+  const credentials = credentialCandidates().find(usable);
+  if (!credentials) throw new Error('Configure this backend with a Luckyweb Firebase service account.');
   const app = getApps().find(a => a.name === 'morphly-android') || initializeApp({
     credential: cert(credentials), projectId: FIREBASE_PROJECT,
   }, 'morphly-android');

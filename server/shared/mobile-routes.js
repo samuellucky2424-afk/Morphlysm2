@@ -1,5 +1,5 @@
 // Routes used by the Morphly Android app (FirebaseBackend.kt / StreamActivity.kt).
-import {firebaseRuntime, FIREBASE_PROJECT} from './firebase-runtime.js';
+import {firebaseRuntime, FIREBASE_PROJECT, credentialReport} from './firebase-runtime.js';
 import {ensureFirebaseDefaults, requireUser, bearerToken, formatAccount} from './firebase.js';
 import {createOperations} from './firebase-operations.js';
 import {createXmaxAndroidKey} from './xmax.js';
@@ -152,11 +152,13 @@ export async function sessionStatus(req, res) {
 // Preview-only read-only sanity check: counts of existing accounts (no document contents).
 export async function diag(req, res) {
   if ((process.env.VERCEL_ENV || '') === 'production') return res.status(404).json({error: 'Not found'});
+  const report = credentialReport();
+  if (!report.some(r => r.usable)) return res.status(200).json({project: FIREBASE_PROJECT, credentials: report});
   const {db} = firebaseRuntime();
   const count = async n => (await db.collection(n).count().get()).data().count;
   const [users, wallets, funded] = await Promise.all([count('user_sm'), count('wallet_sm'),
     db.collection('wallet_sm').where('balance', '>', 0).count().get().then(r => r.data().count)]);
   const {auth} = firebaseRuntime();
   const authUsers = (await auth.listUsers(1000)).users.length;
-  return res.status(200).json({project: FIREBASE_PROJECT, user_sm: users, wallet_sm: wallets, wallets_with_balance: funded, auth_users_first_page: authUsers});
+  return res.status(200).json({project: FIREBASE_PROJECT, credentials: report, user_sm: users, wallet_sm: wallets, wallets_with_balance: funded, auth_users_first_page: authUsers});
 }
