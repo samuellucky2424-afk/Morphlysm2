@@ -139,6 +139,7 @@ object XmaxRealtimeBridge {
                     outputSeconds.add((lastOutputAtMs + clockOffsetMs) / 1000L)
                     published()
                     }
+                    publishPreview(output, targetWidth, targetHeight)
                 }
             } finally {
                 draining.set(false)
@@ -147,6 +148,21 @@ object XmaxRealtimeBridge {
                 }
             }
         }
+    }
+
+    @Volatile private var lastPreviewAtMs = 0L
+    /** Feeds the floating mini window (StreamPreviewBridge) with ~5 fps snapshots of the AI output. */
+    private fun publishPreview(nv21: ByteArray, width: Int, height: Int) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastPreviewAtMs < 200L || width <= 0 || height <= 0) return
+        lastPreviewAtMs = now
+        runCatching {
+            val yuv = android.graphics.YuvImage(nv21, android.graphics.ImageFormat.NV21, width, height, null)
+            val out = java.io.ByteArrayOutputStream()
+            yuv.compressToJpeg(android.graphics.Rect(0, 0, width, height), 70, out)
+            val bytes = out.toByteArray()
+            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        }.getOrNull()?.let { StreamPreviewBridge.publish(it) }
     }
 
     fun disconnect() {

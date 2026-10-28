@@ -556,10 +556,9 @@
         android:id="@+id/layoutDashboard"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0B0C10"
+        android:background="#FFF7F7"
         android:visibility="gone">
 
-        <!-- Scrollable Dashboard Panel -->
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -570,63 +569,52 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:paddingBottom="16dp">
 
-                <!-- Header Navigation Bar -->
+                <!-- Red header -->
                 <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="16dp">
+                    android:background="#D32F2F"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:paddingTop="22dp"
+                    android:paddingBottom="22dp">
 
-                    <!-- Logo and App Title -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_alignParentStart="true"
                         android:layout_centerVertical="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:orientation="vertical">
 
-                        <ImageView
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
-                            android:src="@drawable/ic_morphly_tv_smoke"
-                            android:contentDescription="Stream Icon" />
-
-                        <LinearLayout
+                        <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:background="@drawable/bg_white_badge"
-                            android:paddingHorizontal="10dp"
-                            android:paddingVertical="4dp"
-                            android:layout_marginStart="8dp">
+                            android:text="MORPHLY"
+                            android:textColor="#FFFFFF"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.08" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="MORPHLY"
-                                android:textColor="#FF3CD070"
-                                android:textSize="12sp"
-                                android:textStyle="bold"
-                                android:letterSpacing="0.05" />
-
-                        </LinearLayout>
-
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Live Face Swap"
+                            android:textColor="#FFE3E3"
+                            android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Header Nav Hamburger Menu Button -->
                     <LinearLayout
                         android:id="@+id/btnHamburgerMenu"
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
                         android:layout_alignParentEnd="true"
                         android:layout_centerVertical="true"
-                        android:background="@drawable/bg_nav_pill"
+                        android:background="@drawable/bg_mx_pill_white"
                         android:gravity="center"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="14dp"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
                         android:clickable="true"
                         android:focusable="true">
 
@@ -634,49 +622,117 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="MENU ☰"
-                            android:textColor="#FF3CD070"
+                            android:textColor="#D32F2F"
                             android:textSize="12sp"
                             android:textStyle="bold" />
-
                     </LinearLayout>
-
                 </RelativeLayout>
 
-                <!-- AI LIVE Status Badge -->
+                <!-- Credit balance card -->
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="@drawable/bg_dark_teal_outline"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="4dp"
-                    android:layout_marginBottom="12dp">
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="-12dp"
+                    android:background="@drawable/bg_mx_card"
+                    android:elevation="4dp"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                    <View
-                        android:layout_width="6dp"
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_centerVertical="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="CREDIT BALANCE"
+                                android:textColor="#8A8A8A"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.06" />
+
+                            <TextView
+                                android:id="@+id/tvSessionRemaining"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0 CR"
+                                android:textColor="#D32F2F"
+                                android:textSize="28sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btnDashboardBuyCredits"
+                            android:layout_width="wrap_content"
+                            android:layout_height="46dp"
+                            android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true"
+                            android:background="@drawable/bg_mx_red"
+                            android:paddingStart="18dp"
+                            android:paddingEnd="18dp"
+                            android:text="+ BUY CREDITS"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </RelativeLayout>
+
+                    <ProgressBar
+                        android:id="@+id/progressSessionRemaining"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
                         android:layout_height="6dp"
-                        android:background="#FF3CD070"
-                        android:layout_marginEnd="6dp" />
+                        android:layout_marginTop="12dp"
+                        android:max="100"
+                        android:progress="0"
+                        android:progressTint="#D32F2F"
+                        android:progressBackgroundTint="#F5D5D5" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="AI LIVE"
-                        android:textColor="#FF3CD070"
-                        android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.05" />
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
 
+                        <TextView
+                            android:id="@+id/tvSessionUsed"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="0 CR"
+                            android:textColor="#8A8A8A"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tvSessionPlanTotal"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="0 CR"
+                            android:textColor="#8A8A8A"
+                            android:textSize="11sp" />
+                    </LinearLayout>
                 </LinearLayout>
 
-                <!-- Main Camera Screen View Box -->
+                <!-- Live preview -->
                 <RelativeLayout
                     android:id="@+id/panelCameraFeed"
                     android:layout_width="match_parent"
                     android:layout_height="340dp"
-                    android:background="#050608"
-                    android:layout_marginBottom="16dp">
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/bg_mx_preview"
+                    android:clipToOutline="true">
 
                     <FrameLayout
                         android:id="@+id/layoutDecartRemoteOutput"
@@ -684,7 +740,6 @@
                         android:layout_height="match_parent"
                         android:visibility="gone" />
 
-                    <!-- Center Text Placeholder -->
                     <LinearLayout
                         android:id="@+id/layoutAiOutputPlaceholder"
                         android:layout_width="wrap_content"
@@ -694,57 +749,62 @@
                         android:orientation="vertical">
 
                         <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="◆"
-                            android:textColor="#1E2338"
-                            android:textSize="44sp" />
-
-                        <TextView
                             android:id="@+id/tvAiOutputTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="AI OUTPUT WILL APPEAR HERE"
-                            android:textColor="#2D334D"
+                            android:textColor="#FFFFFF"
                             android:textSize="12sp"
                             android:textStyle="bold"
                             android:letterSpacing="0.1" />
 
                         <TextView
                             android:id="@+id/tvAiOutputStatus"
-                            android:layout_width="220dp"
+                            android:layout_width="230dp"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:gravity="center"
                             android:text="Ready to connect live output"
-                            android:textColor="#5D6688"
-                            android:textSize="10sp" />
-
+                            android:textColor="#BDBDBD"
+                            android:textSize="11sp" />
                     </LinearLayout>
 
-                    <!-- Fullscreen Action Overlay -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_alignParentTop="true"
+                        android:layout_margin="12dp"
+                        android:background="@drawable/bg_mx_red"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
+                        android:text="● AI LIVE"
+                        android:textColor="#FFFFFF"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
                     <TextView
                         android:id="@+id/btnFullscreenCamera"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_alignParentEnd="true"
                         android:layout_alignParentTop="true"
-                        android:padding="16dp"
+                        android:padding="14dp"
                         android:text="⛶"
-                        android:textColor="#3A3F55"
+                        android:textColor="#FFFFFF"
                         android:textSize="20sp"
                         android:clickable="true"
                         android:focusable="true" />
 
-                    <!-- Floating Mini CAM Preview Container -->
                     <androidx.cardview.widget.CardView
-                        android:layout_width="120dp"
+                        android:layout_width="110dp"
                         android:layout_height="80dp"
                         android:layout_alignParentStart="true"
                         android:layout_alignParentBottom="true"
-                        android:layout_marginStart="12dp"
-                        android:layout_marginBottom="12dp"
-                        app:cardCornerRadius="8dp"
+                        android:layout_margin="12dp"
+                        app:cardCornerRadius="10dp"
                         app:cardBackgroundColor="#000000"
                         app:cardElevation="4dp">
 
@@ -752,810 +812,281 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent">
 
-                            <!-- TextureView for Camera preview -->
                             <TextureView
                                 android:id="@+id/textureViewUserCam"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent" />
 
-                            <!-- Fallback Mock Profile Layout when Camera is blocked -->
                             <TextView
                                 android:id="@+id/tvUserCamFallback"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
-                                android:background="#1E2235"
+                                android:background="#2A2A2A"
                                 android:gravity="center"
-                                android:text="👤"
-                                android:textSize="32sp"
+                                android:text="CAMERA"
+                                android:textColor="#FFFFFF"
+                                android:textSize="9sp"
                                 android:visibility="gone" />
-
-                            <!-- Mini label "YOUR CAM" -->
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_alignParentStart="true"
-                                android:layout_alignParentTop="true"
-                                android:layout_marginStart="6dp"
-                                android:layout_marginTop="6dp"
-                                android:background="#66000000"
-                                android:paddingHorizontal="4dp"
-                                android:paddingVertical="2dp"
-                                android:text="YOUR CAM"
-                                android:textColor="#FF3CD070"
-                                android:textSize="8sp"
-                                android:textStyle="bold" />
-
                         </RelativeLayout>
-
                     </androidx.cardview.widget.CardView>
-
                 </RelativeLayout>
 
                 <LinearLayout
                     android:id="@+id/layoutDashboardControls"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                <!-- CAMERA Dropdown -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📷 CAMERA"
-                    android:textColor="#888D9B"
-                    android:textSize="9.5sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.05"
-                    android:layout_marginBottom="8dp" />
-
-                <!-- Simple Spinner Dropdown -->
-                <Spinner
-                    android:id="@+id/spinnerCameraSelect"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="#131520"
-                    android:layout_marginBottom="16dp"
-                    android:spinnerMode="dropdown" />
-
-                <!-- MODE Selector Header -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🎭 MODE"
-                    android:textColor="#888D9B"
-                    android:textSize="9.5sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.05"
-                    android:layout_marginBottom="8dp" />
-
-                <!-- Dual Pills MODE Selector -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:orientation="horizontal"
-                    android:background="#131520"
-                    android:padding="2dp"
-                    android:layout_marginBottom="16dp">
-
-                    <TextView
-                        android:id="@+id/btnModeStyle"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:background="#FF3CD070"
-                        android:gravity="center"
-                        android:text="STYLE"
-                        android:textColor="#0B0C10"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:clickable="true"
-                        android:focusable="true" />
-
-                    <TextView
-                        android:id="@+id/btnModeFaceSwap"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:background="@android:color/transparent"
-                        android:gravity="center"
-                        android:text="FACE SWAP"
-                        android:textColor="#888D9B"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:clickable="true"
-                        android:focusable="true" />
-
-                </LinearLayout>
-
-                <!-- FACE SWAP Upload Image Box (Visible only when Face Swap mode is active) -->
-                <LinearLayout
-                    android:id="@+id/layoutFaceSwapUpload"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:background="#131520"
-                    android:padding="12dp"
-                    android:layout_marginBottom="16dp"
-                    android:visibility="gone">
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="SWAP TARGET IMAGE"
-                        android:textColor="#888D9B"
-                        android:textSize="10sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="8dp" />
-
-                    <RelativeLayout
-                        android:id="@+id/btnUploadFaceImage"
+                    <!-- Face swap card -->
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="80dp"
-                        android:background="@drawable/bg_nav_pill"
-                        android:clickable="true"
-                        android:focusable="true">
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:background="@drawable/bg_mx_card"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="FACE SWAP"
+                            android:textColor="#D32F2F"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.06" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:layout_marginBottom="10dp"
+                            android:text="Upload a clear photo of the face to use"
+                            android:textColor="#757575"
+                            android:textSize="12sp" />
 
                         <LinearLayout
-                            android:id="@+id/layoutUploadPlaceholder"
-                            android:layout_width="wrap_content"
+                            android:id="@+id/layoutFaceSwapUpload"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_centerInParent="true"
-                            android:gravity="center"
-                            android:orientation="horizontal">
+                            android:orientation="vertical">
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="📤"
-                                android:textSize="18sp"
-                                android:layout_marginEnd="8dp" />
+                            <RelativeLayout
+                                android:id="@+id/btnUploadFaceImage"
+                                android:layout_width="match_parent"
+                                android:layout_height="88dp"
+                                android:background="@drawable/bg_mx_upload"
+                                android:clickable="true"
+                                android:focusable="true">
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="CHOOSE FACE IMAGE"
-                                android:textColor="#FF3CD070"
-                                android:textSize="12sp"
-                                android:textStyle="bold" />
+                                <LinearLayout
+                                    android:id="@+id/layoutUploadPlaceholder"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_centerInParent="true"
+                                    android:gravity="center"
+                                    android:orientation="horizontal">
 
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginEnd="8dp"
+                                        android:text="📤"
+                                        android:textSize="18sp" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="UPLOAD FACE IMAGE"
+                                        android:textColor="#D32F2F"
+                                        android:textSize="13sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <ImageView
+                                    android:id="@+id/ivUploadedFacePreview"
+                                    android:layout_width="72dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_alignParentStart="true"
+                                    android:layout_margin="6dp"
+                                    android:scaleType="centerCrop"
+                                    android:visibility="gone"
+                                    android:contentDescription="Face Preview" />
+
+                                <TextView
+                                    android:id="@+id/tvUploadedFileName"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_centerVertical="true"
+                                    android:layout_toEndOf="@id/ivUploadedFacePreview"
+                                    android:layout_marginStart="12dp"
+                                    android:text="No file selected"
+                                    android:textColor="#212121"
+                                    android:textSize="12sp"
+                                    android:visibility="gone" />
+                            </RelativeLayout>
                         </LinearLayout>
 
-                        <!-- Thumbnail Preview -->
-                        <ImageView
-                            android:id="@+id/ivUploadedFacePreview"
-                            android:layout_width="72dp"
-                            android:layout_height="match_parent"
-                            android:layout_alignParentStart="true"
-                            android:layout_margin="4dp"
-                            android:scaleType="centerCrop"
-                            android:visibility="gone"
-                            android:contentDescription="Face Preview" />
-
                         <TextView
-                            android:id="@+id/tvUploadedFileName"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_centerVertical="true"
-                            android:layout_toEndOf="@id/ivUploadedFacePreview"
-                            android:layout_marginStart="12dp"
-                            android:text="No file selected"
-                            android:textColor="#FFFFFF"
-                            android:textSize="12sp"
-                            android:visibility="gone" />
+                            android:layout_marginTop="14dp"
+                            android:layout_marginBottom="6dp"
+                            android:text="CAMERA"
+                            android:textColor="#8A8A8A"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
 
-                    </RelativeLayout>
-
-                </LinearLayout>
-
-                <!-- Primary Connect & Actions Panel -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
-
-                    <!-- CONNECT Button -->
-                    <Button
-                        android:id="@+id/btnConnectStream"
-                        android:layout_width="0dp"
-                        android:layout_height="42dp"
-                        android:layout_weight="1"
-                        android:backgroundTint="#FF3CD070"
-                        android:text="▶ CONNECT"
-                        android:textColor="#0B0C10"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
-
-                    <!-- STOP Button -->
-                    <Button
-                        android:id="@+id/btnStopStream"
-                        android:layout_width="0dp"
-                        android:layout_height="42dp"
-                        android:layout_weight="1"
-                        android:backgroundTint="#1D2030"
-                        android:text="■ STOP"
-                        android:textColor="#3A3F55"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:enabled="false"  app:cornerRadius="2dp"/>
-
-                </LinearLayout>
-
-                <!-- Secondary Action Buttons -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="20dp">
-
-                    <!-- BACKGROUND Button -->
-                    <Button
-                        android:id="@+id/btnBackground"
-                        style="?android:attr/borderlessButtonStyle"
-                        android:layout_width="0dp"
-                        android:layout_height="42dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/outlined_button_bg"
-                        android:text="🖼️ BACKGROUND"
-                        android:textColor="#FFFFFF"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
-
-                    <!-- ABUSE Button -->
-                    <Button
-                        android:id="@+id/btnAbuse"
-                        style="?android:attr/borderlessButtonStyle"
-                        android:layout_width="0dp"
-                        android:layout_height="42dp"
-                        android:layout_weight="0.8"
-                        android:background="@drawable/outlined_button_bg"
-                        android:backgroundTint="#2C121A"
-                        android:text="🚨 ABUSE"
-                        android:textColor="#FF5252"
-                        android:textSize="11sp"
-                        android:textStyle="bold"  app:cornerRadius="2dp"/>
-
-                </LinearLayout>
-
-                <!-- PROMPT Toggle & Text Input Box -->
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="✍️ PROMPT"
-                        android:textColor="#888D9B"
-                        android:textSize="9.5sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.05" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        <Spinner
+                            android:id="@+id/spinnerCameraSelect"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:background="@drawable/bg_mx_field"
+                            android:spinnerMode="dropdown" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="LIVE UPDATE"
-                            android:textColor="#FF3CD070"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:layout_marginEnd="6dp" />
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="6dp"
+                            android:text="QUALITY"
+                            android:textColor="#8A8A8A"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
 
-                        <androidx.appcompat.widget.SwitchCompat
-                            android:id="@+id/switchLiveUpdate"
-                            android:layout_width="wrap_content"
+                        <Spinner
+                            android:id="@+id/spinnerQualitySelect"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:background="@drawable/bg_mx_field"
+                            android:spinnerMode="dropdown" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:checked="true"
-                            app:thumbTint="#FF3CD070"
-                            app:trackTint="#3A3F55" />
+                            android:layout_marginTop="12dp"
+                            android:gravity="top"
+                            android:orientation="horizontal">
 
+                            <CheckBox
+                                android:id="@+id/cbAuditConsent"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:checked="true"
+                                android:buttonTint="#D32F2F" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginTop="6dp"
+                                android:text="I consent to AI transformation auditing and session logging."
+                                android:textColor="#757575"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/btnConnectStream"
+                                android:layout_width="0dp"
+                                android:layout_height="52dp"
+                                android:layout_weight="1"
+                                android:layout_marginEnd="8dp"
+                                android:backgroundTint="#D32F2F"
+                                android:text="▶ CONNECT"
+                                android:textColor="#FFFFFF"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                app:cornerRadius="14dp" />
+
+                            <Button
+                                android:id="@+id/btnStopStream"
+                                android:layout_width="0dp"
+                                android:layout_height="52dp"
+                                android:layout_weight="1"
+                                android:backgroundTint="#EEEEEE"
+                                android:enabled="false"
+                                android:text="■ STOP"
+                                android:textColor="#9E9E9E"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                app:cornerRadius="14dp" />
+                        </LinearLayout>
                     </LinearLayout>
+                </LinearLayout>
 
-                </RelativeLayout>
-
-                <EditText
-                    android:id="@+id/etPromptDescription"
-                    android:layout_width="match_parent"
-                    android:layout_height="64dp"
-                    android:background="#131520"
-                    android:gravity="top|start"
-                    android:hint="Describe the AI transformation..."
-                    android:importantForAutofill="no"
-                    android:inputType="textMultiLine"
-                    android:padding="12dp"
-                    android:textColor="#FFFFFF"
-                    android:textColorHint="#3A3F55"
-                    android:textSize="13sp"
-                    android:layout_marginBottom="20dp" />
-
-                <!-- PRESETS Section Header -->
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="⚡ PRESETS"
-                        android:textColor="#888D9B"
-                        android:textSize="9.5sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.05" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="ENHANCE"
-                            android:textColor="#FF3CD070"
-                            android:textSize="9sp"
-                            android:textStyle="bold"
-                            android:layout_marginEnd="6dp" />
-
-                        <androidx.appcompat.widget.SwitchCompat
-                            android:id="@+id/switchEnhance"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:checked="true"
-                            app:thumbTint="#FF3CD070"
-                            app:trackTint="#3A3F55" />
-
-                    </LinearLayout>
-
-                </RelativeLayout>
-
-                <!-- Preset Options Selector Pills (3 Rows Grid) -->
+                <!-- Removed features (kept hidden for code compatibility) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginBottom="24dp">
-
-                    <!-- Row 1 -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="8dp">
-
-                        <TextView
-                            android:id="@+id/presetAnime"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="🌊 Anime"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:layout_marginEnd="4dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/presetCyberpunk"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="🔮 Cyberpunk"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:layout_marginEnd="4dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/presetFire"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="🔥 Fire"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:layout_marginEnd="4dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/presetIce"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="🧊 Ice"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                    </LinearLayout>
-
-                    <!-- Row 2 -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="8dp">
-
-                        <TextView
-                            android:id="@+id/presetAndroid"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="🤖 Android"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:layout_marginEnd="4dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/presetCosmos"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="🌌 Cosmos"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:layout_marginEnd="4dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/presetHorror"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="👻 Horror"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:layout_marginEnd="4dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/presetPainting"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="🎨 Painting"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                    </LinearLayout>
-
-                    <!-- Row 3 -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:id="@+id/presetNature"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="🌿 Nature"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:layout_marginEnd="4dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/presetWarrior"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="⚔️ Warrior"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:layout_marginEnd="4dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/presetNoir"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="🕵️ Noir"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:layout_marginEnd="4dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/presetWizard"
-                            android:layout_width="0dp"
-                            android:layout_height="36dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_preset_pill"
-                            android:gravity="center"
-                            android:text="🧙 Wizard"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11.5sp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                    </LinearLayout>
-
+                    android:visibility="gone">
+                    <TextView android:id="@+id/btnModeStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/btnModeFaceSwap" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <Button android:id="@+id/btnBackground" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <Button android:id="@+id/btnAbuse" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <androidx.appcompat.widget.SwitchCompat android:id="@+id/switchLiveUpdate" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <EditText android:id="@+id/etPromptDescription" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <androidx.appcompat.widget.SwitchCompat android:id="@+id/switchEnhance" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetAnime" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetCyberpunk" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetFire" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetIce" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetAndroid" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetCosmos" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetHorror" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetPainting" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetNature" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetWarrior" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetNoir" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/presetWizard" android:layout_width="wrap_content" android:layout_height="wrap_content" />
                 </LinearLayout>
-
-                <!-- RECENT tag -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📜 RECENT"
-                    android:textColor="#888D9B"
-                    android:textSize="9.5sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.05"
-                    android:layout_marginBottom="16dp" />
-
-                <!-- SESSION BALANCE CARD -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="#131520"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:layout_marginBottom="24dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="16dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="💳 "
-                            android:textSize="16sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="SESSION BALANCE"
-                            android:textColor="#888D9B"
-                            android:textSize="10.5sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.05" />
-
-                    </LinearLayout>
-
-                    <!-- Plan Total -->
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="PLAN TOTAL"
-                            android:textColor="#888D9B"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvSessionPlanTotal"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_alignParentRight="true"
-                            android:text="17,302 CR"
-                            android:textColor="#FF3CD070"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                    </RelativeLayout>
-
-                    <!-- Used -->
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="USED"
-                            android:textColor="#888D9B"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvSessionUsed"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_alignParentRight="true"
-                            android:text="16,983 CR"
-                            android:textColor="#FF5252"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                    </RelativeLayout>
-
-                    <!-- Divider -->
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="#2E334D"
-                        android:layout_marginBottom="12dp" />
-
-                    <!-- Remaining -->
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="REMAINING"
-                            android:textColor="#888D9B"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvSessionRemaining"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_alignParentRight="true"
-                            android:text="319 CR"
-                            android:textColor="#FF3CD070"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                    </RelativeLayout>
-
-                    <!-- Auditing Auditing Checkbox -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="top"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="16dp">
-
-                        <CheckBox
-                            android:id="@+id/cbAuditConsent"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:checked="true"
-                            android:buttonTint="#FF3CD070"
-                            android:padding="0dp"
-                            android:layout_marginTop="-4dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:text="I consent to AI transformation auditing, capture, and session logging. Consent is required before connecting to the live engine."
-                            android:textColor="#888D9B"
-                            android:textSize="11sp" />
-
-                    </LinearLayout>
-
-                    <!-- Progress Bar representing Remaining Credits ratio -->
-                    <ProgressBar
-                        android:id="@+id/progressSessionRemaining"
-                        style="?android:attr/progressBarStyleHorizontal"
-                        android:layout_width="match_parent"
-                        android:layout_height="6dp"
-                        android:max="100"
-                        android:progress="60"
-                        android:progressTint="#FF5252"
-                        android:progressBackgroundTint="#2E334D" />
-
-                </LinearLayout>
-
-                <!-- QUALITY Label -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⚙ QUALITY"
-                    android:textColor="#888D9B"
-                    android:textSize="9.5sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.05"
-                    android:layout_marginBottom="8dp" />
-
-                <!-- Spinner Quality Select -->
-                <Spinner
-                    android:id="@+id/spinnerQualitySelect"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="#131520"
-                    android:layout_marginBottom="32dp"
-                    android:spinnerMode="dropdown" />
-
-                </LinearLayout>
-
             </LinearLayout>
-
         </ScrollView>
 
-        <!-- Bottom Actions (Consistent Footer) -->
         <LinearLayout
             android:id="@+id/layoutDashboardBottomActions"
             android:layout_width="match_parent"
-            android:layout_height="72dp"
+            android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
-            android:background="#08080C"
+            android:background="#FFFFFF"
+            android:elevation="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:elevation="8dp">
+            android:padding="12dp">
 
             <Button
                 android:id="@+id/btnDashboardMinimize"
                 android:layout_width="0dp"
-                android:layout_height="42dp"
-                android:layout_weight="1.3"
-                android:backgroundTint="#FF3CD070"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:backgroundTint="#FFEBEE"
                 android:text="MINIMIZE FOR VIDEO CALL"
-                android:textColor="#0B0C10"
-                android:textSize="10.5sp"
+                android:textColor="#D32F2F"
+                android:textSize="11sp"
                 android:textStyle="bold"
-                android:layout_marginEnd="8dp"  app:cornerRadius="2dp"/>
+                app:cornerRadius="12dp" />
 
             <Button
                 android:id="@+id/btnDashboardClonedApps"
-                style="?android:attr/borderlessButtonStyle"
                 android:layout_width="0dp"
-                android:layout_height="42dp"
-                android:layout_weight="1.0"
-                android:background="@drawable/outlined_button_bg"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:backgroundTint="#D32F2F"
                 android:text="CLONED APPS"
                 android:textColor="#FFFFFF"
                 android:textSize="11sp"
-                android:textStyle="bold"  app:cornerRadius="2dp"/>
-
+                android:textStyle="bold"
+                app:cornerRadius="12dp" />
         </LinearLayout>
 
-        <!-- FAB Telegram -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fabDashboardTelegram"
             android:layout_width="wrap_content"

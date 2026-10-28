@@ -167,24 +167,28 @@ class StreamActivity : BaseActivity() {
         }
     }
 
+    private fun darkSpinnerAdapter(options: Array<String>) =
+        object : android.widget.ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, options) {
+            override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View =
+                super.getView(position, convertView, parent).also {
+                    (it as? android.widget.TextView)?.apply { setTextColor(Color.parseColor("#212121")); setPadding(28, 0, 28, 0) }
+                }
+        }.apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+
     private fun setupSpinners() {
         val cameraOptions = arrayOf("camera 1, facing front", "camera 2, facing back")
-        val cameraAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, cameraOptions).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
+        val cameraAdapter = darkSpinnerAdapter(cameraOptions)
         binding.spinnerCameraSelect.adapter = cameraAdapter
 
         val qualityOptions = arrayOf("High – Best Output", "Medium – Standard", "Low – Data Saver")
-        val qualityAdapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, qualityOptions).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
+        val qualityAdapter = darkSpinnerAdapter(qualityOptions)
         binding.spinnerQualitySelect.adapter = qualityAdapter
     }
 
     override fun onResume() {
         super.onResume()
         StreamSessionController.refreshWindow(this)
-        if (binding.layoutDashboard.visibility == View.VISIBLE) {
+        if (binding.layoutDashboard.visibility == View.VISIBLE && !isStreaming) {
             startCameraPreview()
         }
         if (StreamAuthManager.isLoggedIn(this) &&
@@ -418,7 +422,7 @@ class StreamActivity : BaseActivity() {
         if (progressPercent < 20) {
             binding.progressSessionRemaining.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FF5252")))
         } else {
-            binding.progressSessionRemaining.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FF3CD070")))
+            binding.progressSessionRemaining.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#D32F2F")))
         }
     }
 
@@ -493,12 +497,12 @@ class StreamActivity : BaseActivity() {
         binding.tvAiOutputStatus.text = "Ready to connect live output"
 
         binding.btnConnectStream.isEnabled = true
-        binding.btnConnectStream.setBackgroundColor(Color.parseColor("#FF3CD070"))
-        binding.btnConnectStream.setTextColor(Color.parseColor("#0B0C10"))
+        binding.btnConnectStream.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#D32F2F"))
+        binding.btnConnectStream.setTextColor(Color.WHITE)
 
         binding.btnStopStream.isEnabled = false
-        binding.btnStopStream.setBackgroundColor(Color.parseColor("#1D2030"))
-        binding.btnStopStream.setTextColor(Color.parseColor("#3A3F55"))
+        binding.btnStopStream.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#EEEEEE"))
+        binding.btnStopStream.setTextColor(Color.parseColor("#9E9E9E"))
 
         Toast.makeText(this, "AI transformation engine stopped.", Toast.LENGTH_SHORT).show()
     }
@@ -1106,6 +1110,7 @@ class StreamActivity : BaseActivity() {
             openClonedAppsForVideoCall()
         }
         binding.fabDashboardTelegram.setOnClickListener { openTelegram() }
+        binding.btnDashboardBuyCredits.setOnClickListener { showPlanSelectionState() }
     }
 
     private fun pickFaceImage() {
@@ -1143,9 +1148,7 @@ class StreamActivity : BaseActivity() {
         return true
     }
 
-    private fun selectedModeKey(): String {
-        return if (binding.layoutFaceSwapUpload.visibility == View.VISIBLE) "face_swap" else "style"
-    }
+    private fun selectedModeKey(): String = "face_swap"
 
     private fun selectedQualityKey(): String {
         return when (binding.spinnerQualitySelect.selectedItemPosition) {
@@ -1176,14 +1179,7 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun currentDecartPrompt(): String {
-        val prompt = binding.etPromptDescription.text?.toString()?.trim().orEmpty()
-        if (binding.switchLiveUpdate.isChecked && prompt.isNotBlank()) {
-            return prompt
-        }
-        return when (selectedModeKey()) {
-            "face_swap" -> "Apply the selected face image to the live video while preserving natural motion."
-            else -> selectedPresetLabel().ifBlank { "Transform the live camera into a clean high-definition cinematic style." }
-        }
+        return "Apply the selected face image to the live video while preserving natural motion."
     }
 
     private fun readFaceImageForDecart(uri: Uri): Pair<String, String> {
@@ -1306,8 +1302,8 @@ class StreamActivity : BaseActivity() {
         if (isStreaming && StreamSessionController.isActive()) {
             StreamSessionController.showMiniWindow(this)
         }
-        MainActivity.start(this@StreamActivity)
-        finish()
+        // Keep this activity (and the live XMax session) alive; just bring the cloned apps list forward.
+        StreamSessionController.openClonedApps(this@StreamActivity)
     }
 
     private fun connectToDecartSession() {
@@ -1330,8 +1326,8 @@ class StreamActivity : BaseActivity() {
         binding.tvAiOutputTitle.text = "CONNECTING LIVE OUTPUT"
         binding.tvAiOutputStatus.text = "Preparing live engine session..."
         binding.btnConnectStream.isEnabled = false
-        binding.btnConnectStream.setBackgroundColor(Color.parseColor("#1D2030"))
-        binding.btnConnectStream.setTextColor(Color.parseColor("#3A3F55"))
+        binding.btnConnectStream.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#EEEEEE"))
+        binding.btnConnectStream.setTextColor(Color.parseColor("#9E9E9E"))
 
         val deviceId = StreamAuthManager.getDeviceId(this)
         val prompt = currentDecartPrompt()
@@ -1406,8 +1402,8 @@ class StreamActivity : BaseActivity() {
                 Log.e(TAG_STREAM_LIFECYCLE, "connect_live_engine_failed", e)
                 runOnUiThread {
                     binding.btnConnectStream.isEnabled = true
-                    binding.btnConnectStream.setBackgroundColor(Color.parseColor("#FF3CD070"))
-                    binding.btnConnectStream.setTextColor(Color.parseColor("#0B0C10"))
+                    binding.btnConnectStream.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#D32F2F"))
+                    binding.btnConnectStream.setTextColor(Color.WHITE)
                     binding.tvAiOutputTitle.text = "LIVE OUTPUT ERROR"
                     binding.tvAiOutputStatus.text = sanitizeEngineText(e.message ?: "Unable to connect to the live engine.")
                     Toast.makeText(this@StreamActivity, sanitizeEngineText(e.message ?: "Unable to connect to the live engine."), Toast.LENGTH_LONG).show()
@@ -1432,12 +1428,12 @@ class StreamActivity : BaseActivity() {
             stopLiveStream()
         }
         binding.btnStopStream.isEnabled = true
-        binding.btnStopStream.setBackgroundColor(Color.parseColor("#FFFF5252"))
-        binding.btnStopStream.setTextColor(Color.parseColor("#0B0C10"))
+        binding.btnStopStream.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#212121"))
+        binding.btnStopStream.setTextColor(Color.WHITE)
 
         binding.btnConnectStream.isEnabled = false
-        binding.btnConnectStream.setBackgroundColor(Color.parseColor("#1D2030"))
-        binding.btnConnectStream.setTextColor(Color.parseColor("#3A3F55"))
+        binding.btnConnectStream.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#EEEEEE"))
+        binding.btnConnectStream.setTextColor(Color.parseColor("#9E9E9E"))
 
         mainHandler.post(creditUsageRunnable)
     }
