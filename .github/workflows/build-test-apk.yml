@@ -32,6 +32,7 @@ jobs:
           curl --fail --location https://codeload.github.com/jmpews/Dobby/tar.gz/9c85e74f92eda36b99ddb0fddb17a9df2278a4d3 -o /tmp/dobby.tar.gz
           mkdir -p /tmp/dobby-source
           tar -xzf /tmp/dobby.tar.gz --strip-components=1 -C /tmp/dobby-source
+          sed -i '1i#include <android/log.h>' /tmp/dobby-source/external/logging/logging.c
           cmake -S /tmp/dobby-source -B /tmp/dobby-build \
             -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/28.2.13676358/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI=x86_64 -DANDROID_PLATFORM=android-24 \
