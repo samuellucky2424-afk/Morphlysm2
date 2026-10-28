@@ -1,5 +1,7 @@
 apply plugin: 'com.android.library'
 
+def morphlyAbis = providers.gradleProperty('morphlyAbis').orElse('armeabi-v7a,arm64-v8a').get().split(',').collect { it.trim() }
+
 android {
     namespace 'top.niunaijun.blackbox'
 
@@ -20,7 +22,7 @@ android {
         consumerProguardFiles "consumer-rules.pro"
         ndk {
             
-            abiFilters 'arm64-v8a' , 'armeabi-v7a'
+            abiFilters(*morphlyAbis)
         }
     }
 

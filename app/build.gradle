@@ -26,6 +26,8 @@ def hasReleaseSigning = [
         releaseKeyPassword
 ].every { it != null && !it.toString().isBlank() }
 
+def morphlyAbis = providers.gradleProperty('morphlyAbis').orElse('armeabi-v7a,arm64-v8a').get().split(',').collect { it.trim() }
+
 android {
 
     namespace 'top.niunaijun.blackboxa'
@@ -45,7 +47,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters 'armeabi-v7a', 'arm64-v8a'
+            abiFilters(*morphlyAbis)
         }
 
         splits {
@@ -53,7 +55,7 @@ android {
                 enable true
                 reset()
                 
-                include 'armeabi-v7a', "arm64-v8a"
+                include(*morphlyAbis)
                 universalApk true
             }
         }

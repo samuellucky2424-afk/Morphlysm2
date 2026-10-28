@@ -26,10 +26,24 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
+      - name: Build native x86_64 hook library
+        run: |
+          sdkmanager "ndk;28.2.13676358"
+          curl --fail --location https://codeload.github.com/jmpews/Dobby/tar.gz/9c85e74f92eda36b99ddb0fddb17a9df2278a4d3 -o /tmp/dobby.tar.gz
+          mkdir -p /tmp/dobby-source
+          tar -xzf /tmp/dobby.tar.gz --strip-components=1 -C /tmp/dobby-source
+          cmake -S /tmp/dobby-source -B /tmp/dobby-build \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/28.2.13676358/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=x86_64 -DANDROID_PLATFORM=android-24 \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DDOBBY_BUILD_EXAMPLE=OFF -DDOBBY_BUILD_TEST=OFF
+          cmake --build /tmp/dobby-build --target dobby_static --parallel 2
+          mkdir -p Bcore/src/main/cpp/Dobby/x86_64
+          cp /tmp/dobby-build/libdobby.a Bcore/src/main/cpp/Dobby/x86_64/libdobby.a
       - name: Build debug APKs
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --stacktrace
+          ./gradlew :app:assembleDebug -PmorphlyAbis=x86_64 --stacktrace
       - name: Save APKs for download
         uses: actions/upload-artifact@v4
         with:

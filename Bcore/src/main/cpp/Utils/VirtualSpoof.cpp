@@ -57,10 +57,14 @@ int my_system_property_get(const char *name, char *value) {
 
 void install_property_get_hook() {
     void* handle = xdl_open("libc.so", XDL_DEFAULT);
+    if (!handle) {
+        LOGD("Unable to open libc for property hook");
+        return;
+    }
     void* target = xdl_dsym(handle, "__system_property_get", nullptr);
     if (target) {
         if (DobbyHook(target, (void*)my_system_property_get, (void**)&orig_system_property_get) == 0) {
-            LOGD("Spoof installed successfully");
+            LOGD("Property hook installed: target=%p original=%p", target, orig_system_property_get);
         } else {
             LOGD("Spoof hook failed");
         }
@@ -75,5 +79,5 @@ void install_property_get_hook() {
 __attribute__((constructor)) void init_virtual_spoof()
 {
     install_property_get_hook();
-    LOGD("VirtualSpoof: __system_property_get hook loaded");
+    LOGD("VirtualSpoof: property hook initialization finished; installed=%d", orig_system_property_get != nullptr);
 }
