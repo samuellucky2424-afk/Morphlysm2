@@ -2,6 +2,22 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/api/public-config",
+      "destination": "/api/config.js?route=public-config"
+    },
+    {
+      "source": "/api/firebase-register",
+      "destination": "/api/config.js?route=firebase-register"
+    },
+    {
+      "source": "/api/wallet",
+      "destination": "/api/config.js?route=wallet"
+    },
+    {
+      "source": "/api/credit-packages",
+      "destination": "/api/config.js?route=credit-packages"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     },

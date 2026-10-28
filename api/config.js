@@ -1,6 +1,7 @@
 import { createServiceClient, requireUser, ensureFirebaseDefaults } from '../server/shared/firebase.js';
 import {FIREBASE_PROJECT} from '../server/shared/firebase-runtime.js';
 import {androidRealtime} from '../server/shared/firebase-realtime.js';
+import {MOBILE_ROUTES, publicConfig as mobilePublicConfig} from '../server/shared/mobile-routes.js';
 import {
   applyHttpHeaders,
   cleanString,
@@ -114,6 +115,7 @@ export default async function handler(req, res) {
   if (handleOptions(req, res)) return;
   try {
     const route = routeFor(req);
+    if (MOBILE_ROUTES[route]) return await MOBILE_ROUTES[route](req, res);
     if (['start-session','heartbeat','end-session'].includes(route)) {
       if (!requireMethod(req,res,'POST')) return;
       const context = await requireUser(req);
@@ -125,7 +127,7 @@ export default async function handler(req, res) {
     if (route === 'decart-token') return res.status(410).json({error:'Update Morphly to use XMax.'});
     if (route === 'transform') return await transform(req, res);
     if (!requireMethod(req, res, 'GET')) return;
-    return await publicConfig(res);
+    return await mobilePublicConfig(req, res);
   } catch (error) {
     console.error('Config API failed:', error);
     return res.status(error.status || 500).json({ error: publicError(error) });
