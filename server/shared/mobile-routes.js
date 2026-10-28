@@ -149,9 +149,19 @@ export async function sessionStatus(req, res) {
     remainingCredits: Number(appUser.balance || 0), serverNow: Date.now()});
 }
 
+async function apiKeyProject() {
+  const key = process.env.FIREBASE_API_KEY;
+  if (!key) return {configured: false};
+  try {
+    const r = await fetch(`https://identitytoolkit.googleapis.com/v1/projects?key=${encodeURIComponent(key)}`, {signal: AbortSignal.timeout(10000)});
+    const b = await r.json().catch(() => ({}));
+    return {configured: true, status: r.status, projectId: b.projectId || null,
+      error: b.error?.message ? String(b.error.message).slice(0, 80) : undefined};
+  } catch (e) { return {configured: true, error: 'unreachable'}; }
+}
 // Preview-only read-only sanity check: counts of existing accounts (no document contents).
 export async function diag(req, res) {
   if ((process.env.VERCEL_ENV || '') === 'production') return res.status(404).json({error: 'Not found'});
   const report = credentialReport();
-  return res.status(200).json({project: FIREBASE_PROJECT, databaseId: process.env.FIREBASE_DATABASE_ID || '(default)', credentials: report, probes: await probeCredentials()});
+  return res.status(200).json({project: FIREBASE_PROJECT, databaseId: process.env.FIREBASE_DATABASE_ID || '(default)', credentials: report, probes: await probeCredentials(), firebaseApiKey: await apiKeyProject()});
 }
