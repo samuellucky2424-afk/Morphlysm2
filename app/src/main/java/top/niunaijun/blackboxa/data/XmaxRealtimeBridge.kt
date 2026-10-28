@@ -66,9 +66,11 @@ object XmaxRealtimeBridge {
                 view = video
                 container.addView(video, FrameLayout.LayoutParams(-1, -1))
                 manager.setStateListener { state ->
+                    android.util.Log.i("XMAX_BRIDGE", "state=${state.connectionState.value} reason=${state.reason}")
                     activity.runOnUiThread { if (revision == currentRevision) {
                         onStatus("XMax: ${state.connectionState.value}")
                         if (state.reason is RealtimeReason.Failure) {
+                            android.util.Log.e("XMAX_BRIDGE", "engine_failure state=$state")
                             onError(IllegalStateException("XMax stopped. Check your connection and start again."))
                         }
                     } }
@@ -92,8 +94,8 @@ object XmaxRealtimeBridge {
                 val reference = if (image != null) withContext(Dispatchers.IO) {
                     client.createStorageManager().uploadImageWithSafetyCheck(image, "reference.jpg", "image/jpeg").url
                 } else null
-                // 720p/15fps: 1080p capture drove ~1.6 GB RSS + 200% CPU and got the app LMK-killed during calls.
-                val format = RealtimeVideoFormat(1280, 720, fps.coerceIn(10, 15),
+                // XMAX X2_1 expects the original 1080p input format; 720p made the engine stop right after connecting.
+                val format = RealtimeVideoFormat(1920, 1080, fps.coerceIn(10, 24),
                     minimumBitrate = 300, maximumBitrate = 1500)
                 val local = manager.createLocalCameraStream(format,
                     if (backCamera) CameraPosition.BACK else CameraPosition.FRONT, false)
@@ -106,7 +108,8 @@ object XmaxRealtimeBridge {
                 if (renderingEnabled) video.remoteTrack = remote.videoTrack
             } catch (_: CancellationException) {
                 // disconnect owns cleanup; no late error or publication is delivered.
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                android.util.Log.e("XMAX_BRIDGE", "connect_failed", e)
                 if (revision == currentRevision) onError(IllegalStateException("XMax could not connect. Check the provider account and try again."))
             }
         }
