@@ -32,7 +32,7 @@ object FirebaseBackend {
             if (status !in 200..299) {
                 val code = body.optJSONObject("error")?.optString("message")
                     ?: body.optString("error", body.optString("message", "Request failed (HTTP $status)"))
-                throw IOException(if (URL(url).host.endsWith(".googleapis.com")) authMessage(code) else code)
+                throw IOException(code)
             }
             return body
         } finally {
