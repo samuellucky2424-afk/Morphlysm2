@@ -1689,7 +1689,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="LICENSE STATUS"
+                            android:text="ACCOUNT"
                             android:textColor="#888D9B"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -1717,7 +1717,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="LICENSE EXPIRES"
+                            android:text="BILLING"
                             android:textColor="#888D9B"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -2185,7 +2185,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:gravity="center"
-                    android:text="Starter credits let you stream for ~4 minutes. Once exhausted, you'll need to activate your license to continue."
+                    android:text="Your Android and desktop apps use the same Morphly credit balance."
                     android:textColor="#6F7380"
                     android:textSize="11sp" />
 

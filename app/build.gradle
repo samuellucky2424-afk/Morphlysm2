@@ -5,7 +5,7 @@ plugins {
 
 def morphlyBackendUrl = providers.gradleProperty("MORPHLY_BACKEND_BASE_URL")
         .orElse(providers.environmentVariable("MORPHLY_BACKEND_BASE_URL"))
-        .orElse("https://morphlysm2.vercel.app/api")
+        .orElse("https://live.morphly.fun/api")
         .get()
 def releaseKeystorePath = providers.gradleProperty("MORPHLY_KEYSTORE_FILE")
         .orElse(providers.environmentVariable("MORPHLY_KEYSTORE_FILE"))
@@ -37,7 +37,7 @@ android {
     ndkVersion = "28.2.13676358"
     defaultConfig {
         applicationId "top.niunaijun.blackbox"
-        minSdk Math.max(rootProject.ext.minSdk as int, 24)
+        minSdk Math.max(rootProject.ext.minSdk as int, 26)
         targetSdk rootProject.ext.targetSdkVersion
         versionCode rootProject.ext.versionCode
         versionName rootProject.ext.versionName
@@ -130,7 +130,8 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1"
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.3.1"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.3.1"
-    runtimeOnly "com.github.DecartAI:decart-android:0.7.3"
+    implementation "ai.xmax:xmax-sdk:1.1.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0"
 
     
     implementation 'androidx.recyclerview:recyclerview:1.2.1'

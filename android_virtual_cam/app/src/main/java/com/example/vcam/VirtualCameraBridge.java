@@ -11,6 +11,7 @@ public final class VirtualCameraBridge {
     public static final String SOURCE_GREEN_TEST = "GREEN_TEST";
     public static final String SOURCE_MOVING_COLOR_TEST = "MOVING_COLOR_TEST";
     public static final String SOURCE_DECART = "DECART";
+    public static final String SOURCE_XMAX = "XMAX";
     private static final long SOURCE_READ_INTERVAL_MS = 250;
     private static final long SHARED_READ_INTERVAL_MS = 33;
     private static final long LIVE_FRAME_MAX_AGE_MS = 30000;
@@ -171,7 +172,7 @@ public final class VirtualCameraBridge {
         int safeWidth = Math.max(2, width);
         int safeHeight = Math.max(2, height);
         String source = activeSource(slotId);
-        if (SOURCE_DECART.equals(source)) {
+        if ((SOURCE_DECART.equals(source) || SOURCE_XMAX.equals(source))) {
             // The renderer usually runs inside the cloned app process. Static
             // stores below are process-local, so the shared frame file is the
             // cross-process source of truth and must be polled before returning
@@ -206,7 +207,7 @@ public final class VirtualCameraBridge {
 
     public static boolean hasLiveSource(int slotId) {
         String source = activeSource(slotId);
-        if (SOURCE_DECART.equals(source) || SOURCE_MOVING_COLOR_TEST.equals(source) || SOURCE_GREEN_TEST.equals(source)) {
+        if ((SOURCE_DECART.equals(source) || SOURCE_XMAX.equals(source)) || SOURCE_MOVING_COLOR_TEST.equals(source) || SOURCE_GREEN_TEST.equals(source)) {
             return true;
         }
         return SharedFrameMemory.hasRecentFrame(applicationContext, slotId, LIVE_FRAME_MAX_AGE_MS)
@@ -237,6 +238,7 @@ public final class VirtualCameraBridge {
     }
 
     private static String normalizeSource(String source) {
+        if (SOURCE_XMAX.equalsIgnoreCase(source)) return SOURCE_XMAX;
         if (source == null) {
             return SOURCE_DECART;
         }
