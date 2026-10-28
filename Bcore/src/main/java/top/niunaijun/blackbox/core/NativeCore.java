@@ -23,7 +23,11 @@ public class NativeCore {
 
     static {
 
-        System.loadLibrary("blackbox");
+        if (top.niunaijun.blackbox.utils.HostCompat.isNativeEngineUnsupported()) {
+            Log.w(TAG, "Native engine disabled on emulator/x86 host; libblackbox not loaded");
+        } else {
+            System.loadLibrary("blackbox");
+        }
     }
 
     public static native void init(int apiLevel);

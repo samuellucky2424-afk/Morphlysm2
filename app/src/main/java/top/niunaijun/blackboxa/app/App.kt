@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import top.niunaijun.blackbox.BlackBoxCore
+import top.niunaijun.blackbox.utils.HostCompat
 
 
 class App : Application() {
@@ -24,6 +25,13 @@ class App : Application() {
     override fun attachBaseContext(base: Context?) {
         try {
             super.attachBaseContext(base)
+
+            if (HostCompat.isNativeEngineUnsupported()) {
+                // Emulator / x86 translator: skip the BlackBox engine so the Morphly UI still runs.
+                Log.w("App", "Native engine unsupported on this host; skipping BlackBox init")
+                mContext = base!!
+                return
+            }
 
             try {
                 BlackBoxCore.get().closeCodeInit()
@@ -65,6 +73,7 @@ class App : Application() {
     override fun onCreate() {
         try {
             super.onCreate()
+            if (HostCompat.isNativeEngineUnsupported()) return
             AppManager.doOnCreate(mContext)
         } catch (e: Exception) {
             Log.e("App", "Error in onCreate: ${e.message}")
