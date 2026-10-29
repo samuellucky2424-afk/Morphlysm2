@@ -30,8 +30,11 @@ jobs:
 
       - name: Compute version
         id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          N=$(( ${{ github.run_number }} - 1 ))
+          # Next patch number = number of existing v1.0.* releases (starts at 0).
+          N=$(gh release list -R "$GITHUB_REPOSITORY" -L 1000 --json tagName -q '[.[].tagName | select(startswith("v1.0."))] | length')
           echo "name=1.0.$N" >> "$GITHUB_OUTPUT"
           # Above the last hand-built versionCode (402) so every CI build is an upgrade.
           echo "code=$(( 1000 + N ))" >> "$GITHUB_OUTPUT"
@@ -42,10 +45,10 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      - uses: android-actions/setup-android@v3
-
       - name: Install NDK
-        run: yes | sdkmanager "ndk;28.2.13676358" > /dev/null
+        run: |
+          SDKM=$(ls -d $ANDROID_HOME/cmdline-tools/*/bin | tail -1)/sdkmanager
+          yes | "$SDKM" "ndk;28.2.13676358" > /dev/null
 
       - name: Restore signing keystore
         env:
