@@ -1,6 +1,7 @@
 import { createServiceClient, requireUser, ensureFirebaseDefaults } from '../server/shared/firebase.js';
 import {FIREBASE_PROJECT} from '../server/shared/firebase-runtime.js';
 import {androidRealtime} from '../server/shared/firebase-realtime.js';
+import {logErrorRoute, recordError} from '../server/shared/error-log.js';
 import {MOBILE_ROUTES, publicConfig as mobilePublicConfig} from '../server/shared/mobile-routes.js';
 import {
   applyHttpHeaders,
@@ -115,6 +116,7 @@ export default async function handler(req, res) {
   if (handleOptions(req, res)) return;
   try {
     const route = routeFor(req);
+    if (route === 'log-error') return await logErrorRoute(req, res);
     if (MOBILE_ROUTES[route]) return await MOBILE_ROUTES[route](req, res);
     if (['start-session','heartbeat','end-session'].includes(route)) {
       if (!requireMethod(req,res,'POST')) return;
@@ -130,6 +132,7 @@ export default async function handler(req, res) {
     return await mobilePublicConfig(req, res);
   } catch (error) {
     console.error('Config API failed:', error);
+    if (!error.status || error.status >= 500) await recordError({source: 'server', message: error.message, stack: error.stack, context: req.url});
     return res.status(error.status || 500).json({ error: publicError(error) });
   }
 }

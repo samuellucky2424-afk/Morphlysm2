@@ -2,6 +2,26 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/admin",
+      "destination": "/admin/index.html"
+    },
+    {
+      "source": "/api/log-error",
+      "destination": "/api/config.js?route=log-error"
+    },
+    {
+      "source": "/api/payments/create",
+      "destination": "/api/create-checkout.js?route=create"
+    },
+    {
+      "source": "/api/payments/verify",
+      "destination": "/api/create-checkout.js?route=verify"
+    },
+    {
+      "source": "/api/payments/flutterwave-webhook",
+      "destination": "/api/flutterwave-webhook.js"
+    },
+    {
       "source": "/api/public-config",
       "destination": "/api/config.js?route=public-config"
     },
@@ -16,10 +36,6 @@
     {
       "source": "/api/credit-packages",
       "destination": "/api/config.js?route=credit-packages"
-    },
-    {
-      "source": "/admin",
-      "destination": "/admin.html"
     },
     {
       "source": "/api/login",

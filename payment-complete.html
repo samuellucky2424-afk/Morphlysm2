@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Morphly payment</title>
+<style>body{margin:0;font-family:Inter,system-ui,sans-serif;background:#fff;color:#1c1c1c;display:grid;place-items:center;min-height:100vh}
+.c{text-align:center;padding:32px;border:1px solid #f1d4d4;border-radius:20px;max-width:360px}.b{width:56px;height:56px;border-radius:16px;background:#e11d2e;color:#fff;font-weight:800;font-size:26px;display:grid;place-items:center;margin:0 auto 16px}
+a{display:inline-block;margin-top:16px;background:#e11d2e;color:#fff;padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:600}</style></head>
+<body><div class="c"><div class="b">M</div><h2 id="t">Payment received</h2><p id="m">Your credits will appear in Morphly within a few seconds.</p>
+<a id="back" href="morphly://payment-return">Return to Morphly</a></div>
+<script>const q=new URLSearchParams(location.search),s=q.get('status');if(s&&s!=='successful'&&s!=='completed'){t.textContent='Payment not completed';m.textContent='No charge was made. You can try again from the app.';}
+back.href='morphly://payment-return?'+q.toString();setTimeout(()=>location.href=back.href,1500);</script></body></html>
