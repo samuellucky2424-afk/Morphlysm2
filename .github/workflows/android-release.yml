@@ -71,6 +71,8 @@ jobs:
             -PmorphlyMinify=false
           ls -l app/build/outputs/apk/release/
           cp app/build/outputs/apk/release/*universal-release.apk "Morphly-v${{ steps.ver.outputs.name }}.apk"
+          # Fixed-name copy for the permanent link .../releases/latest/download/Morphly.apk
+          cp "Morphly-v${{ steps.ver.outputs.name }}.apk" Morphly.apk
 
       - name: Publish GitHub release
         env:
@@ -80,5 +82,5 @@ jobs:
           VCODE: ${{ steps.ver.outputs.code }}
         run: |
           printf '%s\n\nversionCode: %s\n' "${COMMIT_MSG:-Manual build}" "$VCODE" > notes.md
-          gh release create "v$VNAME" "Morphly-v$VNAME.apk" \
-            --title "Morphly v$VNAME" --notes-file notes.md --target "$GITHUB_SHA" --latest
+          gh release create "v$VNAME" "Morphly-v$VNAME.apk" Morphly.apk \
+            --title "Morphly v$VNAME" --notes-file notes.md --target "$GITHUB_SHA" --latest --draft=false --prerelease=false
