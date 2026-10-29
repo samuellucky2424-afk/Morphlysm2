@@ -14,6 +14,7 @@ import android.view.View
 import android.view.animation.Animation
 import android.view.animation.LinearInterpolator
 import android.view.animation.RotateAnimation
+import android.view.animation.ScaleAnimation
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -266,17 +267,18 @@ class StreamActivity : BaseActivity() {
         binding.layoutPlanPayment.visibility = View.GONE
         binding.layoutAccount.visibility = View.GONE
 
-        // Start rotation animation on the arc
-        val rotate = RotateAnimation(
-            0f, 360f,
+        // Soft pulse: M breathes, red glow behind it fades in and out.
+        val pulse = ScaleAnimation(
+            1f, 1.12f, 1f, 1.12f,
             Animation.RELATIVE_TO_SELF, 0.5f,
             Animation.RELATIVE_TO_SELF, 0.5f
         ).apply {
-            duration = 2000
+            duration = 1100
             repeatCount = Animation.INFINITE
-            interpolator = LinearInterpolator()
+            repeatMode = Animation.REVERSE
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
         }
-        binding.ivSplashArc.startAnimation(rotate)
+        binding.ivSplashArc.startAnimation(pulse)
     }
 
     private fun showAuthState() {

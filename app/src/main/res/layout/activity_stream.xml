@@ -31,55 +31,48 @@
                     android:id="@+id/ivSplashArc"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:src="@drawable/ic_morphly_arc"
-                    android:contentDescription="Rotating Arc" />
+                    android:src="@drawable/ic_morphly_glow"
+                    android:alpha="0.5"
+                    android:contentDescription="@null" />
 
                 <ImageView
                     android:id="@+id/ivSplashDiamond"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:src="@drawable/ic_morphly_diamond"
+                    android:layout_width="84dp"
+                    android:layout_height="84dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_morphly_logo"
                     android:contentDescription="Static Diamond" />
 
             </FrameLayout>
 
-            <!-- Title -->
-            <LinearLayout
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="28dp"
-                android:orientation="horizontal"
-                android:background="@drawable/bg_white_badge"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="MORPHLY"
-                    android:textColor="#E53935"
-                    android:textSize="28sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.1" />
-
-            </LinearLayout>
+                android:layout_marginTop="4dp"
+                android:text="Morphly"
+                android:textColor="#E53935"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.04" />
 
             <!-- Small loading dots simulated with circular progress bar -->
-            <ProgressBar
+            <com.google.android.material.progressindicator.LinearProgressIndicator
                 android:id="@+id/progressBarSplash"
-                style="?android:attr/progressBarStyleSmall"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginTop="32dp"
+                android:layout_width="140dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
                 android:indeterminate="true"
-                android:indeterminateTint="#E53935" />
+                app:indicatorColor="#E53935"
+                app:trackColor="#FDE3E3"
+                app:trackThickness="3dp"
+                app:trackCornerRadius="2dp" />
 
             <!-- Subtitle -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="40dp"
-                android:text="INITIALIZING..."
+                android:layout_marginTop="12dp"
+                android:text="Getting things ready..."
                 android:textColor="#757575"
                 android:textSize="11sp"
                 android:textStyle="bold"

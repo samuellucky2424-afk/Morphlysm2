@@ -53,9 +53,29 @@ class WelcomeActivity : AppCompatActivity() {
             .setInterpolator(OvershootInterpolator(1.6f)).start()
         word.translationY = 24f; word.alpha = 0f
         word.animate().translationY(0f).alpha(1f).setStartDelay(220).setDuration(420).start()
+        startPulse(logo, findViewById(R.id.splashGlow))
         loading.animate().alpha(1f).setStartDelay(520).setDuration(300).start()
         findViewById<TextView>(R.id.splashStatus).text =
             if (StreamAuthManager.isLoggedIn(this)) "Signing you in..." else "Getting things ready..."
+    }
+
+    private var pulse: android.animation.ValueAnimator? = null
+
+    /** Gentle breathing scale on the M with a soft red glow behind it. */
+    private fun startPulse(logo: View, glow: View) {
+        pulse = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 1100; startDelay = 520
+            repeatMode = android.animation.ValueAnimator.REVERSE
+            repeatCount = android.animation.ValueAnimator.INFINITE
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            addUpdateListener {
+                val f = it.animatedValue as Float
+                logo.scaleX = 1f + 0.05f * f; logo.scaleY = logo.scaleX
+                glow.alpha = 0.35f + 0.65f * f
+                glow.scaleX = 0.9f + 0.2f * f; glow.scaleY = glow.scaleX
+            }
+            start()
+        }
     }
 
     private fun jump() {
@@ -72,6 +92,7 @@ class WelcomeActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        pulse?.cancel()
         super.onDestroy()
     }
 
