@@ -47,3 +47,4 @@ service-account*.json
 google-services.json.bak
 firestore-debug.log
 *-debug.log
+/public/
