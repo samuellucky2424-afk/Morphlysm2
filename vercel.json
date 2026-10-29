@@ -2,10 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/admin",
-      "destination": "/admin/index.html"
-    },
-    {
       "source": "/api/app-version",
       "destination": "/api/config.js?route=app-version"
     },
@@ -122,7 +118,7 @@
       ]
     },
     {
-      "source": "/admin(.*)",
+      "source": "/lucky/privatelife/logs(.*)",
       "headers": [
         {
           "key": "Content-Security-Policy",
@@ -159,5 +155,7 @@
         }
       ]
     }
-  ]
+  ],
+  "buildCommand": "node scripts/build-public.mjs",
+  "outputDirectory": "public"
 }
