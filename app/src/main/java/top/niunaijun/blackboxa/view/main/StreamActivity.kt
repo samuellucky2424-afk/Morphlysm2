@@ -351,7 +351,76 @@ class StreamActivity : BaseActivity() {
         binding.tvCheckoutDetailStreamTime.text = streamTime
         binding.tvCheckoutDetailTotal.text = formatNaira(price)
     }
+    private var updateCheckDone = false
+
+    /** Once per launch: ask the server for the latest GitHub build and prompt if this install is older. */
+    private fun checkForAppUpdateOnce() {
+        if (updateCheckDone) return
+        updateCheckDone = true
+        networkExecutor.execute {
+            try {
+                val c = java.net.URL("$BACKEND_BASE_URL/app-version").openConnection() as java.net.HttpURLConnection
+                c.connectTimeout = 8000; c.readTimeout = 8000
+                if (c.responseCode != 200) return@execute
+                val json = org.json.JSONObject(c.inputStream.bufferedReader().use { it.readText() })
+                val latestCode = json.optInt("versionCode", 0)
+                val installed = BuildConfig.VERSION_CODE
+                if (latestCode <= installed) return@execute
+                val mandatory = json.optInt("minVersionCode", 0) > installed
+                val latestName = json.optString("latestVersion", "")
+                val url = json.optString("downloadUrl", "https://luckyweb.cloud").ifBlank { "https://luckyweb.cloud" }
+                runOnUiThread { if (!isFinishing && !isDestroyed) showUpdateDialog(latestName, url, mandatory) }
+            } catch (e: Exception) {
+                Log.w(TAG_STREAM_LIFECYCLE, "app_version_check_failed", e)
+            }
+        }
+    }
+
+    private fun showUpdateDialog(latestName: String, url: String, mandatory: Boolean) {
+        val dp = resources.displayMetrics.density
+        val red = android.graphics.Color.parseColor("#E53935")
+        val box = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            val p = (24 * dp).toInt(); setPadding(p, p, p, (16 * dp).toInt())
+            background = android.graphics.drawable.GradientDrawable().apply { setColor(android.graphics.Color.WHITE); cornerRadius = 16 * dp }
+        }
+        box.addView(android.widget.TextView(this).apply {
+            text = "Update available"; setTextColor(red); textSize = 20f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        })
+        box.addView(android.widget.TextView(this).apply {
+            text = "You are using an outdated version (${BuildConfig.VERSION_NAME}). Update to v$latestName." +
+                if (mandatory) "\n\nThis update is required to keep using Morphly." else ""
+            setTextColor(android.graphics.Color.parseColor("#424242")); textSize = 15f
+            setPadding(0, (12 * dp).toInt(), 0, (20 * dp).toInt())
+        })
+        val dialog = android.app.Dialog(this)
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        val update = com.google.android.material.button.MaterialButton(this).apply {
+            text = "UPDATE"; setTextColor(android.graphics.Color.WHITE)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(red); cornerRadius = (8 * dp).toInt()
+            setOnClickListener {
+                try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                catch (e: Exception) { Toast.makeText(this@StreamActivity, "Open $url in your browser", Toast.LENGTH_LONG).show() }
+                if (!mandatory) dialog.dismiss()
+            }
+        }
+        box.addView(update, android.widget.LinearLayout.LayoutParams(-1, (52 * dp).toInt()))
+        if (!mandatory) {
+            box.addView(android.widget.Button(this, null, android.R.attr.borderlessButtonStyle).apply {
+                text = "Later"; setTextColor(red); setOnClickListener { dialog.dismiss() }
+            }, android.widget.LinearLayout.LayoutParams(-1, (48 * dp).toInt()))
+        }
+        dialog.setContentView(box)
+        dialog.setCancelable(!mandatory)
+        dialog.setCanceledOnTouchOutside(false)
+        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.86).toInt(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog.show()
+    }
+
     private fun showDashboardState() {
+        checkForAppUpdateOnce()
         binding.ivSplashArc.clearAnimation()
         binding.layoutSplash.visibility = View.GONE
         binding.layoutAuth.visibility = View.GONE

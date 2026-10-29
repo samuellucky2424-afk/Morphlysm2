@@ -2,6 +2,7 @@ import { createServiceClient, requireUser, ensureFirebaseDefaults } from '../ser
 import {FIREBASE_PROJECT} from '../server/shared/firebase-runtime.js';
 import {androidRealtime} from '../server/shared/firebase-realtime.js';
 import {logErrorRoute, recordError} from '../server/shared/error-log.js';
+import {appVersionRoute} from '../server/shared/app-version.js';
 import {MOBILE_ROUTES, publicConfig as mobilePublicConfig} from '../server/shared/mobile-routes.js';
 import {
   applyHttpHeaders,
@@ -117,6 +118,7 @@ export default async function handler(req, res) {
   try {
     const route = routeFor(req);
     if (route === 'log-error') return await logErrorRoute(req, res);
+    if (route === 'app-version') return await appVersionRoute(req, res);
     if (MOBILE_ROUTES[route]) return await MOBILE_ROUTES[route](req, res);
     if (['start-session','heartbeat','end-session'].includes(route)) {
       if (!requireMethod(req,res,'POST')) return;

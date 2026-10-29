@@ -39,8 +39,9 @@ android {
         applicationId "top.niunaijun.blackbox"
         minSdk Math.max(rootProject.ext.minSdk as int, 26)
         targetSdk rootProject.ext.targetSdkVersion
-        versionCode rootProject.ext.versionCode
-        versionName rootProject.ext.versionName
+        // CI (android-release.yml) passes -PmorphlyVersionCode / -PmorphlyVersionName; local builds keep the defaults.
+        versionCode((providers.gradleProperty("morphlyVersionCode").orNull ?: rootProject.ext.versionCode.toString()) as int)
+        versionName(providers.gradleProperty("morphlyVersionName").orNull ?: rootProject.ext.versionName)
         buildConfigField "String", "BACKEND_BASE_URL",
                 "\"${morphlyBackendUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
@@ -81,7 +82,7 @@ android {
             if (hasReleaseSigning) {
                 signingConfig signingConfigs.release
             }
-            minifyEnabled true
+            minifyEnabled providers.gradleProperty("morphlyMinify").orElse("true").get().toBoolean()
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }

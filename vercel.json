@@ -6,6 +6,10 @@
       "destination": "/admin/index.html"
     },
     {
+      "source": "/api/app-version",
+      "destination": "/api/config.js?route=app-version"
+    },
+    {
       "source": "/api/log-error",
       "destination": "/api/config.js?route=log-error"
     },
