@@ -628,100 +628,6 @@
                     </LinearLayout>
                 </RelativeLayout>
 
-                <!-- Credit balance card -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginEnd="16dp"
-                    android:layout_marginTop="-12dp"
-                    android:background="@drawable/bg_mx_card"
-                    android:elevation="4dp"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
-
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_alignParentStart="true"
-                            android:layout_centerVertical="true"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="CREDIT BALANCE"
-                                android:textColor="#757575"
-                                android:textSize="11sp"
-                                android:textStyle="bold"
-                                android:letterSpacing="0.06" />
-
-                            <TextView
-                                android:id="@+id/tvSessionRemaining"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="0 CR"
-                                android:textColor="#D32F2F"
-                                android:textSize="28sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <Button
-                            android:id="@+id/btnDashboardBuyCredits"
-                            android:layout_width="wrap_content"
-                            android:layout_height="46dp"
-                            android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true"
-                            android:background="@drawable/bg_mx_red"
-                            android:paddingStart="18dp"
-                            android:paddingEnd="18dp"
-                            android:text="+ BUY CREDITS"
-                            android:textColor="#FFFFFF"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-                    </RelativeLayout>
-
-                    <ProgressBar
-                        android:id="@+id/progressSessionRemaining"
-                        style="?android:attr/progressBarStyleHorizontal"
-                        android:layout_width="match_parent"
-                        android:layout_height="6dp"
-                        android:layout_marginTop="12dp"
-                        android:max="100"
-                        android:progress="0"
-                        android:progressTint="#D32F2F"
-                        android:progressBackgroundTint="#F5D5D5" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:id="@+id/tvSessionUsed"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="0 CR"
-                            android:textColor="#757575"
-                            android:textSize="11sp" />
-
-                        <TextView
-                            android:id="@+id/tvSessionPlanTotal"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
-                            android:text="0 CR"
-                            android:textColor="#757575"
-                            android:textSize="11sp" />
-                    </LinearLayout>
-                </LinearLayout>
 
                 <!-- Live preview -->
                 <RelativeLayout
@@ -1020,6 +926,113 @@
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
+                <!-- Credit balance card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_mx_card"
+                    android:elevation="4dp"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentStart="true"
+                            android:layout_centerVertical="true"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="CREDIT BALANCE"
+                                android:textColor="#757575"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.06" />
+
+                            <TextView
+                                android:id="@+id/tvSessionRemaining"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0 CR"
+                                android:textColor="#D32F2F"
+                                android:textSize="28sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btnDashboardBuyCredits"
+                            android:layout_width="wrap_content"
+                            android:layout_height="46dp"
+                            android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true"
+                            android:background="@drawable/bg_mx_red"
+                            android:paddingStart="18dp"
+                            android:paddingEnd="18dp"
+                            android:text="+ BUY CREDITS"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </RelativeLayout>
+
+                    <ProgressBar
+                        android:id="@+id/progressSessionRemaining"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="6dp"
+                        android:layout_marginTop="12dp"
+                        android:max="100"
+                        android:progress="0"
+                        android:progressTint="#D32F2F"
+                        android:progressBackgroundTint="#F5D5D5" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvSessionUsed"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="0 CR"
+                            android:textColor="#757575"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tvSessionPlanTotal"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:text="0 CR"
+                            android:textColor="#757575"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/tvSessionRate"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="#FFF5F5"
+                        android:padding="8dp"
+                        android:gravity="center"
+                        android:text="Charged 2 credits per second"
+                        android:textColor="#D32F2F"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <!-- Removed features (kept hidden for code compatibility) -->
                 <LinearLayout
@@ -1220,7 +1233,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="ACCOUNT"
+                            android:text="ACCOUNT STATUS"
                             android:textColor="#757575"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -1248,7 +1261,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="BILLING"
+                            android:text="BILLING / CURRENT PLAN"
                             android:textColor="#757575"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -1336,6 +1349,9 @@
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvAccountMemberSince"
+                            android:gravity="end"
+                            android:layout_marginStart="120dp"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_alignParentRight="true"
@@ -1436,18 +1452,12 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
 
-                <!-- Buy Credits Button -->
+                <!-- Buy Credits removed from Account -->
                 <Button
                     android:id="@+id/btnAccountBuyCredits"
-                    style="?android:attr/borderlessButtonStyle"
-                    android:layout_width="match_parent"
-                    android:layout_height="42dp"
-                    android:background="@drawable/outlined_button_bg"
-                    android:text="💳 BUY CREDITS"
-                    android:textColor="#212121"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="12dp"  app:cornerRadius="2dp"/>
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:visibility="gone" />
 
                 <!-- Replay Tour Button -->
                 <Button

@@ -382,6 +382,7 @@ class StreamActivity : BaseActivity() {
 
                     if (fetchedBalance >= 0) {
                         StreamAuthManager.setWalletBalance(this, fetchedBalance)
+                        promotePendingPlan(fetchedBalance)
                         runOnUiThread {
                             updateSessionBalanceUI(fetchedBalance, fetchedUsed)
                             if (binding.layoutAccount.visibility == View.VISIBLE) {
@@ -526,9 +527,11 @@ class StreamActivity : BaseActivity() {
         binding.tvAccountName.text = name
         binding.tvAccountEmail.text = email
         binding.tvAccountDeviceId.text = StreamAuthManager.getDeviceId(this)
-        binding.tvAccountLicenseStatus.text = "LOADING"
-        binding.tvAccountLicenseStatus.setTextColor(Color.parseColor("#757575"))
-        binding.tvAccountLicenseExpires.text = "Checking..."
+        binding.tvAccountLicenseStatus.text = "ACTIVE"
+        binding.tvAccountLicenseStatus.setTextColor(Color.parseColor("#2E7D32"))
+        binding.tvAccountLicenseExpires.text = getLastPlanLabel()
+        binding.tvAccountMemberSince.text = formatMemberSince(getPrefs().getString("account_created_at", null))
+        binding.btnAccountBuyCredits.visibility = View.GONE
         binding.tvAccountCreditsRemaining.text = "$remaining CR"
         binding.tvAccountCreditsUsed.text = "..."
 
@@ -591,15 +594,57 @@ class StreamActivity : BaseActivity() {
         binding.tvAccountCreditsRemaining.text = "$remaining CR"
         binding.tvAccountCreditsUsed.text = if (balanceJson.has("used")) "$used CR" else "See desktop"
         binding.tvAccountReferralCode.text = "YOUR CODE: $referralCode"
-        binding.tvAccountLicenseStatus.text = licenseStatus.uppercase()
+        binding.tvAccountLicenseStatus.text = "ACTIVE"
+        val createdAt = userJson?.optString("createdAt")?.takeIf { it.isNotBlank() && it != "null" }
+        if (createdAt != null) getPrefs().edit().putString("account_created_at", createdAt).apply()
+        binding.tvAccountMemberSince.text = formatMemberSince(createdAt ?: getPrefs().getString("account_created_at", null))
+        val backendPlan = listOf("currentPlan", "lastPlan", "planName", "lastPackageName")
+            .mapNotNull { k -> userJson?.optString(k)?.takeIf { it.isNotBlank() && it != "null" } ?: balanceJson.optString(k).takeIf { it.isNotBlank() && it != "null" } }
+            .firstOrNull()
+        if (backendPlan != null) getPrefs().edit().putString("last_plan_name", backendPlan).apply()
+        binding.tvAccountLicenseExpires.text = getLastPlanLabel()
         binding.tvAccountLicenseStatus.setTextColor(
-            if (licenseStatus.equals("active", ignoreCase = true) || licenseStatus == "signed in") {
+            if (true || licenseStatus.isEmpty()) {
                 Color.parseColor("#2E7D32")
             } else {
                 Color.parseColor("#FF5252")
             }
         )
-        binding.tvAccountLicenseExpires.text = licenseExpires
+        if (licenseExpires.isEmpty()) Unit
+    }
+
+    private fun getPrefs() = getSharedPreferences("morphly_account", Context.MODE_PRIVATE)
+
+    private fun getLastPlanLabel(): String = getPrefs().getString("last_plan_name", null)
+        ?.takeIf { it.isNotBlank() }?.let { if (it.contains("plan", true)) it else "$it Plan" } ?: "No plan yet"
+
+    /** Promote a checkout's plan to the current plan once the wallet balance actually grows. */
+    private fun promotePendingPlan(newBalance: Int) {
+        val prefs = getPrefs()
+        val pending = prefs.getString("pending_plan_name", null) ?: return
+        val before = prefs.getInt("pending_plan_balance", Int.MAX_VALUE)
+        if (newBalance > before) {
+            prefs.edit().putString("last_plan_name", pending).remove("pending_plan_name").remove("pending_plan_balance").apply()
+        }
+    }
+
+    private fun formatMemberSince(raw: String?): String {
+        if (raw.isNullOrBlank()) return "-"
+        val millis = raw.toLongOrNull()?.let { if (it < 100_000_000_000L) it * 1000 else it } ?: run {
+            val patterns = listOf("yyyy-MM-dd'T'HH:mm:ss.SSSX", "yyyy-MM-dd'T'HH:mm:ssX", "yyyy-MM-dd")
+            patterns.firstNotNullOfOrNull { p ->
+                try { java.text.SimpleDateFormat(p, java.util.Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }.parse(raw)?.time } catch (e: Exception) { null }
+            }
+        } ?: return raw
+        val date = java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.US).format(java.util.Date(millis))
+        val days = ((System.currentTimeMillis() - millis) / 86_400_000L).coerceAtLeast(0)
+        val ago = when {
+            days < 1 -> "today"
+            days < 30 -> "$days day${if (days == 1L) "" else "s"} ago"
+            days < 365 -> "${days / 30} month${if (days / 30 == 1L) "" else "s"} ago"
+            else -> "${days / 365} year${if (days / 365 == 1L) "" else "s"} ago"
+        }
+        return "$date\n($ago)"
     }
 
     private fun startBackgroundThread() {
@@ -990,9 +1035,9 @@ class StreamActivity : BaseActivity() {
         // Dashboard Top Bar Navigation - Hamburger Dropdown Menu
         binding.btnHamburgerMenu.setOnClickListener { view ->
             val popup = android.widget.PopupMenu(this, view)
-            popup.menu.add("OBS")
-            popup.menu.add("REC")
-            popup.menu.add("SNAP")
+            
+            
+            
             popup.menu.add("ACCOUNT")
             popup.setOnMenuItemClickListener { menuItem ->
                 when (menuItem.title) {
@@ -1733,6 +1778,8 @@ class StreamActivity : BaseActivity() {
                     val jsonObject = org.json.JSONObject(response.toString())
                     if (jsonObject.has("checkoutUrl")) {
                         val checkoutUrl = jsonObject.getString("checkoutUrl")
+                        getPrefs().edit().putString("pending_plan_name", selectedPlanName)
+                            .putInt("pending_plan_balance", StreamAuthManager.getWalletBalance(this@StreamActivity)).apply()
                         runOnUiThread {
                             progressDialog.dismiss()
                             openCheckoutPopup("$gateway Checkout", checkoutUrl)
