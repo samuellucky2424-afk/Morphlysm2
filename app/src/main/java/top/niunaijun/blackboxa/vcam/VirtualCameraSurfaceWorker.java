@@ -68,7 +68,7 @@ public final class VirtualCameraSurfaceWorker {
         }
         this.targetWidth = Math.max(2, renderWidth);
         this.targetHeight = Math.max(2, renderHeight);
-        this.workerThread = new HandlerThread("VirtualCameraSurface-" + this.label, Process.THREAD_PRIORITY_DISPLAY);
+        this.workerThread = new HandlerThread("VirtualCameraSurface-" + this.label, Process.THREAD_PRIORITY_DEFAULT); // DISPLAY priority starved the BlackBox binder threads in this process -> cloned-app ANRs
         this.workerThread.start();
         this.workerHandler = new Handler(workerThread.getLooper());
         Log.i(TAG, "worker_start label=" + this.label
