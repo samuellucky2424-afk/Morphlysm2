@@ -1014,6 +1014,7 @@ class StreamActivity : BaseActivity() {
                 runOnUiThread {
                     progressDialog.dismiss()
                     if (errorMsg == null) {
+                        Toast.makeText(this@StreamActivity, "Account created. Verify your email to receive your free credits.", Toast.LENGTH_LONG).show()
                         showDashboardState()
                     } else {
                         Toast.makeText(this@StreamActivity, errorMsg, Toast.LENGTH_LONG).show()

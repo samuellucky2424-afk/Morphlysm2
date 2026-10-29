@@ -1,0 +1,26 @@
+# Only the web/admin/API surface is deployed.
+app/
+Bcore/
+black-reflection/
+compiler/
+android_virtual_cam/
+gradle/
+gradlew
+gradlew.bat
+*.gradle
+gradle.properties
+docs/
+supabase/
+tests/
+*.md
+!README.md
+assets/
+*.apk
+*.aab
+*.jks
+*.keystore
+*.p12
+*.pem
+.env
+.env.*
+*.log

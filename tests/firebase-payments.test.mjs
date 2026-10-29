@@ -78,28 +78,56 @@ test('concurrent first purchases reward a referrer and creator only once', {skip
   assert.equal(commissions.size,1);
   assert.equal(commissions.docs[0].data().commission_amount,8700);
 });
-test('XMax uses its own backend wallet, rejects concurrent streams and deduplicates frame seconds', {skip: !enabled}, async () => {
-  const actor=await user(20);
-  const realtime=androidRealtime(db,async ({apiKey,maxSeconds})=>{
-    assert.equal(apiKey,'server-only');assert.equal(maxSeconds,10);
-    return {token:'temporary-only',sessionLimit:maxSeconds};
-  });
-  const session=await realtime.start(actor,{provider:'xmax',platform:'android'},'server-only');
-  assert.equal(session.token,'temporary-only');
-  await assert.rejects(realtime.start(actor,{provider:'xmax',platform:'android'},'server-only'),/existing stream/);
-  await db.collection('stream_session_sm').doc(session.sessionId).update({createdAt:Date.now()-2000});
-  const p={sessionId:session.sessionId,billingVersion:2,epochSeconds:[Math.floor(Date.now()/1000)-1]};
-  await Promise.all([realtime.meter(actor,p),realtime.meter(actor,p)]);
-  assert.equal((await get('wallet_sm',actor.id)).balance,18);
-  await assert.rejects(realtime.meter(await user(),p),/ownership/);
-  await assert.rejects(realtime.meter(actor,{...p,epochSeconds:[Math.floor(Date.now()/1000)+1000]}),/timestamps/);
-  await realtime.meter(actor,{...p,epochSeconds:[]},true);
+test('XMax reserves up front, bills wall-clock, refunds the rest and revokes the key', {skip: !enabled}, async () => {
+  const actor=await user(1000); let t=Date.now(); const revoked=[];
+  const realtime=androidRealtime(db,async ({maxSeconds})=>({token:`tk-${maxSeconds}`}),
+    async ({token})=>{revoked.push(token);return {ok:true,consumed:null};},()=>t);
+  const s=await realtime.start(actor,{provider:'xmax',platform:'android'},'server-only');
+  assert.equal(s.maxSeconds,500); assert.equal(s.provider,'xmax'); assert.equal(typeof s.serverNow,'number');
+  assert.equal((await get('wallet_sm',actor.id)).balance,0);
+  assert.equal((await get('stream_key_sm',s.sessionId)).token,'tk-500');
+  await assert.rejects(realtime.meter(actor,{}),/sessionId/);
+  await assert.rejects(realtime.meter(await user(),{sessionId:s.sessionId}),/ownership/);
+  t+=65000; // 60 billable seconds after 5s grace
+  const hb=await realtime.meter(actor,{sessionId:s.sessionId,billingVersion:2,epochSeconds:[1,2,3]});
+  assert.equal(hb.remainingCredits,880); assert.equal(hb.shouldStop,false);
+  await Promise.all([realtime.meter(actor,{sessionId:s.sessionId},true),realtime.meter(actor,{sessionId:s.sessionId},true)]);
+  const w=await get('wallet_sm',actor.id);
+  assert.equal(w.balance,880); assert.equal(w.used,120); assert.equal(w.reserved,0);
   assert.equal((await get('stream_lock_sm',actor.id)).expiresAt,0);
+  assert.equal(await get('stream_key_sm',s.sessionId),undefined);
+  assert.ok(revoked.includes('tk-500'));
 });
-test('an XMax credential failure releases the reservation without charging credits', {skip: !enabled}, async () => {
-  const actor=await user();
+test('a new start replaces the old session and an abandoned session is settled from provider usage', {skip: !enabled}, async () => {
+  const actor=await user(200); let t=Date.now(); const realtime=androidRealtime(db,async ({maxSeconds})=>({token:`k${t}`}),
+    async ()=>({ok:true,consumed:20}),()=>t);
+  const a=await realtime.start(actor,{provider:'xmax',platform:'android'},'k');
+  t+=10*60000; // app vanished; heartbeat stale; XMax says 20 points used
+  const b=await realtime.start(actor,{provider:'xmax',platform:'android'},'k');
+  assert.equal((await get('stream_session_sm',a.sessionId)).status,'completed');
+  assert.equal((await get('stream_session_sm',a.sessionId)).billed_seconds,20);
+  assert.equal(b.maxSeconds,80); // (200-40)/2
+  await realtime.settleOpen(actor.id,'k',{replace:true});
+  assert.equal((await get('wallet_sm',actor.id)).balance,160);
+});
+test('failed XMax startup refunds the hold and releases the lock', {skip: !enabled}, async () => {
+  const actor=await user(100);
   const realtime=androidRealtime(db,async()=>({error:{details:'Provider unavailable'}}));
   await assert.rejects(realtime.start(actor,{provider:'xmax',platform:'android'},'server-only'),/unavailable/);
-  assert.equal((await get('wallet_sm',actor.id)).balance,50);
+  assert.equal((await get('wallet_sm',actor.id)).balance,100);
   assert.equal((await get('stream_lock_sm',actor.id)).expiresAt,0);
+});
+test('signup credits are held until email verification, once per device', {skip: !enabled}, async () => {
+  await db.collection('app_setting_sm').doc('referral_program').set({value:{enabled:true,signup_credits:50}});
+  const a=unique(), b=unique();
+  await ops.provision({uid:a,email:`${a}@x.invalid`},{deviceHash:'dev1',ipHash:'ip1'});
+  assert.equal((await get('wallet_sm',a)).balance,0);
+  assert.equal(await ops.claimSignupBonus(a),true); assert.equal(await ops.claimSignupBonus(a),false);
+  assert.equal((await get('wallet_sm',a)).balance,50);
+  await ops.provision({uid:b,email:`${b}@x.invalid`},{deviceHash:'dev1',ipHash:'ip2'});
+  assert.equal(await ops.claimSignupBonus(b),false);
+  assert.equal((await get('user_sm',b)).signup_bonus_status,'denied_device');
+  const code=(await get('user_sm',a)).referral_code, c=unique();
+  await ops.provision({uid:c,email:`${c}@x.invalid`,emailVerified:true},{deviceHash:'dev1',ipHash:'ip3',referredByCode:code});
+  assert.equal((await get('referral_sm',c)).status,'self_referral');
 });

@@ -95,12 +95,9 @@
         <activity
             android:name=".view.main.ShortcutActivity"
             android:excludeFromRecents="true"
-            android:exported="true" />
+            android:exported="true" /><!-- stays exported for existing home-screen shortcuts; extras are validated -->
+        <!-- Internal screen only (started via MainActivity.start); not reachable by other apps. -->
         <activity android:name=".view.main.MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
-        </activity>
+            android:exported="false" />
     </application>
 </manifest>

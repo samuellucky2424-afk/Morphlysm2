@@ -37,3 +37,13 @@ keystore.properties
 logcat.txt
 *.apk
 *.aab
+
+# Credentials and debug logs
+*.p12
+*.pem
+*.key
+service-account*.json
+*-firebase-adminsdk-*.json
+google-services.json.bak
+firestore-debug.log
+*-debug.log

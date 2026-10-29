@@ -64,20 +64,24 @@ export function positiveInteger(value, { min = 1, max = 100000 } = {}) {
   return parsed;
 }
 
-export function publicError(error, fallback = 'Internal server error') {
+// Client-facing errors: intentional 4xx messages pass through; anything else becomes a
+// generic message plus a short reference id that is logged server-side for support.
+export function errorRef() {
+  return Math.random().toString(36).slice(2, 8).toUpperCase() + Date.now().toString(36).slice(-4).toUpperCase();
+}
+const SECRETISH = /(private key|bearer |authorization|service.?role|api key|secret|password=|token=)/i;
+export function publicError(error, fallback = 'Something went wrong. Please try again.') {
+  const status = Number(error?.status || 0);
   const message = String(error?.message || '');
-  const lower = message.toLowerCase();
-  if (
-    lower.includes('private key') ||
-    lower.includes('bearer ') ||
-    lower.includes('authorization') ||
-    lower.includes('service_role') ||
-    lower.includes('service role') ||
-    lower.includes('api key')
-  ) {
-    return fallback;
-  }
-  return message || fallback;
+  if (((status >= 400 && status < 500) || error?.expose) && message && !SECRETISH.test(message)) return message;
+  const ref = error?.ref || errorRef();
+  if (error && typeof error === 'object') error.ref = ref;
+  console.error(`[error ref ${ref}]`, error?.stack || message);
+  return `${fallback} (ref ${ref})`;
+}
+
+export function clientIp(req) {
+  return String(req.headers?.['x-real-ip'] || String(req.headers?.['x-forwarded-for'] || '').split(',')[0] || '').trim() || 'unknown';
 }
 
 export function safeRedirectUrl(value) {
