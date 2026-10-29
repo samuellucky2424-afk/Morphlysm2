@@ -132,6 +132,9 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.3.1"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.3.1"
     implementation "ai.xmax:xmax-sdk:1.1.0"
+    // Pro (Vidu S2-Editing realtime) runs over AliRTC; 64-bit only (see packaging excludes below).
+    implementation "com.aliyun.aio:AliVCSDK_ARTC:7.17.1-57750161"
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0"
 
     
@@ -158,4 +161,13 @@ dependencies {
     
     implementation 'androidx.work:work-runtime:2.11.2'
 
+}
+
+// Keep the APK light: AliRTC's ~13 MB 32-bit natives are dropped; Pro reports "needs a 64-bit phone" there.
+android {
+    packaging {
+        jniLibs {
+            excludes += ['lib/armeabi-v7a/liball_in_one.so', 'lib/armeabi-v7a/libalivcffmpeg.so']
+        }
+    }
 }

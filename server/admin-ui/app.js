@@ -124,7 +124,7 @@ P.performance = async () => {
   <div class="kpi"><div class="l">Failures</div><div class="v">${fmt(t.failed)}</div><div class="d"><span class="${t.failure_rate > .1 ? 'down' : 'up'}">${(t.failure_rate * 100).toFixed(1)}%</span> failure rate</div></div>
   <div class="kpi"><div class="l">Credits consumed</div><div class="v">${short(t.credits_consumed)}</div><div class="d">at 2 credits per second</div></div></div>
   <div class="grid eq"><div class="card"><h3>Sessions, last 14 days</h3>${bars(d.sessions_series)}</div><div class="card"><h3>Failures, last 14 days</h3>${line([d.failures_series], {h: 220})}</div></div>
-  ${table(['User', 'Status', 'Started', 'Duration', 'Credits', 'Engine', 'Device'], d.sessions.map(s => [who(s.email), pill(s.status), `${date(s.started_at)} <small style="color:#8a8a8f">${ago(s.started_at)}</small>`, dur(s.duration_seconds), fmt(s.credits), esc(`${s.provider || ''} ${s.model || ''}`), `<span class="mono">${esc((s.device_id || '').slice(0, 14))}</span>`]))}`;
+  ${table(['User', 'Status', 'Started', 'Duration', 'Credits', 'Engine', 'Device'], d.sessions.map(s => [who(s.email), pill(s.status), `${date(s.started_at)} <small style="color:#8a8a8f">${ago(s.started_at)}</small>`, dur(s.duration_seconds), fmt(s.credits), `<b>${s.tier === 'pro' ? 'Pro' : 'Plus'}</b> <small style="color:#8a8a8f">${esc(`${s.provider || ''} ${s.model || ''}`)}${s.rate ? ` · ${s.rate} cr/s` : ''}</small>`, `<span class="mono">${esc((s.device_id || '').slice(0, 14))}</span>`]))}`;
 };
 P.errors = async () => {
   const d = await api('/errors');

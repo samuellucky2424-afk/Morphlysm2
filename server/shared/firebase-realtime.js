@@ -6,6 +6,21 @@
 // Sessions whose app vanished are settled lazily (next start / balance fetch) using XMax's own usage counter.
 import {randomUUID} from 'node:crypto';
 import {createXmaxAndroidKey, revokeXmaxKey, KEY_GRACE_SECONDS} from './xmax-token.js';
+import {createViduSession, revokeViduSession} from './vidu-session.js';
+
+// Tiers shown in the app. Plus = XMax X2.1, Pro = Vidu S2-Editing. Rates are credits per wall-clock second,
+// overridable with STREAM_RATE_PLUS / STREAM_RATE_PRO (whole numbers keep wallet balances integral).
+export function tierRates(env = process.env) {
+  const pick = (v, d) => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n >= 1 && n <= 20 ? n : d; };
+  return {plus: pick(env.STREAM_RATE_PLUS, 2), pro: pick(env.STREAM_RATE_PRO, 2)};
+}
+export function normalizeTier(body = {}) {
+  const v = String(body.tier || body.provider || '').toLowerCase();
+  if (v === 'pro' || v === 'vidu') return 'pro';
+  if (v === 'plus' || v === 'xmax' || v === '') return 'plus';
+  return null;
+}
+export const TIER_PROVIDER = {plus: {provider: 'xmax', model: 'x2.1'}, pro: {provider: 'vidu', model: 's2-editing'}};
 
 const error = (message,status=400) => {throw Object.assign(new Error(message),{status,expose:true});};
 export const RATE = 2, MAX_SECONDS = 1800, MIN_SECONDS = 30, CONNECT_GRACE_SECONDS = 5, STALE_MS = 60000;
@@ -18,14 +33,19 @@ export function wallSeconds(row, t) {
   return Math.max(0, Math.min(row.maxSeconds, Math.floor((end - row.createdAt) / 1000) - CONNECT_GRACE_SECONDS));
 }
 
-export function androidRealtime(db, issueKey = createXmaxAndroidKey, revokeKey = revokeXmaxKey, clock = Date.now) {
+export function androidRealtime(db, issueKey = createXmaxAndroidKey, revokeXmaxImpl = revokeXmaxKey, clock = Date.now,
+  {issueVidu = createViduSession, revokeVidu = revokeViduSession, env = process.env} = {}) {
+  const keys = {xmax: () => env.XMAX_API_KEY, vidu: () => env.VIDU_API_KEY};
+  const revokeKey = ({apiKey, token, provider}) => provider === 'vidu'
+    ? revokeVidu({apiKey: keys.vidu(), token}) : revokeXmaxImpl({apiKey, token});
   const doc = (table,id) => db.collection(table).doc(id);
 
   // Settles one session exactly once. mode: 'end' (client ended), 'expired', 'replaced', 'stale'.
   async function settle(sessionId, mode, apiKey) {
     const keyDoc = doc('stream_key_sm', sessionId);
     const keySnap = await keyDoc.get();
-    const revoked = keySnap.exists ? await revokeKey({apiKey, token: keySnap.data().token}) : {ok: true, consumed: null};
+    const keyRow = keySnap.exists ? keySnap.data() : null;
+    const revoked = keyRow ? await revokeKey({apiKey, token: keyRow.token, provider: keyRow.provider || 'xmax'}) : {ok: true, consumed: null};
     const result = await db.runTransaction(async tx => {
       const session = await tx.get(doc('stream_session_sm', sessionId));
       const row = session.data();
@@ -76,8 +96,13 @@ export function androidRealtime(db, issueKey = createXmaxAndroidKey, revokeKey =
   }
 
   async function start(actor, body, apiKey) {
-    if (body.provider !== 'xmax' || body.platform !== 'android') error('Choose the Android XMax engine.');
-    if (!apiKey) error('XMax is not configured on the Android backend.',503);
+    const tier = normalizeTier(body);
+    if (!tier || body.platform !== 'android') error('Choose Plus or Pro.');
+    const {provider, model} = TIER_PROVIDER[tier];
+    const RATE = tierRates(env)[tier];
+    const providerKey = provider === 'vidu' ? keys.vidu() : apiKey;
+    if (!providerKey) error(tier === 'pro' ? 'Pro is not available yet.' : 'XMax is not configured on the Android backend.',503);
+    if (provider === 'vidu' && !(typeof body.referenceImage === 'string' && body.referenceImage.length > 32)) error('Pro needs a reference photo. Choose one first.');
     await settleOpen(actor.id, apiKey, {replace: true}); // one active session per user: the old key is revoked first
     const id=randomUUID(), timestamp=clock();
     const maxSeconds=await db.runTransaction(async tx=>{
@@ -92,7 +117,7 @@ export function androidRealtime(db, issueKey = createXmaxAndroidKey, revokeKey =
       if (lock.data()?.expiresAt>timestamp) error('End your existing stream first.',409);
       const reserved=seconds*RATE, ts=new Date(timestamp).toISOString();
       tx.update(wallet.ref,{balance:balance-reserved,reserved:Number(wallet.data().reserved||0)+reserved,updated_at:ts});
-      tx.create(doc('stream_session_sm',id),{id,user_id:actor.id,provider:'xmax',model:'x2.1',status:'starting',
+      tx.create(doc('stream_session_sm',id),{id,user_id:actor.id,provider,model,tier,status:'starting',
         created_at:ts,createdAt:timestamp,heartbeatAt:timestamp,maxSeconds:seconds,rate:RATE,reserved,consumed_credits:0,
         billingVersion:3,device_id:String(body.installationId||'').slice(0,120)});
       tx.create(db.collection('wallet_ledger_sm').doc(`${id}_stream_hold`),{user_id:actor.id,stream_session_id:id,
@@ -100,7 +125,9 @@ export function androidRealtime(db, issueKey = createXmaxAndroidKey, revokeKey =
       tx.set(doc('stream_lock_sm',actor.id),{sessionId:id,expiresAt:timestamp+(seconds+KEY_GRACE_SECONDS)*1000});
       return seconds;
     });
-    const key=await issueKey({apiKey,maxSeconds});
+    const key=provider==='vidu'
+      ? await issueVidu({apiKey:providerKey,maxSeconds,imageUrl:body.referenceImage,env})
+      : await issueKey({apiKey,maxSeconds});
     if (key.error) {
       await db.runTransaction(async tx=>{
         const [lock,wallet,session]=await Promise.all([tx.get(doc('stream_lock_sm',actor.id)),tx.get(doc('wallet_sm',actor.id)),
@@ -114,11 +141,11 @@ export function androidRealtime(db, issueKey = createXmaxAndroidKey, revokeKey =
           delta:reserved,entry_type:'stream_release',balance_after:Number(wallet.data().balance||0)+reserved,created_at:iso()});
         if(lock.data()?.sessionId===id)tx.update(lock.ref,{expiresAt:0});
       });
-      error(key.error.details||'XMax could not start.',502);
+      error(key.error.details||'The engine could not start.',502);
     }
-    await doc('stream_key_sm',id).set({token:key.token,user_id:actor.id,created_at:iso()});
-    return {allowed:true,provider:'xmax',model:'x2.1',sessionId:id,token:key.token,maxSeconds,
-      billingVersion:3,serverNow:clock()};
+    await doc('stream_key_sm',id).set({token:key.token,provider,user_id:actor.id,created_at:iso()});
+    return {allowed:true,provider,model,tier,rate:RATE,sessionId:id,token:key.token,maxSeconds,
+      ...(key.provider?{vidu:key.provider}:{}),billingVersion:3,serverNow:clock()};
   }
 
   async function meter(actor,body,close=false,apiKey=process.env.XMAX_API_KEY) {

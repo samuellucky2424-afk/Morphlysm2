@@ -24,6 +24,7 @@ import top.niunaijun.blackboxa.BuildConfig
 import top.niunaijun.blackboxa.R
 import top.niunaijun.blackboxa.databinding.ActivityStreamBinding
 import top.niunaijun.blackboxa.data.XmaxRealtimeBridge
+import top.niunaijun.blackboxa.data.ViduRealtimeBridge
 import top.niunaijun.blackboxa.data.StreamAuthManager
 import top.niunaijun.blackboxa.data.StreamPreviewBridge
 import top.niunaijun.blackboxa.data.StreamSessionController
@@ -72,7 +73,7 @@ class StreamActivity : BaseActivity() {
     private val pendingUsageSeconds = java.util.TreeSet<Long>()
 
     private fun collectUsage(): List<Long> = synchronized(pendingUsageSeconds) {
-        pendingUsageSeconds.addAll(XmaxRealtimeBridge.completedOutputSeconds())
+        pendingUsageSeconds.addAll(XmaxRealtimeBridge.completedOutputSeconds()); pendingUsageSeconds.addAll(ViduRealtimeBridge.completedOutputSeconds())
         pendingUsageSeconds.take(60)
     }
 
@@ -577,6 +578,7 @@ class StreamActivity : BaseActivity() {
         consecutiveCreditSyncFailures = 0
         mainHandler.removeCallbacks(creditUsageRunnable)
         XmaxRealtimeBridge.disconnect()
+        ViduRealtimeBridge.disconnect()
         StreamSessionController.stop()
         StreamPreviewBridge.clear()
         binding.layoutDecartRemoteOutput.removeAllViews()
@@ -1134,6 +1136,7 @@ class StreamActivity : BaseActivity() {
         }
 
         // Dashboard Live Stream Controls
+        setupEngineTierSelector()
         binding.btnConnectStream.setOnClickListener {
             if (!binding.cbAuditConsent.isChecked) {
                 Toast.makeText(this, "Consent is required before connecting to the live engine.", Toast.LENGTH_SHORT).show()
@@ -1347,6 +1350,46 @@ class StreamActivity : BaseActivity() {
         }
     }
 
+    // ---- Plus (XMax) / Pro (Vidu) engine selector; rates and availability come from the server. ----
+    private var tierRates = mutableMapOf("plus" to 2, "pro" to 2)
+    private var tierAvailable = mutableMapOf("plus" to true, "pro" to false)
+    private fun selectedTier(): String = getSharedPreferences("engine_tier", MODE_PRIVATE).getString("tier", "plus") ?: "plus"
+
+    private fun setupEngineTierSelector() {
+        binding.tvTierPlus.setOnClickListener { chooseTier("plus") }
+        binding.tvTierPro.setOnClickListener { chooseTier("pro") }
+        renderTierSelector()
+        networkExecutor.execute {
+            runCatching {
+                val c = java.net.URL("$BACKEND_BASE_URL/public-config").openConnection() as java.net.HttpURLConnection
+                c.connectTimeout = 10000; c.readTimeout = 10000
+                val tiers = JSONObject(c.inputStream.bufferedReader().use { it.readText() }).optJSONObject("tiers") ?: return@runCatching
+                for (t in listOf("plus", "pro")) tiers.optJSONObject(t)?.let {
+                    tierRates[t] = it.optInt("rate", tierRates[t] ?: 2); tierAvailable[t] = it.optBoolean("available", t == "plus")
+                }
+                runOnUiThread { if (!isDestroyed) renderTierSelector() }
+            }
+        }
+    }
+
+    private fun chooseTier(tier: String) {
+        if (isStreaming) { Toast.makeText(this, "Stop the stream to switch engines.", Toast.LENGTH_SHORT).show(); return }
+        getSharedPreferences("engine_tier", MODE_PRIVATE).edit().putString("tier", tier).apply()
+        renderTierSelector()
+    }
+
+    private fun renderTierSelector() {
+        val tier = selectedTier()
+        for ((view, key) in listOf(binding.tvTierPlus to "plus", binding.tvTierPro to "pro")) {
+            val on = key == tier
+            view.setBackgroundResource(if (on) R.drawable.bg_tier_selected else 0)
+            view.setTextColor(if (on) Color.WHITE else Color.parseColor("#D32F2F"))
+        }
+        val label = if (tier == "pro") "Pro" else "Plus"
+        val note = if (tierAvailable[tier] == false) " · unavailable" else ""
+        binding.tvTierRate.text = "$label · ${tierRates[tier] ?: 2} credits/sec$note"
+    }
+
     private fun postBackendJson(path: String, payload: JSONObject): Pair<Int, String> {
         val token = StreamAuthManager.getValidIdToken(this, BACKEND_BASE_URL)
             ?: throw IllegalStateException("Your session expired. Sign in again.")
@@ -1441,7 +1484,16 @@ class StreamActivity : BaseActivity() {
             return
         }
 
+        val tier = selectedTier()
+        if (tier == "pro" && tierAvailable["pro"] == false) {
+            Toast.makeText(this, "Pro isn't available right now. Switch to Plus to stream.", Toast.LENGTH_LONG).show()
+            return
+        }
         val mode = selectedModeKey()
+        if (tier == "pro" && selectedFaceImageUri == null) {
+            Toast.makeText(this, "Pro needs a reference photo. Select a face image first.", Toast.LENGTH_LONG).show()
+            return
+        }
         if (mode == "face_swap" && selectedFaceImageUri == null) {
             Toast.makeText(this, "Select a face image before starting Face Swap.", Toast.LENGTH_LONG).show()
             return
@@ -1465,7 +1517,7 @@ class StreamActivity : BaseActivity() {
             try {
                 var base64Image = ""
                 var faceImageMimeType = ""
-                if (mode == "face_swap") {
+                if (mode == "face_swap" || tier == "pro") {
                     val faceImage = readFaceImageForDecart(
                         selectedFaceImageUri ?: throw IllegalStateException("Select a face image before starting Face Swap.")
                     )
@@ -1473,16 +1525,22 @@ class StreamActivity : BaseActivity() {
                     faceImageMimeType = faceImage.second
                 }
 
-                val sessionResponse = postBackendJson("start-session", JSONObject()
-                    .put("provider", "xmax").put("platform", "android")
-                    .put("installationId", deviceId))
+                val engineName = if (tier == "pro") "vidu" else "xmax"
+                val startBody = JSONObject().put("provider", engineName).put("tier", tier).put("platform", "android")
+                    .put("installationId", deviceId)
+                if (tier == "pro") startBody.put("referenceImage", "data:${faceImageMimeType.ifBlank { "image/jpeg" }};base64," +
+                    base64Image.replace("\n", "").replace("\r", ""))
+                val sessionResponse = postBackendJson("start-session", startBody)
                 if (sessionResponse.first !in 200..299) {
-                    throw IllegalStateException(parseBackendError(sessionResponse.second, "Could not start XMax."))
+                    throw IllegalStateException(parseBackendError(sessionResponse.second,
+                        if (tier == "pro") "Could not start Pro." else "Could not start XMax."))
                 }
                 val transformJson = JSONObject(sessionResponse.second)
-                if (!transformJson.optBoolean("allowed") || transformJson.optString("provider") != "xmax") {
-                    throw IllegalStateException(transformJson.optString("error", "XMax is not available."))
+                if (!transformJson.optBoolean("allowed") || transformJson.optString("provider") != engineName) {
+                    throw IllegalStateException(transformJson.optString("error", "This engine is not available."))
                 }
+                val viduInfo = transformJson.optJSONObject("vidu")
+                if (tier == "pro" && viduInfo == null) throw IllegalStateException("Pro session details were missing. Try again.")
                 val clientApiKey = transformJson.getString("token")
                 val sessionId = transformJson.getString("sessionId")
                 currentStreamSessionId = sessionId
@@ -1503,26 +1561,27 @@ class StreamActivity : BaseActivity() {
                     binding.layoutDecartRemoteOutput.visibility = View.VISIBLE
                     binding.layoutDecartRemoteOutput.removeAllViews()
                     releaseCamera()
-                    XmaxRealtimeBridge.connect(
-                        this@StreamActivity, binding.layoutDecartRemoteOutput,
-                        clientApiKey, resolvedPrompt,
-                        base64Image.takeIf { it.isNotBlank() }?.let { android.util.Base64.decode(it, android.util.Base64.DEFAULT) },
-                        useBackCamera, fps, sessionId, serverClockOffsetMs,
-                        { status -> binding.tvAiOutputStatus.text = status },
-                        {
-                            if (!isStreaming) startLiveStreamState(sessionId, model, maxSessionDuration)
-                            binding.tvAiOutputStatus.text = "XMax video is feeding the virtual camera."
-                            showMiniWindowPermissionNotice()
-                        },
-                        { error ->
+                    val onStatus: (String) -> Unit = { status -> binding.tvAiOutputStatus.text = status }
+                    val onFirst: () -> Unit = {
+                        if (!isStreaming) startLiveStreamState(sessionId, model, maxSessionDuration)
+                        binding.tvAiOutputStatus.text = (if (tier == "pro") "Pro" else "XMax") + " video is feeding the virtual camera."
+                        showMiniWindowPermissionNotice()
+                    }
+                    val onFail: (Throwable) -> Unit = { error ->
                             stopLiveStream()
                             binding.btnConnectStream.isEnabled = true
                             binding.layoutDecartRemoteOutput.removeAllViews()
                             binding.layoutDecartRemoteOutput.visibility = View.GONE
                             binding.layoutAiOutputPlaceholder.visibility = View.VISIBLE
                             binding.tvAiOutputStatus.text = error.message ?: "XMax failed. Try again."
-                        }
-                    )
+                    }
+                    if (tier == "pro") ViduRealtimeBridge.connect(this@StreamActivity, binding.layoutDecartRemoteOutput,
+                        viduInfo!!, clientApiKey, useBackCamera, sessionId, serverClockOffsetMs, onStatus, onFirst, onFail)
+                    else XmaxRealtimeBridge.connect(
+                        this@StreamActivity, binding.layoutDecartRemoteOutput,
+                        clientApiKey, resolvedPrompt,
+                        base64Image.takeIf { it.isNotBlank() }?.let { android.util.Base64.decode(it, android.util.Base64.DEFAULT) },
+                        useBackCamera, fps, sessionId, serverClockOffsetMs, onStatus, onFirst, onFail)
                 }
             } catch (e: Exception) {
                 Log.e(TAG_STREAM_LIFECYCLE, "connect_live_engine_failed", e)
@@ -2252,6 +2311,7 @@ class StreamActivity : BaseActivity() {
         isStreaming = false
         mainHandler.removeCallbacksAndMessages(null)
         XmaxRealtimeBridge.disconnect()
+        ViduRealtimeBridge.disconnect()
         StreamSessionController.stop()
         StreamPreviewBridge.clear()
         releaseCamera()

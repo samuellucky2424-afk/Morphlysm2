@@ -251,7 +251,7 @@ async function performance() {
     sessions_series: series(14, sessions, s => ms(s.createdAt || s.created_at)),
     failures_series: series(14, failed, s => ms(s.createdAt || s.created_at)),
     sessions: sessions.sort((a, b) => ms(b.createdAt || b.created_at) - ms(a.createdAt || a.created_at)).slice(0, 200)
-      .map(s => ({id: s.id, email: email.get(s.user_id) || s.user_id, status: s.status, provider: s.provider, model: s.model,
+      .map(s => ({id: s.id, email: email.get(s.user_id) || s.user_id, status: s.status, provider: s.provider, model: s.model, tier: s.tier || (s.provider === 'vidu' ? 'pro' : 'plus'), rate: Number(s.rate || 0),
         started_at: s.created_at, ended_at: s.ended_at || null, duration_seconds: sessionSeconds(s), credits: Number(s.consumed_credits || 0),
         device_id: s.device_id || ''})),
   };
