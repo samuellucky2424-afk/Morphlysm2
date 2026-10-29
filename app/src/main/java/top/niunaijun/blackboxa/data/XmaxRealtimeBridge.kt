@@ -140,9 +140,12 @@ object XmaxRealtimeBridge {
                     val bytes = convertBuffer?.takeIf { it.size == total } ?: ByteArray(total).also { convertBuffer = it }
                     val uArr = chromaU?.takeIf { it.size == chroma } ?: ByteArray(chroma).also { chromaU = it }
                     val vArr = chromaV?.takeIf { it.size == chroma } ?: ByteArray(chroma).also { chromaV = it }
-                    frame.yData.duplicate().get(bytes, 0, ySize)
-                    frame.uData.duplicate().get(uArr, 0, chroma)
-                    frame.vData.duplicate().get(vArr, 0, chroma)
+                    // Honour plane strides and expand XMAX/Agora limited-range (16-235) BT.601 to the full-range JFIF YUV
+                    // Android cameras deliver and WhatsApp expects (limited-as-full looked washed/yellowish on the remote side).
+                    copyPlane(frame.yData, frame.yStride, width, height, bytes, 0, Y_LUT)
+                    copyPlane(frame.uData, frame.uStride, width / 2, height / 2, uArr, 0, C_LUT)
+                    copyPlane(frame.vData, frame.vStride, width / 2, height / 2, vArr, 0, C_LUT)
+                    if (!loggedStrides) { loggedStrides = true; android.util.Log.i("XMAX_BRIDGE", "strides y=${frame.yStride} u=${frame.uStride} v=${frame.vStride} w=$width") }
                     var j = ySize
                     for (i in 0 until chroma) {
                         bytes[j++] = vArr[i]
@@ -210,6 +213,21 @@ object XmaxRealtimeBridge {
             }
         }
         return dst
+    }
+    @Volatile private var loggedStrides = false
+    private val Y_LUT = ByteArray(256) { (((it - 16) * 255 + 109) / 219).coerceIn(0, 255).toByte() }
+    private val C_LUT = ByteArray(256) { (((it - 128) * 255) / 224 + 128).coerceIn(0, 255).toByte() }
+    private var rowScratch = ByteArray(0)
+    private fun copyPlane(src: java.nio.ByteBuffer, stride: Int, w: Int, h: Int, dst: ByteArray, off: Int, lut: ByteArray) {
+        val b = src.duplicate(); val base = b.position(); val st = if (stride >= w) stride else w
+        if (rowScratch.size < w) rowScratch = ByteArray(w)
+        for (r in 0 until h) {
+            val start = base + r * st
+            if (start + w > b.limit()) break
+            b.position(start); b.get(rowScratch, 0, w)
+            val o = off + r * w
+            for (x in 0 until w) dst[o + x] = lut[rowScratch[x].toInt() and 0xff]
+        }
     }
     @Volatile private var connectStartedAt = 0L
     @Volatile private var usingLowFps = false
