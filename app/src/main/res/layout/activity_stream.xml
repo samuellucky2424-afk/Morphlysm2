@@ -2377,7 +2377,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
-                    android:text="After purchase via WhatsApp or email, you will receive a Credit Key to enter below."
+                    android:text="Credits are added to your balance automatically after payment."
                     android:textColor="#757575"
                     android:textSize="11.5sp"
                     android:layout_marginBottom="12dp" />
@@ -2651,79 +2651,19 @@
 
                 </LinearLayout>
 
-                <!-- Payment Option 1: Flutterwave -->
+                <!-- Single payment option: Flutterwave (in-app pop-up) -->
                 <Button
                     android:id="@+id/btnCheckoutFlutterwave"
                     android:layout_width="match_parent"
-                    android:layout_height="42dp"
+                    android:layout_height="48dp"
                     android:backgroundTint="#E53935"
-                    android:text="🦋 PAY NOW – FLUTTERWAVE"
+                    android:text="PAY NOW"
                     android:textColor="#FFFFFF"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="12dp"
-                    app:cornerRadius="2dp" />
-
-                <!-- Payment Option 2: Crypto -->
-                <Button
-                    android:id="@+id/btnCheckoutCrypto"
-                    android:layout_width="match_parent"
-                    android:layout_height="42dp"
-                    android:backgroundTint="#E53935"
-                    android:text="₿ PAY WITH CRYPTO"
-                    android:textColor="#FFFFFF"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="20dp"
-                    app:cornerRadius="2dp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="OR CONTACT US DIRECTLY"
-                    android:textColor="#757575"
-                    android:textSize="10sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.08"
-                    android:layout_marginBottom="12dp" />
-
-                <!-- Direct Contact Buttons -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="24dp">
-
-                    <Button
-                        android:id="@+id/btnCheckoutWhatsApp"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_weight="1"
-                        android:backgroundTint="#B71C1C"
-                        android:text="💬 WhatsApp"
-                        android:textColor="#FFFFFF"
-                        android:textSize="11.5sp"
-                        android:textStyle="bold"
-                        android:layout_marginEnd="6dp"
-                        app:cornerRadius="2dp"
-                        android:padding="0dp" />
-
-                    <Button
-                        android:id="@+id/btnCheckoutEmail"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_weight="1"
-                        android:backgroundTint="#FFF5F5"
-                        android:text="✉ Email"
-                        android:textColor="#212121"
-                        android:textSize="11.5sp"
-                        android:textStyle="bold"
-                        android:layout_marginStart="6dp"
-                        app:cornerRadius="2dp"
-                        android:padding="0dp" />
-
-                </LinearLayout>
+                    android:layout_marginBottom="8dp"
+                    app:cornerRadius="2dp" />
 
                 <!-- Back to plans selection -->
                 <Button

@@ -1003,15 +1003,6 @@ class StreamActivity : BaseActivity() {
         binding.btnCheckoutFlutterwave.setOnClickListener {
             processCheckoutPayment("Flutterwave")
         }
-        binding.btnCheckoutCrypto.setOnClickListener {
-            processCheckoutPayment("Crypto")
-        }
-        binding.btnCheckoutWhatsApp.setOnClickListener {
-            openWhatsAppContact()
-        }
-        binding.btnCheckoutEmail.setOnClickListener {
-            openEmailContact()
-        }
 
         binding.btnCheckoutBack.setOnClickListener {
             showPlanSelectionState()
@@ -1516,17 +1507,129 @@ class StreamActivity : BaseActivity() {
 
 
 
-    private fun openCheckoutPopup(title: String, checkoutUrl: String) {
-        val uri = Uri.parse(checkoutUrl)
-        if (uri.scheme != "https") {
+    private var checkoutDialog: android.app.Dialog? = null
+
+    /** Flutterwave hosted checkout inside an in-app pop-up WebView (no external browser). */
+    @android.annotation.SuppressLint("SetJavaScriptEnabled")
+    private fun openCheckoutPopup(checkoutUrl: String, txRef: String) {
+        if (Uri.parse(checkoutUrl).scheme != "https") {
             Toast.makeText(this, "The payment link is invalid.", Toast.LENGTH_LONG).show()
             return
         }
-        try {
-            startActivity(Intent(Intent.ACTION_VIEW, uri))
-        } catch (error: Exception) {
-            Log.e(TAG_STREAM_LIFECYCLE, "checkout_browser_failed", error)
-            Toast.makeText(this, "No browser can open the $title link.", Toast.LENGTH_LONG).show()
+        checkoutDialog?.dismiss()
+        val dp = resources.displayMetrics.density
+        val root = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setBackgroundColor(android.graphics.Color.WHITE)
+        }
+        val header = android.widget.RelativeLayout(this).apply {
+            setBackgroundColor(android.graphics.Color.parseColor("#E53935"))
+            setPadding((16 * dp).toInt(), 0, 0, 0)
+        }
+        header.addView(android.widget.TextView(this).apply {
+            text = "Secure payment"
+            setTextColor(android.graphics.Color.WHITE)
+            textSize = 15f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }, android.widget.RelativeLayout.LayoutParams(-2, -2).apply { addRule(android.widget.RelativeLayout.CENTER_VERTICAL) })
+        val close = android.widget.TextView(this).apply {
+            text = "\u2715"
+            setTextColor(android.graphics.Color.WHITE)
+            textSize = 20f
+            gravity = android.view.Gravity.CENTER
+            contentDescription = "Close"
+        }
+        header.addView(close, android.widget.RelativeLayout.LayoutParams((52 * dp).toInt(), -1).apply { addRule(android.widget.RelativeLayout.ALIGN_PARENT_END) })
+        root.addView(header, android.widget.LinearLayout.LayoutParams(-1, (52 * dp).toInt()))
+        val progress = android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { isIndeterminate = true }
+        root.addView(progress, android.widget.LinearLayout.LayoutParams(-1, (4 * dp).toInt()))
+        val web = android.webkit.WebView(this)
+        root.addView(web, android.widget.LinearLayout.LayoutParams(-1, 0, 1f))
+
+        val dialog = android.app.Dialog(this, android.R.style.Theme_Material_Light_NoActionBar)
+        var finished = false
+        fun done(returnUri: Uri?) {
+            if (finished) return
+            finished = true
+            dialog.dismiss()
+            if (returnUri == null) {
+                Toast.makeText(this, "Payment cancelled.", Toast.LENGTH_SHORT).show()
+                return
+            }
+            val status = returnUri.getQueryParameter("status").orEmpty()
+            val ref = returnUri.getQueryParameter("tx_ref") ?: returnUri.getQueryParameter("txRef") ?: txRef
+            val txId = returnUri.getQueryParameter("transaction_id").orEmpty()
+            if (status.isNotEmpty() && status != "successful" && status != "completed") {
+                Toast.makeText(this, "Payment not completed. No charge was made.", Toast.LENGTH_LONG).show()
+                return
+            }
+            verifyCheckoutPayment(ref, txId)
+        }
+        fun isReturn(url: String) = url.startsWith("morphly://") || url.contains("/payment-complete.html")
+
+        web.settings.javaScriptEnabled = true
+        web.settings.domStorageEnabled = true
+        web.webViewClient = object : android.webkit.WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: android.webkit.WebView, request: android.webkit.WebResourceRequest): Boolean {
+                val url = request.url.toString()
+                if (isReturn(url)) { done(request.url); return true }
+                return !(url.startsWith("https://") || url.startsWith("http://"))
+            }
+            override fun onPageStarted(view: android.webkit.WebView, url: String, favicon: android.graphics.Bitmap?) {
+                if (isReturn(url)) { view.stopLoading(); done(Uri.parse(url)) } else progress.visibility = View.VISIBLE
+            }
+            override fun onPageFinished(view: android.webkit.WebView, url: String) { progress.visibility = View.GONE }
+        }
+        close.setOnClickListener { done(null) }
+        dialog.setContentView(root)
+        dialog.setOnCancelListener { done(null) }
+        dialog.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == android.view.KeyEvent.KEYCODE_BACK && event.action == android.view.KeyEvent.ACTION_UP && web.canGoBack()) { web.goBack(); true } else false
+        }
+        dialog.setOnDismissListener { web.stopLoading(); web.destroy(); checkoutDialog = null }
+        checkoutDialog = dialog
+        dialog.show()
+        web.loadUrl(checkoutUrl)
+    }
+
+    private fun verifyCheckoutPayment(txRef: String, transactionId: String) {
+        if (txRef.isBlank()) { schedulePaymentBalanceRefresh(); return }
+        Toast.makeText(this, "Confirming payment...", Toast.LENGTH_SHORT).show()
+        networkExecutor.execute {
+            var message: String
+            var ok = false
+            try {
+                val token = StreamAuthManager.getValidIdToken(this@StreamActivity, BACKEND_BASE_URL)
+                    ?: throw Exception("Your session expired. Sign in again.")
+                val connection = java.net.URL("$BACKEND_BASE_URL/payments/verify").openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 15000
+                connection.readTimeout = 30000
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                connection.doOutput = true
+                val body = org.json.JSONObject().put("txRef", txRef)
+                if (transactionId.isNotBlank()) body.put("transaction_id", transactionId)
+                connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+                val code = connection.responseCode
+                val text = (if (code in 200..299) connection.inputStream else connection.errorStream)?.bufferedReader()?.use { it.readText() }.orEmpty()
+                val json = runCatching { org.json.JSONObject(text) }.getOrNull()
+                ok = code == 200 && json?.optBoolean("verified") == true
+                message = when {
+                    ok -> "Payment successful! Credits added."
+                    code == 200 -> "Payment is ${json?.optString("status", "pending")}. Your balance will update shortly."
+                    else -> "Payment check failed: ${json?.optString("error") ?: "HTTP $code"}"
+                }
+            } catch (e: Exception) {
+                message = "Payment check failed: ${e.message}"
+            }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                Toast.makeText(this@StreamActivity, message, Toast.LENGTH_LONG).show()
+                if (ok) showDashboardState()
+                fetchBalanceFromBackend()
+                schedulePaymentBalanceRefresh()
+            }
         }
     }
 
@@ -1734,11 +1837,6 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun processCheckoutPayment(gateway: String) {
-        if (gateway == "Crypto") {
-            processCryptoCheckoutPayment()
-            return
-        }
-
         val packageId = selectedPackageId
 
         val progressDialog = android.app.ProgressDialog(this).apply {
@@ -1760,7 +1858,7 @@ class StreamActivity : BaseActivity() {
                 connection.setRequestProperty("Authorization", "Bearer $token")
                 connection.doOutput = true
 
-                val jsonInputString = "{\"packageId\": \"$packageId\", \"redirectUrl\": \"morphly://payment-return\"}"
+                val jsonInputString = org.json.JSONObject().put("packageId", packageId).toString()
                 connection.outputStream.use { os ->
                     val input = jsonInputString.toByteArray(Charsets.UTF_8)
                     os.write(input, 0, input.size)
@@ -1782,7 +1880,7 @@ class StreamActivity : BaseActivity() {
                             .putInt("pending_plan_balance", StreamAuthManager.getWalletBalance(this@StreamActivity)).apply()
                         runOnUiThread {
                             progressDialog.dismiss()
-                            openCheckoutPopup("$gateway Checkout", checkoutUrl)
+                            openCheckoutPopup(checkoutUrl, jsonObject.optString("txRef"))
                         }
                     } else {
                         throw Exception("Missing checkoutUrl")
@@ -1834,7 +1932,7 @@ class StreamActivity : BaseActivity() {
                 connection.setRequestProperty("Authorization", "Bearer $token")
                 connection.doOutput = true
 
-                val jsonInputString = "{\"packageId\": \"$packageId\", \"redirectUrl\": \"morphly://payment-return\"}"
+                val jsonInputString = org.json.JSONObject().put("packageId", packageId).toString()
                 connection.outputStream.use { os ->
                     val input = jsonInputString.toByteArray(Charsets.UTF_8)
                     os.write(input, 0, input.size)
@@ -1860,7 +1958,7 @@ class StreamActivity : BaseActivity() {
                         val checkoutUrl = jsonObject.getString("checkoutUrl")
                         runOnUiThread {
                             progressDialog.dismiss()
-                            openCheckoutPopup("Crypto Checkout", checkoutUrl)
+                            openCheckoutPopup(checkoutUrl, "")
                         }
                     } else {
                         throw Exception("Missing checkoutUrl")
