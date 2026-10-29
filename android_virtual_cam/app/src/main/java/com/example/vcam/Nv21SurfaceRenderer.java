@@ -16,6 +16,13 @@ public final class Nv21SurfaceRenderer {
     private static final String TAG = "VCAM_RENDER";
     private static final int MAX_RENDER_WIDTH = 320;
     private static final int FRAME_DELAY_MS = 33;
+    private static final long REPEAT_INTERVAL_MS = 250L;
+    private static final int POLL_DELAY_MS = 8;
+    private long lastRenderAtMs;
+    private byte[] lastSourceArray;
+    private PreparedFrame cachedPrepared;
+    private long prepareNsTotal;
+    private long freshCount;
     private static final int FORMAT_UNKNOWN = Integer.MIN_VALUE;
     private static final long SURFACE_INVALID_MAX_WAIT_MS = 10_000;
     private static final int IMAGE_WRITER_RETRY_INTERVAL = 60;
@@ -130,7 +137,7 @@ public final class Nv21SurfaceRenderer {
                     imageWriterFailedCount = 0;
                 }
                 drawLatestFrame();
-                Thread.sleep(FRAME_DELAY_MS);
+                Thread.sleep(POLL_DELAY_MS);
             } catch (InterruptedException ignored) {
                 running = false;
                 Log.i(TAG, "render_loop_interrupted label=" + label);
@@ -152,7 +159,28 @@ public final class Nv21SurfaceRenderer {
                 targetWidth,
                 targetHeight
         );
-        PreparedFrame prepared = prepareFrameForTarget(frame.nv21, frame.width, frame.height, targetWidth, targetHeight);
+        long nowMs = System.currentTimeMillis();
+        boolean fresh = frame.counter != lastRenderedCounter || frame.nv21 != lastSourceArray;
+        // Unchanged frame: only re-post occasionally (keeps the consumer alive) instead of re-converting 30x/s.
+        if (!fresh && nowMs - lastRenderAtMs < REPEAT_INTERVAL_MS) {
+            return;
+        }
+        lastRenderAtMs = nowMs;
+        PreparedFrame prepared;
+        if (!fresh && cachedPrepared != null) {
+            prepared = cachedPrepared;
+        } else {
+            long t0 = System.nanoTime();
+            prepared = prepareFrameForTarget(frame.nv21, frame.width, frame.height, targetWidth, targetHeight);
+            cachedPrepared = prepared;
+            lastSourceArray = frame.nv21;
+            prepareNsTotal += System.nanoTime() - t0;
+            freshCount++;
+            if (freshCount % 60 == 0) {
+                Log.i(TAG, "perf label=" + label + " fresh=" + freshCount + " avgPrepareMs=" + (prepareNsTotal / 60 / 1_000_000.0));
+                prepareNsTotal = 0;
+            }
+        }
         byte[] nv21 = prepared.nv21;
         int width = prepared.width;
         int height = prepared.height;
@@ -161,7 +189,7 @@ public final class Nv21SurfaceRenderer {
         boolean isNewFrame = frame.counter != lastRenderedCounter;
 
         // Log every rendered frame for the first 5, then every 30th
-        if (totalFrameCount <= 5 || totalFrameCount % 30 == 0 || prepared.rotationDegrees != 0) {
+        if (totalFrameCount <= 5 || totalFrameCount % 120 == 0) {
             Log.d(TAG, "VirtualCamera: rendered frameCounter=" + frame.counter
                     + " to WhatsApp surface label=" + label
                     + " totalRendered=" + totalFrameCount
@@ -344,6 +372,18 @@ public final class Nv21SurfaceRenderer {
         int rowStride = plane.getRowStride();
         int pixelStride = Math.max(1, plane.getPixelStride());
         int limit = buffer.limit();
+        if (pixelStride == 1) {
+            ByteBuffer dup = buffer.duplicate();
+            for (int row = 0; row < height; row++) {
+                int dst = row * rowStride;
+                if (dst + width > limit) {
+                    break;
+                }
+                dup.position(dst);
+                dup.put(nv21, row * width, width);
+            }
+            return;
+        }
         for (int row = 0; row < height; row++) {
             int src = row * width;
             int dst = row * rowStride;

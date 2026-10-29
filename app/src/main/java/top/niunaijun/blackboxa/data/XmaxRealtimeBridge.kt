@@ -88,6 +88,7 @@ object XmaxRealtimeBridge {
                     val now = SystemClock.elapsedRealtime()
                     if (revision != currentRevision || now - lastFrameAt < 48L) return@setRemoteMediaFrameListener
                     lastFrameAt = now
+                    perfIn++
                     pendingFrame.set(frame)
                     drainFrames(activity, currentRevision, token) {
                         if (first && revision == currentRevision) {
@@ -130,6 +131,7 @@ object XmaxRealtimeBridge {
             try {
                 while (revision == currentRevision) {
                     val frame = pendingFrame.getAndSet(null) ?: break
+                    val t0 = System.nanoTime()
                     var width = frame.width
                     var height = frame.height
                     if (width % 2 != 0 || height % 2 != 0) continue
@@ -151,7 +153,8 @@ object XmaxRealtimeBridge {
                         bytes[j++] = vArr[i]
                         bytes[j++] = uArr[i]
                     }
-                    var output = Nv21Converter.rotateNv21(bytes, width, height, frame.rotationDegrees)
+                    // rotation 0 is the normal case: no extra full-resolution (~2.6 MB) copy per frame.
+                    var output = if (frame.rotationDegrees % 360 == 0) bytes else Nv21Converter.rotateNv21(bytes, width, height, frame.rotationDegrees)
                     if (frame.rotationDegrees == 90 || frame.rotationDegrees == 270) {
                         val old = width; width = height; height = old
                     }
@@ -166,6 +169,7 @@ object XmaxRealtimeBridge {
                     val targetWidth = (width * scale).toInt() / 2 * 2
                     val targetHeight = (height * scale).toInt() / 2 * 2
                     if (scale < 1) output = resizeNv21Bilinear(output, width, height, targetWidth, targetHeight)
+                    val t1 = System.nanoTime()
                     synchronized(publicationLock) {
                     if (revision != currentRevision) return@synchronized
                     VirtualCameraBridge.setActiveSource(activity.applicationContext, VirtualCameraBridge.SOURCE_XMAX)
@@ -176,6 +180,14 @@ object XmaxRealtimeBridge {
                     published()
                     }
                     publishPreview(output, targetWidth, targetHeight)
+                    perfConvertNs += t1 - t0; perfPublishNs += System.nanoTime() - t1; perfFrames++
+                    val nowMs = SystemClock.elapsedRealtime()
+                    if (perfFrames >= 60 || nowMs - perfSinceMs > 5000L) {
+                        val secs = maxOf(1L, nowMs - perfSinceMs) / 1000.0
+                        android.util.Log.i("XMAX_PERF", "out_fps=" + "%.1f".format(perfFrames / secs) + " in_fps=" + "%.1f".format(perfIn / secs) +
+                            " convertMs=" + "%.1f".format(perfConvertNs / 1e6 / maxOf(1, perfFrames)) + " publishMs=" + "%.1f".format(perfPublishNs / 1e6 / maxOf(1, perfFrames)))
+                        perfFrames = 0; perfIn = 0; perfConvertNs = 0; perfPublishNs = 0; perfSinceMs = nowMs
+                    }
                 }
             } finally {
                 draining.set(false)
@@ -229,6 +241,11 @@ object XmaxRealtimeBridge {
             for (x in 0 until w) dst[o + x] = lut[rowScratch[x].toInt() and 0xff]
         }
     }
+    @Volatile private var perfIn = 0
+    private var perfFrames = 0
+    private var perfConvertNs = 0L
+    private var perfPublishNs = 0L
+    private var perfSinceMs = 0L
     @Volatile private var connectStartedAt = 0L
     @Volatile private var usingLowFps = false
     @Volatile private var loggedFrameShape = false

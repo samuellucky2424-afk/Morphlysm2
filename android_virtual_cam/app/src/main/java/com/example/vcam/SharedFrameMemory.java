@@ -80,6 +80,12 @@ public final class SharedFrameMemory {
         synchronized (state) {
             closeMemoryFile(state);
         }
+        synchronized (WRITERS[slot]) {
+            closeMapped(WRITERS[slot]);
+        }
+        synchronized (READERS[slot]) {
+            closeMapped(READERS[slot]);
+        }
         try {
             File file = getMappedFrameFile(context, slot);
             if (file.exists()) {
@@ -135,44 +141,127 @@ public final class SharedFrameMemory {
 
     private static void writeMappedFrame(Context context, int slot, byte[] nv21, int width, int height, long timestampNs, long counter, int length) {
         File file = getMappedFrameFile(context, slot);
-        try {
-            File dir = file.getParentFile();
-            if (dir == null || (!dir.exists() && !dir.mkdirs())) {
-                return;
-            }
-            int total = HEADER_BYTES + length;
-            try (RandomAccessFile raf = new RandomAccessFile(file, "rw");
-                 FileChannel channel = raf.getChannel()) {
-                if (raf.length() != total) {
-                    raf.setLength(total);
+        int total = HEADER_BYTES + length;
+        MappedSlot w = WRITERS[slot];
+        synchronized (w) {
+            try {
+                // Keep one mapping open instead of open+mmap+munmap for every frame (was a large per-frame syscall/GC cost).
+                if (w.buffer == null || w.capacity < total || !file.getPath().equals(w.path) || !file.exists()) {
+                    closeMapped(w);
+                    File dir = file.getParentFile();
+                    if (dir == null || (!dir.exists() && !dir.mkdirs())) {
+                        return;
+                    }
+                    w.raf = new RandomAccessFile(file, "rw");
+                    if (w.raf.length() < total) {
+                        w.raf.setLength(total);
+                    }
+                    w.capacity = (int) Math.min(w.raf.length(), HEADER_BYTES + (long) MAX_FRAME_BYTES);
+                    w.buffer = w.raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, w.capacity);
+                    w.path = file.getPath();
                 }
-                MappedByteBuffer buffer = channel.map(FileChannel.MapMode.READ_WRITE, 0, total);
+                MappedByteBuffer buffer = w.buffer;
                 buffer.putInt(0, MAGIC_WRITING);
                 buffer.position(HEADER_BYTES);
                 buffer.put(nv21, 0, length);
                 buffer.position(0);
                 buffer.put(header(MAGIC, width, height, timestampNs, counter, length));
+                long now = System.currentTimeMillis();
+                if (now - w.lastTouchMs > 500L) {
+                    w.lastTouchMs = now;
+                    //noinspection ResultOfMethodCallIgnored
+                    file.setLastModified(now);
+                }
+            } catch (Throwable ignored) {
+                closeMapped(w);
             }
-            //noinspection ResultOfMethodCallIgnored
-            file.setLastModified(System.currentTimeMillis());
+        }
+    }
+
+    /** Cheap header-only peek of the newest frame counter, -1 if unknown. Lets readers skip unchanged frames. */
+    public static long peekCounter(Context context, int slotId) {
+        int slot = safeSlot(slotId);
+        MemoryState state = STATES[slot];
+        synchronized (state) {
+            if (state.memoryFile != null && state.length > 0) {
+                return state.counter;
+            }
+        }
+        MappedSlot r = READERS[slot];
+        synchronized (r) {
+            MappedByteBuffer buffer = readerMapping(context, slot, r);
+            if (buffer == null || buffer.getInt(0) != MAGIC) {
+                return -1L;
+            }
+            return buffer.getLong(24);
+        }
+    }
+
+    private static MappedByteBuffer readerMapping(Context context, int slot, MappedSlot r) {
+        File file = getMappedFrameFile(context, slot);
+        long now = System.currentTimeMillis();
+        try {
+            long len = file.length();
+            if (r.buffer == null || len != r.capacity || !file.getPath().equals(r.path) || now - r.lastTouchMs > 2000L) {
+                closeMapped(r);
+                if (len < HEADER_BYTES || len > HEADER_BYTES + (long) MAX_FRAME_BYTES) {
+                    return null;
+                }
+                r.raf = new RandomAccessFile(file, "r");
+                r.capacity = (int) len;
+                r.buffer = r.raf.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, len);
+                r.path = file.getPath();
+                r.lastTouchMs = now;
+            }
+            return r.buffer;
         } catch (Throwable ignored) {
+            closeMapped(r);
+            return null;
+        }
+    }
+
+    private static void closeMapped(MappedSlot m) {
+        try {
+            if (m.raf != null) {
+                m.raf.close();
+            }
+        } catch (Throwable ignored) {
+        }
+        m.raf = null;
+        m.buffer = null;
+        m.capacity = 0;
+        m.path = null;
+    }
+
+    private static final class MappedSlot {
+        RandomAccessFile raf;
+        MappedByteBuffer buffer;
+        int capacity;
+        String path;
+        long lastTouchMs;
+    }
+
+    private static final MappedSlot[] WRITERS = new MappedSlot[VirtualCameraBridge.MAX_SLOTS];
+    private static final MappedSlot[] READERS = new MappedSlot[VirtualCameraBridge.MAX_SLOTS];
+
+    static {
+        for (int i = 0; i < WRITERS.length; i++) {
+            WRITERS[i] = new MappedSlot();
+            READERS[i] = new MappedSlot();
         }
     }
 
     private static VirtualFrame readMappedFrame(Context context, int slot) {
-        File file = getMappedFrameFile(context, slot);
-        try {
-            if (!file.exists() || file.length() < HEADER_BYTES) {
+        MappedSlot r = READERS[slot];
+        synchronized (r) {
+            MappedByteBuffer mapped = readerMapping(context, slot, r);
+            if (mapped == null) {
                 return null;
             }
-            try (RandomAccessFile raf = new RandomAccessFile(file, "r");
-                 FileChannel channel = raf.getChannel()) {
-                long size = channel.size();
-                if (size < HEADER_BYTES || size > HEADER_BYTES + MAX_FRAME_BYTES) {
-                    return null;
-                }
-                MappedByteBuffer buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, size);
-                FrameHeader header = parseHeader(buffer, size);
+            try {
+                ByteBuffer buffer = mapped.duplicate();
+                buffer.position(0);
+                FrameHeader header = parseHeader(buffer, r.capacity);
                 if (header == null) {
                     return null;
                 }
@@ -180,9 +269,10 @@ public final class SharedFrameMemory {
                 buffer.position(HEADER_BYTES);
                 buffer.get(nv21);
                 return new VirtualFrame(nv21, header.width, header.height, header.timestampNs, header.counter);
+            } catch (Throwable ignored) {
+                closeMapped(r);
+                return null;
             }
-        } catch (Throwable ignored) {
-            return null;
         }
     }
 

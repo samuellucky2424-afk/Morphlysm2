@@ -13,7 +13,7 @@ public final class VirtualCameraBridge {
     public static final String SOURCE_DECART = "DECART";
     public static final String SOURCE_XMAX = "XMAX";
     private static final long SOURCE_READ_INTERVAL_MS = 250;
-    private static final long SHARED_READ_INTERVAL_MS = 33;
+    private static final long SHARED_READ_INTERVAL_MS = 8;
     private static final long LIVE_FRAME_MAX_AGE_MS = 30000;
     private static final long SOURCE_PUBLISH_HEARTBEAT_MS = 5000;
 
@@ -278,6 +278,13 @@ public final class VirtualCameraBridge {
             return;
         }
         slot.lastSharedReadMs = now;
+        if (slot.latest != null) {
+            // Header-only check: skip copying a whole frame when nothing new was published.
+            long peek = SharedFrameMemory.peekCounter(applicationContext, slot.slotId);
+            if (peek >= 0 && peek <= slot.lastSharedFrameCounter) {
+                return;
+            }
+        }
 
         VirtualFrame shared = SharedFrameMemory.readLatest(applicationContext, slot.slotId);
         if (shared == null || shared.nv21 == null) {

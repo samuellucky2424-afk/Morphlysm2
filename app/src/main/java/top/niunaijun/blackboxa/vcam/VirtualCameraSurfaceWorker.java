@@ -340,6 +340,18 @@ public final class VirtualCameraSurfaceWorker {
         int rowStride = plane.getRowStride();
         int pixelStride = Math.max(1, plane.getPixelStride());
         int limit = buffer.limit();
+        if (pixelStride == 1) {
+            ByteBuffer dup = buffer.duplicate();
+            for (int row = 0; row < height; row++) {
+                int dst = row * rowStride;
+                if (dst + width > limit) {
+                    break;
+                }
+                dup.position(dst);
+                dup.put(nv21, row * width, width);
+            }
+            return;
+        }
         for (int row = 0; row < height; row++) {
             int src = row * width;
             int dst = row * rowStride;
