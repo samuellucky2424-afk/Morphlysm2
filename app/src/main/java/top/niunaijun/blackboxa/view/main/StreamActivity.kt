@@ -1134,6 +1134,7 @@ class StreamActivity : BaseActivity() {
         }
 
         // Dashboard Live Stream Controls
+        setupEngineTierSelector()
         binding.btnConnectStream.setOnClickListener {
             if (!binding.cbAuditConsent.isChecked) {
                 Toast.makeText(this, "Consent is required before connecting to the live engine.", Toast.LENGTH_SHORT).show()
@@ -1347,6 +1348,46 @@ class StreamActivity : BaseActivity() {
         }
     }
 
+    // ---- Plus (XMax) / Pro (Vidu) engine selector; rates and availability come from the server. ----
+    private var tierRates = mutableMapOf("plus" to 2, "pro" to 2)
+    private var tierAvailable = mutableMapOf("plus" to true, "pro" to false)
+    private fun selectedTier(): String = getSharedPreferences("engine_tier", MODE_PRIVATE).getString("tier", "plus") ?: "plus"
+
+    private fun setupEngineTierSelector() {
+        binding.tvTierPlus.setOnClickListener { chooseTier("plus") }
+        binding.tvTierPro.setOnClickListener { chooseTier("pro") }
+        renderTierSelector()
+        networkExecutor.execute {
+            runCatching {
+                val c = java.net.URL("$BACKEND_BASE_URL/public-config").openConnection() as java.net.HttpURLConnection
+                c.connectTimeout = 10000; c.readTimeout = 10000
+                val tiers = JSONObject(c.inputStream.bufferedReader().use { it.readText() }).optJSONObject("tiers") ?: return@runCatching
+                for (t in listOf("plus", "pro")) tiers.optJSONObject(t)?.let {
+                    tierRates[t] = it.optInt("rate", tierRates[t] ?: 2); tierAvailable[t] = it.optBoolean("available", t == "plus")
+                }
+                runOnUiThread { if (!isDestroyed) renderTierSelector() }
+            }
+        }
+    }
+
+    private fun chooseTier(tier: String) {
+        if (isStreaming) { Toast.makeText(this, "Stop the stream to switch engines.", Toast.LENGTH_SHORT).show(); return }
+        getSharedPreferences("engine_tier", MODE_PRIVATE).edit().putString("tier", tier).apply()
+        renderTierSelector()
+    }
+
+    private fun renderTierSelector() {
+        val tier = selectedTier()
+        for ((view, key) in listOf(binding.tvTierPlus to "plus", binding.tvTierPro to "pro")) {
+            val on = key == tier
+            view.setBackgroundResource(if (on) R.drawable.bg_tier_selected else 0)
+            view.setTextColor(if (on) Color.WHITE else Color.parseColor("#D32F2F"))
+        }
+        val label = if (tier == "pro") "Pro" else "Plus"
+        val note = if (tierAvailable[tier] == false) " · coming soon" else ""
+        binding.tvTierRate.text = "$label · ${tierRates[tier] ?: 2} credits/sec$note"
+    }
+
     private fun postBackendJson(path: String, payload: JSONObject): Pair<Int, String> {
         val token = StreamAuthManager.getValidIdToken(this, BACKEND_BASE_URL)
             ?: throw IllegalStateException("Your session expired. Sign in again.")
@@ -1441,6 +1482,11 @@ class StreamActivity : BaseActivity() {
             return
         }
 
+        if (selectedTier() == "pro") {
+            // The Vidu (AliRTC) Android client isn't shipped yet: never start or bill a Pro session from this build.
+            Toast.makeText(this, "Pro is coming soon. Switch to Plus to stream now.", Toast.LENGTH_LONG).show()
+            return
+        }
         val mode = selectedModeKey()
         if (mode == "face_swap" && selectedFaceImageUri == null) {
             Toast.makeText(this, "Select a face image before starting Face Swap.", Toast.LENGTH_LONG).show()
@@ -1474,7 +1520,7 @@ class StreamActivity : BaseActivity() {
                 }
 
                 val sessionResponse = postBackendJson("start-session", JSONObject()
-                    .put("provider", "xmax").put("platform", "android")
+                    .put("provider", "xmax").put("tier", "plus").put("platform", "android")
                     .put("installationId", deviceId))
                 if (sessionResponse.first !in 200..299) {
                     throw IllegalStateException(parseBackendError(sessionResponse.second, "Could not start XMax."))

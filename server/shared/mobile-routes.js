@@ -3,6 +3,7 @@ import {firebaseRuntime, FIREBASE_PROJECT} from './firebase-runtime.js';
 import {ensureFirebaseDefaults, requireUser, bearerToken, formatAccount} from './firebase.js';
 import {createOperations} from './firebase-operations.js';
 import {cleanString, requireMethod} from './http.js';
+import {tierRates} from './firebase-realtime.js';
 
 const err = (message, status) => Object.assign(new Error(message), {status});
 
@@ -24,6 +25,8 @@ export async function publicConfig(req, res, deps = {}) {
   } catch (error) { console.error('public-config settings unavailable:', error?.message); }
   return res.status(200).json({
     backend: 'firebase', firebaseProjectId: firebaseConfig.projectId, firebaseConfig, realtimeProvider: 'xmax',
+    tiers: (r => ({plus: {label: 'Plus', engine: 'xmax', rate: r.plus, available: !!(deps.env || process.env).XMAX_API_KEY},
+      pro: {label: 'Pro', engine: 'vidu', rate: r.pro, available: !!(deps.env || process.env).VIDU_API_KEY}}))(tierRates(deps.env || process.env)),
     notification: values.global_config?.notification || '',
     streamingEnabled: values.streaming_availability?.enabled !== false,
     referralEnabled: values.referral_program?.enabled !== false,
