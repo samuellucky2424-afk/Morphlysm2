@@ -1,7 +1,7 @@
 import {randomUUID, createHash} from 'node:crypto';
 const hash = s => createHash('sha256').update(String(s)).digest('hex');
 const now = () => new Date().toISOString();
-const fail = (message, status = 400) => {throw Object.assign(new Error(message), {status});};
+const fail = (message, status = 400) => {throw Object.assign(new Error(message), {status, expose: true});};
 const safeAmount = n => Number.isSafeInteger(n) && n > 0;
 
 export function createOperations(db) {
@@ -24,18 +24,54 @@ export function createOperations(db) {
       if (referralCode && (!owner || owner.id === user.uid || owner.data().status !== 'active')) fail('Invalid referral code');
       const credits = settings.data()?.value?.enabled === false ? 0 : Number(settings.data()?.value?.signup_credits ?? 50);
       if (!Number.isSafeInteger(credits) || credits < 0) fail('Invalid signup-credit configuration', 503);
-      const timestamp = now();
+      const timestamp = now(), deviceHash = input.deviceHash || null, ipHash = input.ipHash || null;
+      // Signup credits are held until the email address is verified (see claimSignupBonus).
+      const pending = credits > 0 && user.emailVerified !== true;
       tx.create(p, {id: user.uid, email: String(user.email || '').toLowerCase(), name: user.displayName || input.name || '',
         phone: input.phone || '', role: 'user', status: 'active', is_activated: false, license_expires_at: null,
-        referral_code: randomUUID().replaceAll('-', '').slice(0, 10).toUpperCase(), created_at: timestamp, updated_at: timestamp});
+        referral_code: randomUUID().replaceAll('-', '').slice(0, 10).toUpperCase(), created_at: timestamp, updated_at: timestamp,
+        signup_device_hash: deviceHash, signup_ip_hash: ipHash,
+        ...(pending ? {signup_bonus_status: 'pending', signup_bonus_credits: credits} : {})});
       // Existing wallets are preserved; the profile lock prevents duplicate signup credits.
       if (!wallet.exists) {
-        tx.create(w, {id: user.uid, user_id: user.uid, balance: credits, used: 0, created_at: timestamp, updated_at: timestamp});
-        tx.create(ref('wallet_ledger_sm', hash(`signup:${user.uid}`)), {id: hash(`signup:${user.uid}`), user_id: user.uid,
+        tx.create(w, {id: user.uid, user_id: user.uid, balance: pending ? 0 : credits, used: 0, created_at: timestamp, updated_at: timestamp});
+        if (!pending) tx.create(ref('wallet_ledger_sm', hash(`signup:${user.uid}`)), {id: hash(`signup:${user.uid}`), user_id: user.uid,
           delta: credits, balance_after: credits, entry_type: 'signup_bonus', created_at: timestamp});
       }
-      if (owner) tx.create(ref('referral_sm', user.uid), {id: user.uid, referrer_user_id: owner.id,
-        referred_user_id: user.uid, status: 'signed_up', referral_code: referralCode, created_at: timestamp});
+      if (owner) {
+        const o = owner.data();
+        const self = (deviceHash && o.signup_device_hash === deviceHash) || (ipHash && o.signup_ip_hash === ipHash);
+        tx.create(ref('referral_sm', user.uid), {id: user.uid, referrer_user_id: owner.id,
+          referred_user_id: user.uid, status: self ? 'self_referral' : 'signed_up', referral_code: referralCode,
+          device_hash: deviceHash, signup_ip_hash: ipHash, created_at: timestamp});
+      }
+    });
+  }
+  // Grants held signup credits once the email is verified: one grant per device, at most 3 per IP per day.
+  async function claimSignupBonus(uid) {
+    return db.runTransaction(async tx => {
+      const p = ref('user_sm', uid), w = ref('wallet_sm', uid);
+      const [profile, wallet] = await Promise.all([tx.get(p), tx.get(w)]);
+      const row = profile.data();
+      if (row?.signup_bonus_status !== 'pending' || !wallet.exists) return false;
+      const day = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+      const devRef = row.signup_device_hash ? ref('signup_claim_sm', `dev_${row.signup_device_hash}`) : null;
+      const ipRef = row.signup_ip_hash ? ref('signup_claim_sm', `ip_${row.signup_ip_hash}_${day}`) : null;
+      const [dev, ip] = await Promise.all([devRef ? tx.get(devRef) : null, ipRef ? tx.get(ipRef) : null]);
+      const timestamp = now(), credits = Number(row.signup_bonus_credits || 0);
+      if (dev?.exists || Number(ip?.data()?.count || 0) >= 3) {
+        tx.update(p, {signup_bonus_status: dev?.exists ? 'denied_device' : 'denied_ip', updated_at: timestamp});
+        return false;
+      }
+      const balance = Number(wallet.data().balance || 0) + credits;
+      tx.update(w, {balance, updated_at: timestamp});
+      tx.update(p, {signup_bonus_status: 'granted', updated_at: timestamp});
+      tx.create(ref('wallet_ledger_sm', hash(`signup:${uid}`)), {id: hash(`signup:${uid}`), user_id: uid,
+        delta: credits, balance_after: balance, entry_type: 'signup_bonus', created_at: timestamp});
+      const expireAt = new Date(Date.now() + 2 * 86400000);
+      if (devRef) tx.set(devRef, {user_id: uid, created_at: timestamp});
+      if (ipRef) tx.set(ipRef, {count: Number(ip?.data()?.count || 0) + 1, expireAt});
+      return true;
     });
   }
   async function rpc(name, p, actor) {
@@ -95,9 +131,8 @@ export function createOperations(db) {
       });
     }
     if (!actor?.id) fail('Authentication required', 401);
-    if (name.startsWith('admin_') || name === 'save_engine_key_sm') {
-      if (!['admin', 'moderator'].includes(actor.role)) fail('Administrator access required', 403);
-    }
+    // Admin operations live in server/admin (session cookie + custom claim); never via app tokens.
+    if (name.startsWith('admin_') || name === 'save_engine_key_sm') fail('Administrator access required', 403);
     if (name === 'begin_payment_sm') {
       if (!['flutterwave', 'nowpayments'].includes(p.p_provider)) fail('Unsupported payment provider');
       const id = randomUUID();
@@ -174,5 +209,5 @@ export function createOperations(db) {
     // Never fall back to another product's database or bypass authorization for an unmigrated operation.
     fail('This operation is not available on the Firebase backend yet.', 503);
   }
-  return {rpc, provision, summary};
+  return {rpc, provision, summary, claimSignupBonus};
 }

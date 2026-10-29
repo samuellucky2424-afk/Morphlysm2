@@ -41,7 +41,7 @@ async function firebaseUser(token) {
   const claims = await auth.verifyIdToken(token, true);
   const record = await auth.getUser(claims.uid);
   return {id: record.uid, uid: record.uid, email: record.email, displayName: record.displayName,
-    user_metadata: {name: record.displayName || ''}};
+    emailVerified: record.emailVerified === true, user_metadata: {name: record.displayName || ''}};
 }
 export function createServiceClient(actor = null) {
   const {db, auth} = firebaseRuntime(), operations = createOperations(db);
@@ -61,6 +61,7 @@ export function createServiceClient(actor = null) {
     provider: 'firebase', db,
     from: table => new AndroidQuery(db, table),
     rpc: wrap((name, p) => operations.rpc(name, p, actor)),
+    sendEmailVerification: idToken => firebaseAuthRequest('sendOobCode', {requestType: 'VERIFY_EMAIL', idToken}),
     auth: {
       getUser: wrap(async token => ({user: await firebaseUser(token)})),
       admin: {createUser: wrap(async input => {
@@ -78,8 +79,10 @@ export function createPublicClient() {
     const response = await firebaseAuthRequest(operation, body);
     const user = await firebaseUser(response.idToken);
     await ensureFirebaseDefaults();
-    await createOperations(firebaseRuntime().db).provision(user);
-    return {user, session: {access_token: response.idToken, refresh_token: response.refreshToken,
+    const operations = createOperations(firebaseRuntime().db);
+    await operations.provision(user);
+    if (user.emailVerified) await operations.claimSignupBonus(user.id).catch(() => false);
+    return {user, idToken: response.idToken, session: {access_token: response.idToken, refresh_token: response.refreshToken,
       expires_in: Number(response.expiresIn || 3600), expires_at: Math.floor(Date.now() / 1000) + Number(response.expiresIn || 3600)}};
   }
   return {auth: {
@@ -98,16 +101,14 @@ export async function requireUser(req) {
   let authUser;
   try {authUser = await firebaseUser(token);}
   catch {throw Object.assign(new Error('Session is invalid or expired'), {status: 401});}
-  const summary = await createOperations(firebaseRuntime().db).summary(authUser.id);
+  const operations = createOperations(firebaseRuntime().db);
+  let summary = await operations.summary(authUser.id);
+  if (summary.signup_bonus_status === 'pending' && authUser.emailVerified
+    && await operations.claimSignupBonus(authUser.id).catch(() => false)) summary = await operations.summary(authUser.id);
   if (summary.status !== 'active') throw Object.assign(new Error('Account is not active'), {status: 403});
   const appUser = {id: authUser.id, ...summary};
   const client = createServiceClient(appUser);
   return {token, authUser, appUser, client, service: client};
-}
-export async function requireAdmin(req) {
-  const context = await requireUser(req);
-  if (!['admin', 'moderator'].includes(context.appUser.role)) throw Object.assign(new Error('Administrator access required'), {status: 403});
-  return context;
 }
 export async function getAccountSummary(client, uid) {
   return createOperations(client.db).summary(uid);

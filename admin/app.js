@@ -1,10 +1,11 @@
-/* Morphly admin dashboard (vanilla JS, no build step). Auth: /api/admin/login -> Firebase ID token,
-   sent as Bearer on every /api/admin/* call; the server re-checks ADMIN_EMAILS on each request. */
+/* Morphly admin dashboard (vanilla JS, no build step). Auth: /api/admin/login sets an HttpOnly, Secure,
+   SameSite=Strict session cookie. No tokens are stored in the browser; only the signed-in email (for display)
+   is kept in sessionStorage. Every state-changing call sends X-Morphly-Admin: 1 (CSRF check on the server). */
 (() => {
 const $ = (s, el = document) => el.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
-const DEMO = new URLSearchParams(location.search).has('demo');
-const store = {get: () => JSON.parse(localStorage.getItem('morphly_admin') || 'null'), set: v => localStorage.setItem('morphly_admin', JSON.stringify(v)), clear: () => localStorage.removeItem('morphly_admin')};
+try {localStorage.removeItem('morphly_admin');} catch {}
+const store = {get: () => JSON.parse(sessionStorage.getItem('morphly_admin_ui') || 'null'), set: v => sessionStorage.setItem('morphly_admin_ui', JSON.stringify({email: v.email})), clear: () => sessionStorage.removeItem('morphly_admin_ui')};
 let state = {page: (location.hash.slice(1) || 'overview'), cur: 'NGN', search: ''};
 
 const fmt = n => Number(n || 0).toLocaleString('en-US');
@@ -19,17 +20,12 @@ const delta = (a, b) => {if (!b) return a ? '<span class="up">New</span>' : '—
 function toast(m) {const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.append(t); setTimeout(() => t.remove(), 2600);}
 
 async function api(path, opts = {}) {
-  if (DEMO) return demo(path, opts);
-  let s = store.get();
-  const call = () => fetch('/api/admin' + path, {method: opts.method || 'GET', headers: {'Content-Type': 'application/json', ...(s ? {Authorization: 'Bearer ' + s.idToken} : {})}, body: opts.body ? JSON.stringify(opts.body) : undefined});
-  let r = await call();
-  if (r.status === 401 && s?.refreshToken) {
-    const rr = await fetch('/api/admin/refresh', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({refreshToken: s.refreshToken})});
-    if (rr.ok) {s = {...s, ...(await rr.json())}; store.set(s); r = await call();}
-  }
+  const r = await fetch('/api/admin' + path, {method: opts.method || 'GET', credentials: 'same-origin', cache: 'no-store',
+    headers: {'Content-Type': 'application/json', 'X-Morphly-Admin': '1'}, body: opts.body ? JSON.stringify(opts.body) : undefined});
   const j = await r.json().catch(() => ({}));
   if (r.status === 401 || r.status === 403) {if (path !== '/login') {store.clear(); render();} throw new Error(j.error || 'Access denied');}
   if (!r.ok) throw new Error(j.error || 'Request failed');
+  if (j.audit_logged === false) setTimeout(() => toast('Warning: this action could not be written to the audit log'), 2700);
   return j;
 }
 
@@ -63,17 +59,17 @@ const I = {
   overview: '<path d="M3 12l9-8 9 8M5 10v10h14V10" />', users: '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7M17 11a3 3 0 100-6M22 21c0-3-2-5-4-6"/>',
   purchases: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>', performance: '<path d="M3 20h18M6 16l4-5 4 3 5-7"/>',
   errors: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>', referrals: '<circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.6 10.6l6.8-3.2M8.6 13.4l6.8 3.2"/>',
-  packages: '<path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/>', settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 009 19.4a1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.6 1.6 0 003 14.2H3a2 2 0 110-4h.1A1.6 1.6 0 004.6 9 1.6 1.6 0 004.3 7.2l-.1-.1a2 2 0 112.8-2.8l.1.1A1.6 1.6 0 009 4.6 1.6 1.6 0 0010 3.1V3a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z"/>',
+  audit: '<path d="M9 3h6l1 2h3v16H5V5h3zM9 11h6M9 15h6"/>', packages: '<path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/>', settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 009 19.4a1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.6 1.6 0 003 14.2H3a2 2 0 110-4h.1A1.6 1.6 0 004.6 9 1.6 1.6 0 004.3 7.2l-.1-.1a2 2 0 112.8-2.8l.1.1A1.6 1.6 0 009 4.6 1.6 1.6 0 0010 3.1V3a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z"/>',
 };
 const ico = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
-const NAV = [['Dashboards', [['overview', 'Overview'], ['performance', 'Performance'], ['errors', 'Errors']]], ['Business', [['users', 'Users'], ['purchases', 'Purchases'], ['referrals', 'Referrals']]], ['Configuration', [['packages', 'Packages'], ['settings', 'Settings']]]];
+const NAV = [['Dashboards', [['overview', 'Overview'], ['performance', 'Performance'], ['errors', 'Errors']]], ['Business', [['users', 'Users'], ['purchases', 'Purchases'], ['referrals', 'Referrals']]], ['Configuration', [['packages', 'Packages'], ['settings', 'Settings'], ['audit', 'Audit log']]]];
 const TITLE = Object.fromEntries(NAV.flatMap(([, l]) => l));
 
 function shell(inner) {
   const s = store.get() || {email: 'admin@morphly.app'};
   return `<div class="app"><aside class="side"><div class="brand"><div class="logo">M</div><span>Morphly Admin</span></div>
   ${NAV.map(([sec, items]) => `<div class="sec">${sec}</div>${items.map(([k, l]) => `<a class="nav ${state.page === k ? 'on' : ''}" href="#${k}">${ico(k)}<span>${l}</span></a>`).join('')}`).join('')}
-  <div class="foot">${DEMO ? 'Demo data' : 'Live · Firestore nova-8fb74'}<br>2 credits / second</div></aside>
+  <div class="foot">Live · Firestore nova-8fb74<br>2 credits / second</div></aside>
   <main class="main"><header class="top"><div class="crumb">Dashboards / <b>${TITLE[state.page] || ''}</b></div>
   <label class="search">⌕<input id="q" placeholder="Search users, email, code" value="${esc(state.search)}"></label>
   <button class="btn" id="reload">Refresh</button><div class="avatar" title="${esc(s.email)}">${initials(s.email)}</div><button class="btn" id="logout">Sign out</button></header>
@@ -136,6 +132,11 @@ P.errors = async () => {
   <div class="grid"><div class="card"><h3>Errors, last 14 days</h3>${bars(d.series)}</div><div class="card"><h3>By source</h3>${donut(Object.entries(d.by_source).map(([label, value]) => ({label, value})))}</div></div>
   ${table(['When', 'Source', 'Message', 'Where', 'User / device', ''], d.errors.map(e => [ago(e.created_at), pill(e.source), `<div style="white-space:normal;max-width:460px">${esc(e.message)}</div>`, `<span class="mono">${esc(e.context || e.code || '')}</span>`, `<span class="mono">${esc((e.user_id || '').slice(0, 10))} ${esc(e.device || '')} ${esc(e.app_version || '')}</span>`, `<button class="btn s" data-delerr="${esc(e.id)}">Dismiss</button>`]))}`;
 };
+P.audit = async () => {
+  const d = await api('/audit');
+  return `<div class="head"><div><h1>Audit log</h1><div class="sub">Every admin sign-in, sign-out and change (latest 300)</div></div></div>
+  ${table(['When', 'Admin', 'Action', 'Target', 'Details', 'IP'], d.entries.map(e => [`${date(e.created_at)} <small style="color:#8a8a8f">${ago(e.created_at)}</small>`, esc(e.actor_email || '—'), pill(e.action), `<span class="mono">${esc(String(e.entity || '').slice(0, 24))}</span>`, `<span class="mono" style="white-space:normal">${esc(JSON.stringify(e.data || '').slice(0, 200))}</span>`, `<span class="mono">${esc(e.ip || '')}</span>`]))}`;
+};
 P.referrals = async () => {
   const d = await api('/referrals');
   return `<div class="head"><div><h1>Referrals</h1><div class="sub">Every user has a referral code; referrers earn ${fmt(d.program.purchase_reward ?? 250)} credits on a friend's first purchase</div></div></div>
@@ -164,21 +165,21 @@ P.settings = async () => {
 
 /* ---------- actions ---------- */
 function bind() {
-  $('#logout')?.addEventListener('click', () => {store.clear(); render();});
+  $('#logout')?.addEventListener('click', async () => {try {await api('/logout', {method: 'POST'});} catch {} store.clear(); render();});
   $('#reload')?.addEventListener('click', () => go(state.page));
   $('#q')?.addEventListener('keydown', e => {if (e.key === 'Enter') {state.search = e.target.value; location.hash = 'users'; go('users');}});
   document.querySelectorAll('[data-ptab]').forEach(b => b.onclick = () => {state.ptab = b.dataset.ptab; go('purchases');});
   document.querySelectorAll('[data-credit]').forEach(b => b.onclick = () => creditModal(state.users.find(u => u.id === b.dataset.credit)));
   document.querySelectorAll('[data-status]').forEach(b => b.onclick = async () => {if (!confirm(`${b.dataset.to === 'active' ? 'Enable' : 'Disable'} this user?`)) return; await api('/users/status', {method: 'POST', body: {uid: b.dataset.status, status: b.dataset.to}}); toast('User updated'); go('users');});
   document.querySelectorAll('[data-delerr]').forEach(b => b.onclick = async () => {await api('/errors?id=' + encodeURIComponent(b.dataset.delerr), {method: 'DELETE'}); go('errors');});
-  $('#clearErrors')?.addEventListener('click', async () => {if (confirm('Delete every logged error?')) {await api('/errors?id=all', {method: 'DELETE'}); go('errors');}});
+  $('#clearErrors')?.addEventListener('click', async () => {const c = prompt('This permanently deletes every logged error. Type DELETE-ALL-ERRORS to confirm.'); if (c !== 'DELETE-ALL-ERRORS') return; try {const r = await api('/errors?id=all&confirm=' + encodeURIComponent(c), {method: 'DELETE'}); toast(`Deleted ${fmt(r.deleted)} errors`); go('errors');} catch (e) {toast(e.message);}});
   document.querySelectorAll('input[data-i]').forEach(i => i.oninput = () => {const p = state.pk[i.dataset.i]; p[i.dataset.k] = ['credits', 'price'].includes(i.dataset.k) ? Number(i.value) : i.value;});
   document.querySelectorAll('button.sw[data-i]').forEach(b => b.onclick = () => {const p = state.pk[b.dataset.i]; p.is_active = p.is_active === false; b.classList.toggle('on');});
   const _a = document.getElementById('addPk'), _s = document.getElementById('savePk');
   if (_a) _a.onclick = () => {state.pk.push({code: '', name: '', credits: 1000, price: 0, currency: 'NGN', is_active: true}); paint(pkHtml()); bind();};
   if (_s) _s.onclick = async () => {try {await api('/packages', {method: 'POST', body: {packages: state.pk}}); toast('Packages saved'); go('packages');} catch (e) {toast(e.message);}};
   document.querySelectorAll('[data-st]').forEach(b => b.onclick = () => {state.st[b.dataset.st] = !state.st[b.dataset.st]; b.classList.toggle('on');});
-  $('#saveSt')?.addEventListener('click', async () => {const s = state.st; await api('/settings', {method: 'POST', body: {...s, notification: $('#notification').value, signupCredits: Number($('#signupCredits').value), purchaseReward: Number($('#purchaseReward').value)}}); toast('Settings saved');});
+  $('#saveSt')?.addEventListener('click', async () => {const s = state.st; try {await api('/settings', {method: 'POST', body: {...s, notification: $('#notification').value, signupCredits: Number($('#signupCredits').value), purchaseReward: Number($('#purchaseReward').value)}}); toast('Settings saved');} catch (e) {toast(e.message);}});
 }
 function creditModal(u) {
   const m = document.createElement('div'); m.className = 'modal';
@@ -197,35 +198,20 @@ function loginView() {
   <div class="box"><form id="lf"><div class="logo">M</div><h1>Sign in to Admin</h1><div class="sub">Use your Morphly administrator account</div><div id="le"></div>
   <input class="f" id="le-mail" type="email" placeholder="Email" autocomplete="username" required><input class="f" id="le-pw" type="password" placeholder="Password" autocomplete="current-password" required><button class="btn p" style="padding:12px">Sign in</button></form></div></div>`;
   $('#lf').onsubmit = async e => {e.preventDefault(); try {
-    const r = await fetch('/api/admin/login', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email: $('#le-mail').value, password: $('#le-pw').value})});
-    const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Sign in failed'); store.set(j); render();
+    const r = await fetch('/api/admin/login', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json', 'X-Morphly-Admin': '1'}, body: JSON.stringify({email: $('#le-mail').value, password: $('#le-pw').value})});
+    const j = await r.json().catch(() => ({})); $('#le-pw').value = ''; if (!r.ok) throw new Error(j.error || 'Sign in failed'); store.set(j); render();
   } catch (err) {$('#le').innerHTML = `<div class="err">${esc(err.message)}</div>`;}};
 }
-function render() {if (!DEMO && !store.get()) return loginView(); go(location.hash.slice(1) || 'overview');}
-window.addEventListener('hashchange', () => (DEMO || store.get()) && go(location.hash.slice(1)));
-
-/* ---------- demo fixtures (?demo) for previews/screenshots only ---------- */
-function demo(path) {
-  const days = n => Array.from({length: n}, (_, i) => new Date(Date.now() - (n - 1 - i) * 864e5).toISOString().slice(0, 10));
-  const wave = (n, base, amp, seed = 1) => days(n).map((date, i) => ({date, value: Math.max(0, Math.round(base + amp * Math.sin(i / 3 + seed) + amp * .6 * Math.cos(i / 1.7 * seed)))}));
-  const names = ['ada.okafor', 'tunde.bello', 'chioma.e', 'samuel.k', 'zainab.m', 'kelechi.o', 'ifeoma.n', 'yusuf.a'];
-  const em = i => `${names[i % 8]}@gmail.com`, t = h => new Date(Date.now() - h * 36e5).toISOString();
-  const pay = names.map((n, i) => ({id: 'p' + i, user_email_snapshot: em(i), email: em(i), user_id: 'u' + i, package_id: ['basic', 'pro', 'vip', 'enterprise'][i % 4], credits: [1000, 2000, 10000, 5000][i % 4], expected_amount: [29000, 58000, 290000, 145000][i % 4], amount: [29000, 58000, 290000, 145000][i % 4], currency: 'NGN', status: i === 6 ? 'pending' : 'verified', tx_ref: `mph_u${i}_${['basic', 'pro', 'vip', 'enterprise'][i % 4]}_9f3a${i}c`, verified_at: t(i * 9 + 2), created_at: t(i * 9 + 2)}));
-  const R = {
-    '/overview': {kpis: {total_users: 1284, new_signups: 214, new_signups_prev: 181, active_users: 342, live_streams: 7, revenue: 4872000, revenue_prev: 4110000, revenue_all_time: 18390000, credits_sold: 642000, credits_used: 511400, credits_outstanding: 130600, streams_today: 96, errors_24h: 4, first_time_buyers: 388, repeat_buyers: 141, currency: 'NGN'},
-      series: {revenue: wave(30, 160000, 60000), signups: wave(30, 7, 3, 2), streams: wave(30, 80, 25, 3), credits_used: wave(30, 17000, 6000, 1.4)},
-      recent_signups: names.slice(0, 6).map((n, i) => ({email: em(i), name: n.split('.')[0].replace(/^./, c => c.toUpperCase()), created_at: t(i * 3 + 1)})), recent_purchases: pay.filter(p => p.status === 'verified').slice(0, 5)},
-    '/users': {users: names.map((n, i) => ({id: 'u' + i + 'x8f2kq', email: em(i), name: n.split('.')[0], balance: [820, 0, 15400, 2310, 60, 4800, 990, 120][i], used: [1180, 2000, 4600, 3690, 940, 5200, 10, 880][i], plan: i % 3 ? ['basic', 'pro', 'vip'][i % 3] : null, referral_code: 'MX' + (73921 + i * 17), referred_by: i % 3 === 1 ? em(0) : null, created_at: t(i * 70 + 20), last_active: t(i * 5 + 1), status: i === 4 ? 'suspended' : 'active'}))},
-    '/purchases': {purchases: pay, first_time_buyers: pay.slice(0, 7).map(p => ({user_id: p.user_id, email: p.email, first_package: p.package_id, first_purchase_at: p.created_at})), only_once_buyers: pay.slice(3, 7), repeat_buyers: pay.slice(0, 3).map((p, i) => ({user_id: p.user_id, email: p.email, purchases: 5 - i, total_spent: p.amount * (5 - i), currency: 'NGN', packages: ['basic', 'pro'], first_purchase_at: t(900), last_purchase_at: p.created_at})),
-      revenue_series: wave(30, 160000, 60000), revenue_by_package: [{id: 'basic', value: 1740000}, {id: 'pro', value: 2320000}, {id: 'enterprise', value: 1450000}, {id: 'vip', value: 2900000}], totals: {verified: 529, pending: 12, failed: 9, revenue: 18390000}},
-    '/performance': {totals: {sessions: 2416, completed: 2291, failed: 61, failure_rate: .025, avg_duration_seconds: 263, total_stream_seconds: 602400, credits_consumed: 1204800}, sessions_series: wave(14, 80, 25, 3), failures_series: wave(14, 3, 2, 5),
-      sessions: names.map((n, i) => ({email: em(i), status: ['completed', 'running', 'completed', 'failed', 'completed', 'completed', 'completed', 'starting'][i], provider: 'xmax', model: 'x2.1', started_at: t(i * .7 + .1), duration_seconds: [312, 95, 488, 6, 240, 133, 701, 0][i], credits: [624, 190, 976, 12, 480, 266, 1402, 0][i], device_id: 'a1f9c2' + i + 'e77b3'}))},
-    '/errors': {errors: [['app', 'AI transform engine stopped: ICE connection failed', 'StreamActivity.connect'], ['app', 'Unable to start the camera (virtual camera surface not ready)', 'VirtualCamera.open'], ['server', 'XMax could not start: 429 rate limited', '/api/start-session'], ['app', 'OutOfMemoryError while allocating 8294400-byte bitmap', 'MiniWindowService']].map(([source, message, context], i) => ({id: 'e' + i, source, message, context, created_at: t(i * 4 + .3), user_id: 'u' + i + 'x8f2kq', device: 'TECNO KI7', app_version: '1.4.' + i})), series: wave(14, 3, 2, 2), by_source: {app: 31, server: 9, admin: 1}},
-    '/referrals': {program: {signup_credits: 50, purchase_reward: 250}, totals: {referrals: 236, converted: 88}, referrals: names.slice(1).map((n, i) => ({referred: em(i + 1), referrer: em(i % 3), code: 'MX' + (73921 + (i % 3) * 17), created_at: t(i * 30 + 5), status: i % 2 ? 'converted' : 'signed_up'})), top_referrers: [['ada.okafor@gmail.com', 41, 17], ['tunde.bello@gmail.com', 33, 12], ['chioma.e@gmail.com', 19, 8], ['kelechi.o@gmail.com', 11, 3]].map(([email, referrals, converted]) => ({email, referrals, converted}))},
-    '/packages': {packages: [['basic', 'Basic', 1000, 29000], ['pro', 'Pro', 2000, 58000], ['enterprise', 'Enterprise', 5000, 145000], ['vip', 'VIP plan', 10000, 290000]].map(([code, name, credits, price]) => ({id: code, code, name, credits, price, currency: 'NGN', is_active: true}))},
-    '/settings': {notification: '', streamingEnabled: true, referralEnabled: true, signupCredits: 50, purchaseReward: 250, flutterwaveConfigured: false},
-  };
-  return Promise.resolve(R[path.split('?')[0]] || {success: true, balance: 0});
+async function render() {
+  if (!store.get()) {
+    // The cookie may still be valid (e.g. new tab): ask the server instead of trusting the browser.
+    const r = await fetch('/api/admin/me', {credentials: 'same-origin', headers: {'X-Morphly-Admin': '1'}}).catch(() => null);
+    if (!r?.ok) return loginView();
+    store.set(await r.json());
+  }
+  go(location.hash.slice(1) || 'overview');
 }
+window.addEventListener('hashchange', () => store.get() && go(location.hash.slice(1)));
+
 render();
 })();

@@ -1,3 +1,4 @@
+import {androidRealtime} from '../server/shared/firebase-realtime.js';
 import {
   formatAccount,
   getAccountSummary,
@@ -16,6 +17,8 @@ export default async function handler(req, res) {
 
   try {
     const { service, appUser } = await requireUser(req);
+    // Settle a stream the app abandoned (expired or silent) so the balance shown is final.
+    await androidRealtime(service.db).settleOpen(appUser.id, process.env.XMAX_API_KEY).catch(e => console.error('settleOpen', e?.message));
     const summary = await getAccountSummary(service, appUser.id);
     const user = formatAccount(summary);
     // Current plan = package name of the latest verified purchase (no composite index needed).

@@ -14,6 +14,10 @@ class ShortcutActivity:AppCompatActivity() {
 
         val pkg = intent.getStringExtra("pkg")
         val userID = intent.getIntExtra("userId",0)
+        // Only launch apps that are actually installed inside Morphly; ignore anything else other apps send.
+        val valid = !pkg.isNullOrBlank() && pkg.length <= 255 && userID in 0..999 &&
+            runCatching { BlackBoxCore.get().isInstalled(pkg, userID) }.getOrDefault(false)
+        if (!valid) { finish(); return }
 
         lifecycleScope.launch {
             BlackBoxCore.get().launchApk(pkg,userID)

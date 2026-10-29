@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import {hit} from '../shared/rate-limit.js';
 import {
   createPublicClient,
   createServiceClient,
@@ -8,6 +9,7 @@ import {
 import {
   applyHttpHeaders,
   cleanString,
+  clientIp,
   handleOptions,
   publicError,
   requireMethod,
@@ -39,8 +41,13 @@ export default async function handler(req, res) {
   let createdUserId = null;
   try {
     service = createServiceClient();
+    const limit = await hit(service.db, `signup:ip:${clientIp(req)}`, {limit: 5, windowMs: 3600000});
+    if (!limit.allowed) { res.setHeader('Retry-After', String(limit.retryAfterSeconds)); return res.status(429).json({error: 'Too many sign-ups from this network. Try again later.'}); }
     // Firebase identities and Android profiles are provisioned idempotently.
     // A transient profile failure never deletes the identity.
+    const secret = String(process.env.REFERRAL_HASH_SECRET || 'morphly-signup');
+    const hmac = value => value ? crypto.createHmac('sha256', secret).update(String(value)).digest('hex').slice(0, 40) : null;
+    const ip = clientIp(req), deviceId = cleanString(req.body?.deviceId, 160);
     const { data: created, error: createError } = await service.auth.admin.createUser({
       email,
       password,
@@ -49,6 +56,8 @@ export default async function handler(req, res) {
         display_name: name,
         phone: phone || null,
         referredByCode: referredByCode || null,
+        deviceHash: hmac(deviceId),
+        ipHash: hmac(ip),
       },
     });
     if (createError || !created?.user) {
@@ -60,23 +69,6 @@ export default async function handler(req, res) {
     }
     createdUserId = created.user.id;
 
-    const referralHashSecret = String(process.env.REFERRAL_HASH_SECRET || '').trim();
-    const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-    const deviceId = cleanString(req.body?.deviceId, 160);
-    if (referredByCode && referralHashSecret) {
-      const hash = (value) => value
-        ? crypto.createHmac('sha256', referralHashSecret).update(value).digest('hex')
-        : null;
-      const { error: referralUpdateError } = await service
-        .from('referral_sm')
-        .update({
-          signup_ip_hash: hash(forwardedFor),
-          device_hash: hash(deviceId),
-        })
-        .eq('referred_user_id', createdUserId);
-      if (referralUpdateError) throw referralUpdateError;
-    }
-
     const authClient = createPublicClient();
     const { data: sessionData, error: signInError } = await authClient.auth.signInWithPassword({
       email,
@@ -86,9 +78,13 @@ export default async function handler(req, res) {
       throw signInError || new Error('Account created, but automatic sign-in failed');
     }
 
+    let emailVerificationSent = false;
+    try { await service.sendEmailVerification(sessionData.session.access_token); emailVerificationSent = true; }
+    catch (error) { console.error('Verification email failed:', error?.message); }
     const summary = await getAccountSummary(service, createdUserId);
     return res.status(200).json({
-      message: 'Registration successful',
+      message: emailVerificationSent ? 'Registration successful. Verify your email to receive your free credits.' : 'Registration successful',
+      emailVerificationSent,
       token: sessionData.session.access_token,
       refreshToken: sessionData.session.refresh_token,
       expiresIn: sessionData.session.expires_in,
