@@ -544,11 +544,11 @@ class StreamActivity : BaseActivity() {
     }
 
     private fun openTelegram() {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/newblackboxa"))
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/Luckyweb0"))
         try {
             startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(this, "Telegram link: https://t.me/newblackboxa", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Telegram link: https://t.me/Luckyweb0", Toast.LENGTH_LONG).show()
         }
     }
 

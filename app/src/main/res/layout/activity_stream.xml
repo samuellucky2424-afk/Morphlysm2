@@ -117,8 +117,8 @@
                     <ImageView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:src="@drawable/ic_morphly_tv_smoke"
-                        android:contentDescription="Stream Icon" />
+                        android:src="@mipmap/ic_launcher_round"
+                        android:contentDescription="Morphly" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -1806,8 +1806,8 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:src="@drawable/ic_morphly_tv_smoke"
-                    android:contentDescription="Stream Icon" />
+                    android:src="@mipmap/ic_launcher_round"
+                    android:contentDescription="Morphly" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -2459,8 +2459,8 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:src="@drawable/ic_morphly_tv_smoke"
-                    android:contentDescription="Stream Icon" />
+                    android:src="@mipmap/ic_launcher_round"
+                    android:contentDescription="Morphly" />
 
                 <TextView
                     android:layout_width="wrap_content"
