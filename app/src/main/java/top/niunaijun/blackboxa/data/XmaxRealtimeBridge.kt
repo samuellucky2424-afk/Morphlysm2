@@ -200,7 +200,7 @@ object XmaxRealtimeBridge {
 
     private var resizeBuffer: ByteArray? = null
     /** Bilinear luma + nearest chroma NV21 downscale into a reused buffer (old resize was nearest-neighbour). */
-    private fun resizeNv21Bilinear(src: ByteArray, sw: Int, sh: Int, dw: Int, dh: Int): ByteArray {
+    internal fun resizeNv21Bilinear(src: ByteArray, sw: Int, sh: Int, dw: Int, dh: Int): ByteArray {
         val total = dw * dh * 3 / 2
         val dst = resizeBuffer?.takeIf { it.size == total } ?: ByteArray(total).also { resizeBuffer = it }
         val xr = ((sw - 1) shl 16) / maxOf(1, dw - 1); val yr = ((sh - 1) shl 16) / maxOf(1, dh - 1)
@@ -227,8 +227,8 @@ object XmaxRealtimeBridge {
         return dst
     }
     @Volatile private var loggedStrides = false
-    private val Y_LUT = ByteArray(256) { (((it - 16) * 255 + 109) / 219).coerceIn(0, 255).toByte() }
-    private val C_LUT = ByteArray(256) { (((it - 128) * 255) / 224 + 128).coerceIn(0, 255).toByte() }
+    internal val Y_LUT = ByteArray(256) { (((it - 16) * 255 + 109) / 219).coerceIn(0, 255).toByte() }
+    internal val C_LUT = ByteArray(256) { (((it - 128) * 255) / 224 + 128).coerceIn(0, 255).toByte() }
     private var rowScratch = ByteArray(0)
     private fun copyPlane(src: java.nio.ByteBuffer, stride: Int, w: Int, h: Int, dst: ByteArray, off: Int, lut: ByteArray) {
         val b = src.duplicate(); val base = b.position(); val st = if (stride >= w) stride else w
@@ -251,7 +251,7 @@ object XmaxRealtimeBridge {
     @Volatile private var loggedFrameShape = false
     private var cropBuffer: ByteArray? = null
     /** Horizontal NV21 crop [x0, x0+cw) keeping full height; reuses one buffer. */
-    private fun cropNv21(src: ByteArray, w: Int, h: Int, x0: Int, cw: Int): ByteArray {
+    internal fun cropNv21(src: ByteArray, w: Int, h: Int, x0: Int, cw: Int): ByteArray {
         val total = cw * h * 3 / 2
         val dst = cropBuffer?.takeIf { it.size == total } ?: ByteArray(total).also { cropBuffer = it }
         for (y in 0 until h) System.arraycopy(src, y * w + x0, dst, y * cw, cw)
@@ -261,7 +261,7 @@ object XmaxRealtimeBridge {
     }
     @Volatile private var lastPreviewAtMs = 0L
     /** Feeds the floating mini window (StreamPreviewBridge) with ~5 fps snapshots of the AI output. */
-    private fun publishPreview(nv21: ByteArray, width: Int, height: Int) {
+    internal fun publishPreview(nv21: ByteArray, width: Int, height: Int) {
         val now = SystemClock.elapsedRealtime()
         if (now - lastPreviewAtMs < 1000L || width <= 0 || height <= 0 || !StreamPreviewBridge.hasListeners()) return
         lastPreviewAtMs = now

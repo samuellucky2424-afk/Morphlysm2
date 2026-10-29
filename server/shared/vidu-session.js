@@ -50,7 +50,7 @@ export async function createViduSession({apiKey, maxSeconds, imageUrl, fetchImpl
     return {token, sessionLimit: Math.min(sessionLimit, Number(d?.live?.live_duration) || sessionLimit), expiresAt,
       provider: {liveId, renderUid, rtc: {appId: rtc.app_id ?? rtc.appid ?? null, channel: rtc.channel_id ?? rtc.channel ?? null,
         userId: rtc.user_id, token: rtc.token, gslb: rtc.gslb ?? null, nonce: rtc.nonce ?? null, timestamp: rtc.timestamp ?? null,
-        expireAt: rtc.token_expire_at ?? null, raw: rtc}, signalingUrl: d?.ws_url || d?.signaling_url || null}};
+        expireAt: rtc.token_expire_at ?? null, raw: rtc}, signalingUrl: d?.ws_url || d?.signaling_url || null, apiBase: base}};
   }
   return fail('VIDU_SESSION_FAILED', 'Pro could not start this session.');
 }
