@@ -187,6 +187,13 @@ class StreamActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        (pendingCheckoutTxRef ?: getPrefs().getString("pending_tx_ref", null))?.let { ref ->
+            if (checkoutDialog?.isShowing != true && StreamAuthManager.isLoggedIn(this)) {
+                pendingCheckoutTxRef = null
+                getPrefs().edit().remove("pending_tx_ref").apply()
+                verifyCheckoutPayment(ref, "")
+            }
+        }
         StreamSessionController.refreshWindow(this)
         if (binding.layoutDashboard.visibility == View.VISIBLE && !isStreaming) {
             startCameraPreview()
@@ -1508,6 +1515,7 @@ class StreamActivity : BaseActivity() {
 
 
     private var checkoutDialog: android.app.Dialog? = null
+    private var pendingCheckoutTxRef: String? = null
 
     /** Flutterwave hosted checkout inside an in-app pop-up WebView (no external browser). */
     @android.annotation.SuppressLint("SetJavaScriptEnabled")
@@ -1551,12 +1559,16 @@ class StreamActivity : BaseActivity() {
         fun done(returnUri: Uri?) {
             if (finished) return
             finished = true
+            Log.i(TAG_STREAM_LIFECYCLE, "checkout_done return=${returnUri != null}")
             dialog.dismiss()
+            pendingCheckoutTxRef = null
+            getPrefs().edit().remove("pending_tx_ref").apply()
             if (returnUri == null) {
                 Toast.makeText(this, "Payment cancelled.", Toast.LENGTH_SHORT).show()
                 return
             }
-            val status = returnUri.getQueryParameter("status").orEmpty()
+            // Only Flutterwave's redirect to our payment-complete page carries a trusted status.
+            val status = if (returnUri.scheme == "https") returnUri.getQueryParameter("status").orEmpty() else ""
             val ref = returnUri.getQueryParameter("tx_ref") ?: returnUri.getQueryParameter("txRef") ?: txRef
             val txId = returnUri.getQueryParameter("transaction_id").orEmpty()
             if (status.isNotEmpty() && status != "successful" && status != "completed") {
@@ -1565,29 +1577,61 @@ class StreamActivity : BaseActivity() {
             }
             verifyCheckoutPayment(ref, txId)
         }
-        fun isReturn(url: String) = url.startsWith("morphly://") || url.contains("/payment-complete.html")
+        fun isReturn(uri: Uri): Boolean = uri.scheme == "morphly" ||
+            (uri.scheme == "https" && uri.host?.endsWith("morphlysm2.vercel.app") == true && uri.path == "/payment-complete.html")
+        fun confirmCancel() {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Cancel payment?")
+                .setMessage("If you already sent the money, choose Keep paying and wait for confirmation.")
+                .setPositiveButton("Cancel payment") { _, _ -> Log.i(TAG_STREAM_LIFECYCLE, "checkout_cancel_confirmed"); done(null) }
+                .setNegativeButton("Keep paying", null)
+                .show()
+        }
 
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
+        web.settings.javaScriptCanOpenWindowsAutomatically = false
         web.webViewClient = object : android.webkit.WebViewClient() {
             override fun shouldOverrideUrlLoading(view: android.webkit.WebView, request: android.webkit.WebResourceRequest): Boolean {
-                val url = request.url.toString()
-                if (isReturn(url)) { done(request.url); return true }
-                return !(url.startsWith("https://") || url.startsWith("http://"))
+                val uri = request.url
+                Log.i(TAG_STREAM_LIFECYCLE, "checkout_nav scheme=${uri.scheme} host=${uri.host}")
+                if (isReturn(uri)) { done(uri); return true }
+                val scheme = uri.scheme.orEmpty()
+                if (scheme == "https" || scheme == "http" || scheme == "about" || scheme == "data" || scheme == "blob") return false
+                // Bank apps / USSD / intent:// links: open externally, keep the pop-up open.
+                try {
+                    val intent = if (scheme == "intent") Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME) else Intent(Intent.ACTION_VIEW, uri)
+                    intent.addCategory(Intent.CATEGORY_BROWSABLE); intent.component = null; intent.selector = null
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Log.w(TAG_STREAM_LIFECYCLE, "checkout_external_link_failed", e)
+                }
+                return true
             }
             override fun onPageStarted(view: android.webkit.WebView, url: String, favicon: android.graphics.Bitmap?) {
-                if (isReturn(url)) { view.stopLoading(); done(Uri.parse(url)) } else progress.visibility = View.VISIBLE
+                val uri = Uri.parse(url)
+                if (isReturn(uri)) { view.stopLoading(); done(uri) } else progress.visibility = View.VISIBLE
             }
             override fun onPageFinished(view: android.webkit.WebView, url: String) { progress.visibility = View.GONE }
         }
-        close.setOnClickListener { done(null) }
+        web.webChromeClient = object : android.webkit.WebChromeClient() {
+            // Page-initiated window.close() must not cancel the payment.
+            override fun onCloseWindow(window: android.webkit.WebView?) { Log.i(TAG_STREAM_LIFECYCLE, "checkout_window_close_ignored") }
+        }
+        close.setOnClickListener { confirmCancel() }
         dialog.setContentView(root)
-        dialog.setOnCancelListener { done(null) }
+        dialog.setCancelable(false)
+        dialog.setCanceledOnTouchOutside(false)
         dialog.setOnKeyListener { _, keyCode, event ->
-            if (keyCode == android.view.KeyEvent.KEYCODE_BACK && event.action == android.view.KeyEvent.ACTION_UP && web.canGoBack()) { web.goBack(); true } else false
+            if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                if (event.action == android.view.KeyEvent.ACTION_UP) { if (web.canGoBack()) web.goBack() else confirmCancel() }
+                true
+            } else false
         }
         dialog.setOnDismissListener { web.stopLoading(); web.destroy(); checkoutDialog = null }
         checkoutDialog = dialog
+        pendingCheckoutTxRef = txRef.ifBlank { null }
+        if (txRef.isNotBlank()) getPrefs().edit().putString("pending_tx_ref", txRef).apply()
         dialog.show()
         web.loadUrl(checkoutUrl)
     }
