@@ -36,8 +36,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BlackBox"
         android:enableOnBackInvokedCallback="false"
+        android:pageSizeCompat="enabled"
         tools:replace="android:allowBackup"
-        tools:targetApi="n">
+        tools:targetApi="36">
+        <!-- Android 16 ignores portrait/aspect locks on sw600dp+ displays. The editor is portrait-only. -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+            android:value="true" />
         <meta-data
             android:name="xposedmodule"
             android:value="true" />
@@ -51,7 +56,7 @@
         <service
             android:name=".data.DecartStreamingService"
             android:exported="false"
-            android:foregroundServiceType="camera" />
+            android:foregroundServiceType="camera|microphone" />
 
         <service
             android:name=".vcam.VirtualCameraSurfaceService"

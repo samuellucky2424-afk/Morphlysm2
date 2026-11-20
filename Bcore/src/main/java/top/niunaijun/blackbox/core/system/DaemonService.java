@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
@@ -102,7 +103,11 @@ public class DaemonService extends Service {
         try {
             Notification notification = createNotification();
             if (notification != null) {
-                startForeground(NOTIFY_ID, notification);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    startForeground(NOTIFY_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+                } else {
+                    startForeground(NOTIFY_ID, notification);
+                }
                 Log.d(TAG, "Foreground service started successfully");
                 return true;
             } else {

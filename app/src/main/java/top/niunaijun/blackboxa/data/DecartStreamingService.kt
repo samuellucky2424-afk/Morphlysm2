@@ -1,5 +1,6 @@
 package top.niunaijun.blackboxa.data
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,9 +8,12 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.core.content.ContextCompat
 import top.niunaijun.blackboxa.R
 import top.niunaijun.blackboxa.view.main.StreamActivity
 
@@ -21,8 +25,31 @@ class DecartStreamingService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "start foreground live stream guard action=${intent?.action}")
-        startForeground(NOTIFICATION_ID, notification())
-        return START_STICKY
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                // Android 14+ rejects a typeless startForeground, and Android 15+
+                // only keeps camera/mic capture alive in the background when the
+                // matching types are passed and those permissions are granted.
+                var type = 0
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA
+                }
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                }
+                if (type == 0) {
+                    type = ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA
+                }
+                startForeground(NOTIFICATION_ID, notification(), type)
+            } else {
+                startForeground(NOTIFICATION_ID, notification())
+            }
+            START_STICKY
+        } catch (error: Throwable) {
+            Log.e(TAG, "Unable to enter the live foreground service", error)
+            stopSelf()
+            START_NOT_STICKY
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

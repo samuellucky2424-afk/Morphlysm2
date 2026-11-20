@@ -4,6 +4,7 @@ package top.niunaijun.blackboxa.view.fake
 import android.app.Activity
 import android.os.Bundle
 import android.view.inputmethod.InputMethodManager
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.preference.PreferenceManager
@@ -81,10 +82,11 @@ class FollowMyLocationOverlay : AppCompatActivity() {
 
         mapController.setCenter(startPoint)
         binding.map.setTileSource(TileSourceFactory.MAPNIK)
-    }
-
-    override fun onBackPressed() {
-        finishWithResult(startPoint)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finishWithResult(startPoint)
+            }
+        })
     }
 
     override fun onResume() {
