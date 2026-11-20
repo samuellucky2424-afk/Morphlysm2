@@ -6,6 +6,7 @@
 // State-changing calls also need the X-Morphly-Admin header and a same-origin Origin (CSRF).
 import {createHash} from 'node:crypto';
 import {firebaseRuntime, firebaseAuthRequest} from '../shared/firebase-runtime.js';
+import {getAppVersion} from '../shared/app-version.js';
 import {ensureFirebaseDefaults} from '../shared/firebase.js';
 import {cleanString, clientIp} from '../shared/http.js';
 import {recordError} from '../shared/error-log.js';
@@ -139,6 +140,8 @@ async function overview(req) {
   const now = Date.now(), today = dayKey(now), paid = payments.filter(verified);
   const usage = ledger.filter(l => l.entry_type === 'usage');
   const {first, repeat} = buyerStats(payments);
+  let release = null;
+  try { release = await getAppVersion(); } catch { release = null; }
   const activeIds = new Set(sessions.filter(s => now - ms(s.createdAt || s.created_at) < 7 * DAY).map(s => s.user_id));
   const prevWindow = r => {const t = ms(r); return t > now - 2 * days * DAY && t <= now - days * DAY;};
   const inWindow = r => ms(r) > now - days * DAY;
@@ -169,7 +172,18 @@ async function overview(req) {
     recent_signups: users.sort((a, b) => ms(b.created_at) - ms(a.created_at)).slice(0, 6)
       .map(u => ({id: u.id, email: u.email, name: u.name, created_at: u.created_at})),
     recent_purchases: paid.sort((a, b) => ms(b.verified_at) - ms(a.verified_at)).slice(0, 6),
+    release,
   };
+}
+
+async function releases() {
+  const current = await getAppVersion();
+  let firestore = null;
+  try {
+    const doc = await firebaseRuntime().db.collection('app_setting_sm').doc('app_version').get();
+    firestore = doc.exists ? (doc.data()?.value || null) : null;
+  } catch { firestore = null; }
+  return {current: current || null, firestore, downloadUrl: current?.downloadUrl || process.env.APP_DOWNLOAD_URL || 'https://luckyweb.cloud'};
 }
 
 async function users(req) {
@@ -337,7 +351,7 @@ async function auditLog(req) {
 }
 
 const ROUTES = {
-  'GET /overview': overview, 'GET /users': users, 'POST /users/credits': adjustCredits, 'POST /users/status': setStatus,
+  'GET /overview': overview, 'GET /releases': releases, 'GET /users': users, 'POST /users/credits': adjustCredits, 'POST /users/status': setStatus,
   'GET /purchases': purchases, 'GET /performance': performance, 'GET /errors': errors, 'DELETE /errors': errors,
   'GET /referrals': referrals, 'GET /packages': packages, 'POST /packages': packages, 'GET /settings': settings, 'POST /settings': settings,
   'GET /audit': auditLog,
