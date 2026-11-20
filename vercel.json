@@ -2,6 +2,22 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/admin/login",
+      "destination": "/api/admin-login-page.js"
+    },
+    {
+      "source": "/admin/login/",
+      "destination": "/api/admin-login-page.js"
+    },
+    {
+      "source": "/admin",
+      "destination": "/api/admin-dashboard-page.js"
+    },
+    {
+      "source": "/admin/",
+      "destination": "/api/admin-dashboard-page.js"
+    },
+    {
       "source": "/api/app-version",
       "destination": "/api/config.js?route=app-version"
     },

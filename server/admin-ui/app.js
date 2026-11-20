@@ -6,6 +6,7 @@ const $ = (s, el = document) => el.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 try {localStorage.removeItem('morphly_admin');} catch {}
 const store = {get: () => JSON.parse(sessionStorage.getItem('morphly_admin_ui') || 'null'), set: v => sessionStorage.setItem('morphly_admin_ui', JSON.stringify({email: v.email})), clear: () => sessionStorage.removeItem('morphly_admin_ui')};
+const pageMode = document.body?.dataset?.page || 'spa';
 let state = {page: (location.hash.slice(1) || 'overview'), cur: 'NGN', search: ''};
 
 const fmt = n => Number(n || 0).toLocaleString('en-US');
@@ -23,7 +24,14 @@ async function api(path, opts = {}) {
   const r = await fetch('/api/admin' + path, {method: opts.method || 'GET', credentials: 'same-origin', cache: 'no-store',
     headers: {'Content-Type': 'application/json', 'X-Morphly-Admin': '1'}, body: opts.body ? JSON.stringify(opts.body) : undefined});
   const j = await r.json().catch(() => ({}));
-  if (r.status === 401 || r.status === 403) {if (path !== '/login') {store.clear(); render();} throw new Error(j.error || 'Access denied');}
+  if (r.status === 401 || r.status === 403) {
+    if (path !== '/login') {
+      store.clear();
+      if (pageMode === 'dashboard') location.replace('/admin/login');
+      else render();
+    }
+    throw new Error(j.error || 'Access denied');
+  }
   if (!r.ok) throw new Error(j.error || 'Request failed');
   if (j.audit_logged === false) setTimeout(() => toast('Warning: this action could not be written to the audit log'), 2700);
   return j;
@@ -56,13 +64,13 @@ function donut(parts) {
 
 /* ---------- layout ---------- */
 const I = {
-  overview: '<path d="M3 12l9-8 9 8M5 10v10h14V10" />', users: '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7M17 11a3 3 0 100-6M22 21c0-3-2-5-4-6"/>',
+  overview: '<path d="M3 12l9-8 9 8M5 10v10h14V10" />', releases: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>', users: '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7M17 11a3 3 0 100-6M22 21c0-3-2-5-4-6"/>',
   purchases: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>', performance: '<path d="M3 20h18M6 16l4-5 4 3 5-7"/>',
   errors: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>', referrals: '<circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.6 10.6l6.8-3.2M8.6 13.4l6.8 3.2"/>',
   audit: '<path d="M9 3h6l1 2h3v16H5V5h3zM9 11h6M9 15h6"/>', packages: '<path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/>', settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 009 19.4a1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.6 1.6 0 003 14.2H3a2 2 0 110-4h.1A1.6 1.6 0 004.6 9 1.6 1.6 0 004.3 7.2l-.1-.1a2 2 0 112.8-2.8l.1.1A1.6 1.6 0 009 4.6 1.6 1.6 0 0010 3.1V3a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z"/>',
 };
 const ico = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
-const NAV = [['Dashboards', [['overview', 'Overview'], ['performance', 'Performance'], ['errors', 'Errors']]], ['Business', [['users', 'Users'], ['purchases', 'Purchases'], ['referrals', 'Referrals']]], ['Configuration', [['packages', 'Packages'], ['settings', 'Settings'], ['audit', 'Audit log']]]];
+const NAV = [['Dashboards', [['overview', 'Overview'], ['releases', 'Releases'], ['performance', 'Performance'], ['errors', 'Errors']]], ['Business', [['users', 'Users'], ['purchases', 'Purchases'], ['referrals', 'Referrals']]], ['Configuration', [['packages', 'Packages'], ['settings', 'Settings'], ['audit', 'Audit log']]]];
 const TITLE = Object.fromEntries(NAV.flatMap(([, l]) => l));
 
 function shell(inner) {
@@ -86,15 +94,28 @@ P.overview = async () => {
   ${card('Active users (7d)', fmt(k.active_users), `${fmt(k.live_streams)} streaming right now`)}${card('Revenue', money(k.revenue), delta(k.revenue, k.revenue_prev))}
   ${card('Credits sold', short(k.credits_sold), `${money(k.revenue_all_time)} all-time revenue`)}${card('Credits used', short(k.credits_used), `${short(k.credits_outstanding)} still in wallets`)}
   ${card('Streams today', fmt(k.streams_today), `${fmt(k.errors_24h)} errors in last 24h`)}${card('Buyers', fmt(k.first_time_buyers), `${fmt(k.repeat_buyers)} came back to buy again`)}</div>
+  ${releaseCard(d.release)}
   <div class="grid"><div class="card"><h3>Revenue &amp; signups <span class="legend"><span><i class="dot" style="background:#e11d2e"></i>Revenue</span><span><i class="dot" style="background:#1c1c1c"></i>Signups (scaled)</span></span></h3>
   ${(() => {const r = d.series.revenue, s = d.series.signups, m = Math.max(1, ...r.map(p => p.value)) / Math.max(1, ...s.map(p => p.value)); return line([r, s.map(p => ({...p, value: p.value * m}))], {fmtY: v => short(v)});})()}</div>
   <div class="card"><h3>New signups</h3><div class="list">${d.recent_signups.map(u => `<div class="li who"><div class="a">${initials(u.email)}</div><div>${esc(u.name || u.email.split('@')[0])}<small>${esc(u.email)}</small></div><span class="r">${ago(u.created_at)}</span></div>`).join('') || '<div class="empty">No signups yet</div>'}</div></div></div>
   <div class="grid eq"><div class="card"><h3>Streams per day</h3>${bars(d.series.streams.slice(-14))}</div><div class="card"><h3>Credits used per day</h3>${bars(d.series.credits_used.slice(-14))}</div></div>
   <div class="card w"><h3>Recent purchases <a class="meta" href="#purchases">View all →</a></h3>${table(['Customer', 'Package', 'Credits', 'Amount', 'Date', 'Status'], d.recent_purchases.map(p => [who(p.user_email_snapshot), esc(p.package_id), fmt(p.credits), money(p.expected_amount, p.currency), date(p.verified_at), pill(p.status)]))}</div>`;
 };
+function releaseCard(rel) {
+  if (!rel) return '<div class="card w"><h3>App release <a class="meta" href="#releases">Details</a></h3><div class="empty">No published release yet</div></div>';
+  return `<div class="card w"><h3>App release <a class="meta" href="#releases">Details</a></h3><div class="li"><b>${esc(rel.latestVersion || '—')}</b>&nbsp;<span class="mono">versionCode ${esc(rel.versionCode ?? '')}</span>${rel.minVersionCode ? ` <span class="mono">min ${esc(rel.minVersionCode)}</span>` : ''} ${pill(rel.source || 'unknown')}<span class="r">${rel.publishedAt ? date(rel.publishedAt) : ''}</span></div>${rel.notes ? `<div class="sub">${esc(String(rel.notes).slice(0, 320))}</div>` : ''}</div>`;
+}
 const who = (e, sub = '') => `<div class="who"><div class="a">${initials(e)}</div><div>${esc(e)}${sub ? `<small>${esc(sub)}</small>` : ''}</div></div>`;
 const table = (h, rows) => `<div class="tablewrap"><table><thead><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${h.length}" class="empty">Nothing here yet</td></tr>`}</tbody></table></div>`;
 
+P.releases = async () => {
+  const d = await api('/releases');
+  const c = d.current, stored = d.firestore;
+  const row = (label, value) => `<div class="toggle"><div><b>${label}</b><div class="sub">${value}</div></div></div>`;
+  return `<div class="head"><div><h1>App releases</h1><div class="sub">Latest Android build. GitHub is preferred; Firestore app_setting_sm/app_version is the fallback.</div></div></div>
+  <div class="grid eq"><div class="card w"><h3>Live release</h3>${c ? [row('Version', esc(c.latestVersion || '—')), row('versionCode', esc(c.versionCode ?? '—')), row('Minimum versionCode', esc(c.minVersionCode || '—')), row('Published', esc(c.publishedAt || '—')), row('Source', esc(c.source || '—')), row('Download', esc(d.downloadUrl || c.downloadUrl || '')), `<div class="sub" style="white-space:pre-wrap;margin-top:12px">${esc(c.notes || '')}</div>`].join('') : '<div class="empty">Version info unavailable</div>'}</div>
+  <div class="card w"><h3>Firestore override</h3><div class="sub">Stored on app_setting_sm / app_version. Used when GitHub has no release.</div>${stored ? `<pre class="mono" style="white-space:pre-wrap">${esc(JSON.stringify(stored, null, 2))}</pre>` : '<div class="empty">No Firestore override stored</div>'}</div></div>`;
+};
 P.users = async () => {
   const d = await api('/users?q=' + encodeURIComponent(state.search)); state.users = d.users;
   return `<div class="head"><div><h1>Users</h1><div class="sub">${fmt(d.users.length)} accounts · add or remove credits, enable or disable</div></div></div>
@@ -165,7 +186,7 @@ P.settings = async () => {
 
 /* ---------- actions ---------- */
 function bind() {
-  $('#logout')?.addEventListener('click', async () => {try {await api('/logout', {method: 'POST'});} catch {} store.clear(); render();});
+  $('#logout')?.addEventListener('click', async () => {try {await api('/logout', {method: 'POST'});} catch {} store.clear(); if (pageMode === 'dashboard' || pageMode === 'login') {location.replace('/admin/login'); return;} render();});
   $('#reload')?.addEventListener('click', () => go(state.page));
   $('#q')?.addEventListener('keydown', e => {if (e.key === 'Enter') {state.search = e.target.value; location.hash = 'users'; go('users');}});
   document.querySelectorAll('[data-ptab]').forEach(b => b.onclick = () => {state.ptab = b.dataset.ptab; go('purchases');});
@@ -199,10 +220,21 @@ function loginView() {
   <input class="f" id="le-mail" type="email" placeholder="Email" autocomplete="username" required><input class="f" id="le-pw" type="password" placeholder="Password" autocomplete="current-password" required><button class="btn p" style="padding:12px">Sign in</button></form></div></div>`;
   $('#lf').onsubmit = async e => {e.preventDefault(); try {
     const r = await fetch('/api/admin/login', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json', 'X-Morphly-Admin': '1'}, body: JSON.stringify({email: $('#le-mail').value, password: $('#le-pw').value})});
-    const j = await r.json().catch(() => ({})); $('#le-pw').value = ''; if (!r.ok) throw new Error(j.error || 'Sign in failed'); store.set(j); render();
+    const j = await r.json().catch(() => ({})); $('#le-pw').value = ''; if (!r.ok) throw new Error(j.error || 'Sign in failed'); store.set(j); if (pageMode === 'login') {location.replace('/admin'); return;} render();
   } catch (err) {$('#le').innerHTML = `<div class="err">${esc(err.message)}</div>`;}};
 }
 async function render() {
+  if (pageMode === 'login') {
+    const r = await fetch('/api/admin/me', {credentials: 'same-origin', headers: {'X-Morphly-Admin': '1'}}).catch(() => null);
+    if (r?.ok) {location.replace('/admin'); return;}
+    return loginView();
+  }
+  if (pageMode === 'dashboard') {
+    const r = await fetch('/api/admin/me', {credentials: 'same-origin', headers: {'X-Morphly-Admin': '1'}}).catch(() => null);
+    if (!r?.ok) {store.clear(); location.replace('/admin/login'); return;}
+    store.set(await r.json());
+    return go(location.hash.slice(1) || 'overview');
+  }
   if (!store.get()) {
     // The cookie may still be valid (e.g. new tab): ask the server instead of trusting the browser.
     const r = await fetch('/api/admin/me', {credentials: 'same-origin', headers: {'X-Morphly-Admin': '1'}}).catch(() => null);
