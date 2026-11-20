@@ -6,6 +6,8 @@ android {
     namespace 'top.niunaijun.blackbox'
 
     compileSdk rootProject.ext.compileSdkVersion
+    // Public platform packages are android-37.0, not android-37.
+    compileSdkMinor 0
 
 
     aidlPackagedList "android/app/IServiceConnection.aidl"

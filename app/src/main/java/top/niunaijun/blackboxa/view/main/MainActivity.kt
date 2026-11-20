@@ -24,7 +24,7 @@ import top.niunaijun.blackboxa.view.apps.AppsFragment
 import top.niunaijun.blackboxa.view.base.LoadingActivity
 import top.niunaijun.blackboxa.view.fake.FakeManagerActivity
 import top.niunaijun.blackboxa.view.list.ListActivity
-import top.niunaijun.blackboxa.view.setting.SettingActivity
+import top.niunaijun.blackboxa.view.gms.GmsManagerActivity
 
 class MainActivity : LoadingActivity() {
 
@@ -279,8 +279,25 @@ class MainActivity : LoadingActivity() {
         }
     }
 
+    private fun linkHostGoogleServices() {
+        Thread {
+            val core = BlackBoxCore.get()
+            if (!core.isSupportGms) return@Thread
+            for (user in core.users) {
+                if (core.isInstallGms(user.id)) continue
+                val result = runCatching { core.installGms(user.id) }.getOrNull()
+                Log.d(TAG, "link Google services user=${user.id} success=${result?.success} ${result?.msg}")
+            }
+        }.start()
+    }
+
     private fun initViewPager() {
         try {
+            if (BlackBoxCore.get().users.isEmpty()) {
+                runCatching { BlackBoxCore.get().createUser(0) }
+                        .onFailure { Log.e(TAG, "Could not create clone slot 0: ${it.message}") }
+            }
+            linkHostGoogleServices()
             val userList = BlackBoxCore.get().users
             userList.forEach { fragmentList.add(AppsFragment.newInstance(it.id)) }
 
@@ -402,6 +419,7 @@ class MainActivity : LoadingActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         try {
             when (item.itemId) {
+                R.id.menu_gms -> GmsManagerActivity.start(this)
                 R.id.menu_stream -> {
                     val intent = Intent(this, StreamActivity::class.java)
                     startActivity(intent)

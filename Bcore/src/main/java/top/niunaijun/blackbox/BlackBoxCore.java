@@ -1644,7 +1644,7 @@ public class BlackBoxCore extends ClientConfiguration {
             throw new IllegalArgumentException("ClientConfiguration is null!");
         }
 
-        if(!NativeCore.disableHiddenApi()){
+        if(!NativeCore.disableHiddenApi() && !top.niunaijun.blackbox.utils.compat.HiddenApiCompat.exemptAll()){
             try {
                 Reflection.unseal(context);
             } catch (Throwable t) {

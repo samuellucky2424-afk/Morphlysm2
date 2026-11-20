@@ -26,6 +26,14 @@
         android:maxSdkVersion="29" />
 
 
+    <!-- Every launchable app stays visible on Android 11+ even if QUERY_ALL_PACKAGES is ignored. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".app.App"
         android:allowBackup="false"
@@ -36,8 +44,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BlackBox"
         android:enableOnBackInvokedCallback="false"
+        android:pageSizeCompat="enabled"
         tools:replace="android:allowBackup"
-        tools:targetApi="n">
+        tools:targetApi="36">
+        <!-- Android 16 ignores portrait/aspect locks on sw600dp+ displays. The editor is portrait-only. -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+            android:value="true" />
         <meta-data
             android:name="xposedmodule"
             android:value="true" />
@@ -51,7 +64,7 @@
         <service
             android:name=".data.DecartStreamingService"
             android:exported="false"
-            android:foregroundServiceType="camera" />
+            android:foregroundServiceType="camera|microphone" />
 
         <service
             android:name=".vcam.VirtualCameraSurfaceService"

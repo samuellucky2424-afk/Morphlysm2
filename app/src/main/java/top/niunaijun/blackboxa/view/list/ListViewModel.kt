@@ -17,6 +17,9 @@ class ListViewModel(private val repo: AppsRepository) : BaseViewModel() {
     }
 
     fun getInstallAppList(userID: Int) {
-        launchOnUI { repo.getInstalledAppList(userID, loadingLiveData, appsLiveData) }
+        launchOnUI {
+            repo.previewInstallList()
+            repo.getInstalledAppList(userID, loadingLiveData, appsLiveData)
+        }
     }
 }

@@ -24,6 +24,7 @@ import black.android.app.ContextImpl;
 import black.android.content.pm.BRPackageManager;
 import top.niunaijun.blackbox.BlackBoxCore;
 import top.niunaijun.blackbox.app.BActivityThread;
+import top.niunaijun.blackbox.core.GmsCore;
 import top.niunaijun.blackbox.core.env.AppSystemEnv;
 import top.niunaijun.blackbox.fake.FakeCore;
 import top.niunaijun.blackbox.fake.hook.BinderInvocationStub;
@@ -72,6 +73,66 @@ public class IPackageManagerProxy extends BinderInvocationStub {
     @Override
     public boolean isBadEnv() {
         return false;
+    }
+
+    static boolean isGooglePackage(String packageName) {
+        return GmsCore.isGoogleAppOrService(packageName);
+    }
+
+    static String packageNameOf(Object value) {
+        if (value instanceof String) {
+            return (String) value;
+        }
+        if (value == null) {
+            return null;
+        }
+        try {
+            Method getter = value.getClass().getMethod("getPackageName");
+            Object name = getter.invoke(value);
+            return name instanceof String ? (String) name : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static void addHostGoogleApps(Object packageManager, List<ApplicationInfo> installed) {
+        String[] packages = {GmsCore.GMS_PKG, GmsCore.GSF_PKG, GmsCore.VENDING_PKG};
+        for (String packageName : packages) {
+            boolean present = false;
+            for (ApplicationInfo info : installed) {
+                if (packageName.equals(info.packageName)) {
+                    present = true;
+                    break;
+                }
+            }
+            if (present) {
+                continue;
+            }
+            ApplicationInfo host = hostApplicationInfo(packageManager, packageName);
+            if (host != null) {
+                installed.add(host);
+            }
+        }
+    }
+
+    private static ApplicationInfo hostApplicationInfo(Object packageManager, String packageName) {
+        for (Method method : packageManager.getClass().getMethods()) {
+            if (!"getApplicationInfo".equals(method.getName())) {
+                continue;
+            }
+            Class<?>[] parameters = method.getParameterTypes();
+            try {
+                if (parameters.length == 3 && parameters[0] == String.class && parameters[2] == int.class) {
+                    Object flags = parameters[1] == long.class ? 0L : 0;
+                    return (ApplicationInfo) method.invoke(packageManager, packageName, flags, 0);
+                }
+                if (parameters.length == 2 && parameters[0] == String.class && parameters[1] == int.class) {
+                    return (ApplicationInfo) method.invoke(packageManager, packageName, 0);
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return null;
     }
 
     @Override
@@ -130,14 +191,21 @@ public class IPackageManagerProxy extends BinderInvocationStub {
     public static class GetPackageInfo extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            String packageName = (String) args[0];
+            String packageName = packageNameOf(args[0]);
             int flags = MethodParameterUtils.toInt(args[1]);
-            
-            
-            if ("com.android.vending".equals(packageName)) {
-                return createFakeGooglePlayServicesPackageInfo();
+
+            // Play services, Play Store, and GSF must be the host copies. A made-up
+            // package has no Google signature, so clients report Play services as missing.
+            if (GmsCore.isGoogleAppOrService(packageName)) {
+                try {
+                    Object hostInfo = method.invoke(who, args);
+                    if (hostInfo != null) {
+                        return hostInfo;
+                    }
+                } catch (Throwable ignored) {
+                }
             }
-            
+
             PackageInfo packageInfo = BlackBoxCore.getBPackageManager().getPackageInfo(packageName, flags, BlackBoxCore.getUserId());
             if (packageInfo != null) {
                 
@@ -159,23 +227,10 @@ public class IPackageManagerProxy extends BinderInvocationStub {
             }
             return null;
         }
-        
-        private PackageInfo createFakeGooglePlayServicesPackageInfo() {
-            PackageInfo packageInfo = new PackageInfo();
-            packageInfo.packageName = "com.android.vending";
-            packageInfo.versionName = "33.8.16-21";
-            packageInfo.versionCode = 83381621;
-            
-            ApplicationInfo appInfo = new ApplicationInfo();
-            appInfo.packageName = "com.android.vending";
-            appInfo.name = "Google Play Store";
-            appInfo.flags = ApplicationInfo.FLAG_SYSTEM;
-            appInfo.uid = 10001; 
-            packageInfo.applicationInfo = appInfo;
-            
-            Slog.d(TAG, "GetPackageInfo: Providing fake Google Play Services info");
-            return packageInfo;
-        }
+    }
+
+    @ProxyMethod("getPackageInfoVersioned")
+    public static class GetPackageInfoVersioned extends GetPackageInfo {
     }
 
     @ProxyMethod("getPackageUid")
@@ -259,6 +314,12 @@ public class IPackageManagerProxy extends BinderInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             int flags = MethodParameterUtils.toInt(args[0]);
             List<ApplicationInfo> installedApplications = BlackBoxCore.getBPackageManager().getInstalledApplications(flags, BlackBoxCore.getUserId());
+            if (installedApplications == null) {
+                installedApplications = new ArrayList<>();
+            } else {
+                installedApplications = new ArrayList<>(installedApplications);
+            }
+            addHostGoogleApps(who, installedApplications);
             return ParceledListSliceCompat.create(installedApplications);
         }
     }
@@ -278,11 +339,19 @@ public class IPackageManagerProxy extends BinderInvocationStub {
     public static class GetApplicationInfo extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            String packageName = (String) args[0];
+            String packageName = packageNameOf(args[0]);
 
             int flags = MethodParameterUtils.toInt(args[1]);
 
-
+            if (GmsCore.isGoogleAppOrService(packageName)) {
+                try {
+                    Object hostInfo = method.invoke(who, args);
+                    if (hostInfo != null) {
+                        return hostInfo;
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
 
             ApplicationInfo applicationInfo = BlackBoxCore.getBPackageManager().getApplicationInfo(packageName, flags, BlackBoxCore.getUserId());
             if (applicationInfo != null) {

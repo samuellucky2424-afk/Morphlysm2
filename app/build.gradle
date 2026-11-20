@@ -32,6 +32,8 @@ android {
 
     namespace 'top.niunaijun.blackboxa'
     compileSdk rootProject.ext.compileSdkVersion
+    // Public platform packages are android-37.0, not android-37.
+    compileSdkMinor 0
     // Use the complete NDK installed in the local Android SDK. The previous
     // 29.0.13846066 directory was an incomplete installer stub.
     ndkVersion = "28.2.13676358"

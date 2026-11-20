@@ -73,6 +73,9 @@ jobs:
           cp app/build/outputs/apk/release/*universal-release.apk "Morphly-v${{ steps.ver.outputs.name }}.apk"
           # Fixed-name copy for the permanent link .../releases/latest/download/Morphly.apk
           cp "Morphly-v${{ steps.ver.outputs.name }}.apk" Morphly.apk
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort | tail -1)
+          if [ -z "$APKSIGNER" ]; then echo "::error::apksigner not found"; exit 1; fi
+          "$APKSIGNER" verify --verbose --print-certs Morphly.apk
 
       - name: Publish GitHub release
         env:
@@ -81,6 +84,6 @@ jobs:
           VNAME: ${{ steps.ver.outputs.name }}
           VCODE: ${{ steps.ver.outputs.code }}
         run: |
-          printf '%s\n\nversionCode: %s\n' "${COMMIT_MSG:-Manual build}" "$VCODE" > notes.md
+          printf '%s\n\nversionCode: %s\nsha256: %s\n' "${COMMIT_MSG:-Manual build}" "$VCODE" "$(sha256sum Morphly.apk | awk '{print $1}')" > notes.md
           gh release create "v$VNAME" "Morphly-v$VNAME.apk" Morphly.apk \
             --title "Morphly v$VNAME" --notes-file notes.md --target "$GITHUB_SHA" --latest --draft=false --prerelease=false
