@@ -30,6 +30,8 @@ typedef void (*SetParamsFn)(JNIEnv *, jobject, jstring);
 typedef void (*SetOrientationFn)(JNIEnv *, jobject, jint);
 typedef void (*TakePictureFn)(JNIEnv *, jobject, jint);
 typedef void (*HasCallbackFn)(JNIEnv *, jobject, jboolean, jboolean);
+typedef void (*AddBufferFn)(JNIEnv *, jobject, jbyteArray, jint);
+typedef void (*GetInfoFn)(JNIEnv *, jclass, jint, jint, jobject, jint, jobject);
 typedef jboolean (*EnableShutterFn)(JNIEnv *, jobject, jboolean);
 
 static Setup36Fn orig_setup36 = nullptr;
@@ -49,6 +51,12 @@ static VoidFn orig_auto_focus = nullptr;
 static VoidFn orig_cancel_auto_focus = nullptr;
 static TakePictureFn orig_take_picture = nullptr;
 static HasCallbackFn orig_has_preview_callback = nullptr;
+static AddBufferFn orig_add_callback_buffer = nullptr;
+static GetInfoFn orig_get_camera_info = nullptr;
+static jmethodID gHasPreviewCallback = nullptr;
+static jmethodID gAddCallbackBuffer = nullptr;
+static jmethodID gFillCameraInfo = nullptr;
+static jmethodID gDisplayOrientation = nullptr;
 static EnableShutterFn orig_enable_shutter = nullptr;
 static VoidFn orig_lock = nullptr;
 static VoidFn orig_unlock = nullptr;
@@ -220,6 +228,10 @@ static void setParameters(JNIEnv *env, jobject thiz, jstring params) {
 
 static void setDisplayOrientation(JNIEnv *env, jobject thiz, jint degrees) {
     if (isVirtual(env, thiz)) {
+        if (gDisplayOrientation != nullptr) {
+            env->CallStaticVoidMethod(gInterceptClass, gDisplayOrientation, thiz, degrees);
+            clearException(env);
+        }
         __android_log_print(ANDROID_LOG_INFO, VCAM_OPEN,
                             "path=Camera1.setDisplayOrientation intercepted degrees=%d", degrees);
         return;
@@ -252,11 +264,41 @@ static void takePicture(JNIEnv *env, jobject thiz, jint msgType) {
 
 static void hasPreviewCallback(JNIEnv *env, jobject thiz, jboolean installed, jboolean manual) {
     if (isVirtual(env, thiz)) {
+        if (gHasPreviewCallback != nullptr) {
+            env->CallStaticVoidMethod(gInterceptClass, gHasPreviewCallback, thiz, installed, manual);
+            clearException(env);
+        }
         __android_log_print(ANDROID_LOG_INFO, VCAM_OPEN,
-                            "path=Camera1.setPreviewCallback intercepted installed=%d", installed);
+                            "path=Camera1.setPreviewCallback intercepted installed=%d manualBuffer=%d",
+                            installed, manual);
         return;
     }
     orig_has_preview_callback(env, thiz, installed, manual);
+}
+
+static void addCallbackBuffer(JNIEnv *env, jobject thiz, jbyteArray buffer, jint msgType) {
+    if (isVirtual(env, thiz)) {
+        if (gAddCallbackBuffer != nullptr && buffer != nullptr) {
+            env->CallStaticVoidMethod(gInterceptClass, gAddCallbackBuffer, thiz, buffer, msgType);
+            clearException(env);
+        }
+        return;
+    }
+    orig_add_callback_buffer(env, thiz, buffer, msgType);
+}
+
+static void getCameraInfo(JNIEnv *env, jclass clazz, jint cameraId, jint rotationOverride, jobject parcel,
+                          jint policy, jobject info) {
+    if (gFillCameraInfo != nullptr) {
+        jboolean filled = env->CallStaticBooleanMethod(gInterceptClass, gFillCameraInfo, cameraId, info);
+        clearException(env);
+        if (filled == JNI_TRUE) {
+            return;
+        }
+    }
+    if (orig_get_camera_info != nullptr) {
+        orig_get_camera_info(env, clazz, cameraId, rotationOverride, parcel, policy, info);
+    }
 }
 
 static jboolean enableShutter(JNIEnv *env, jobject thiz, jboolean enabled) {
@@ -313,6 +355,9 @@ static NativeTarget kTargets[] = {
         {"native_cancelAutoFocus", "()V", (void *) cancelAutoFocus, (void **) &orig_cancel_auto_focus},
         {"native_takePicture", "(I)V", (void *) takePicture, (void **) &orig_take_picture},
         {"setHasPreviewCallback", "(ZZ)V", (void *) hasPreviewCallback, (void **) &orig_has_preview_callback},
+        {"_addCallbackBuffer", "([BI)V", (void *) addCallbackBuffer, (void **) &orig_add_callback_buffer},
+        {"_getCameraInfo", "(IILandroid/os/Parcel;ILandroid/hardware/Camera$CameraInfo;)V",
+         (void *) getCameraInfo, (void **) &orig_get_camera_info},
         {"_enableShutterSound", "(Z)Z", (void *) enableShutter, (void **) &orig_enable_shutter},
         {"lock", "()V", (void *) lockCamera, (void **) &orig_lock},
         {"unlock", "()V", (void *) unlockCamera, (void **) &orig_unlock},
@@ -355,9 +400,10 @@ static bool hookOne(JNIEnv *env, jclass cameraClass, jobject method, jclass jniH
             break;
         }
     }
-    if (!hooked && strcmp(nameChars, "native_setup") == 0) {
+    if (!hooked && (strcmp(nameChars, "native_setup") == 0 || strcmp(nameChars, "_getCameraInfo") == 0
+                    || strcmp(nameChars, "_addCallbackBuffer") == 0)) {
         __android_log_print(ANDROID_LOG_WARN, VCAM_OPEN,
-                            "path=Camera1.install native_setup_unmatched signature=%s", descChars);
+                            "path=Camera1.install unmatched method=%s signature=%s", nameChars, descChars);
     }
     env->ReleaseStringUTFChars(name, nameChars);
     env->ReleaseStringUTFChars(desc, descChars);
@@ -379,6 +425,10 @@ void Camera1Hook::init(JNIEnv *env) {
     gStartPreview = env->GetStaticMethodID(gInterceptClass, "onStartPreview", "(Ljava/lang/Object;)V");
     gStopPreview = env->GetStaticMethodID(gInterceptClass, "onStopPreview", "(Ljava/lang/Object;)V");
     gRelease = env->GetStaticMethodID(gInterceptClass, "onRelease", "(Ljava/lang/Object;)V");
+    gHasPreviewCallback = env->GetStaticMethodID(gInterceptClass, "onHasPreviewCallback", "(Ljava/lang/Object;ZZ)V");
+    gAddCallbackBuffer = env->GetStaticMethodID(gInterceptClass, "onAddCallbackBuffer", "(Ljava/lang/Object;[BI)V");
+    gFillCameraInfo = env->GetStaticMethodID(gInterceptClass, "fillCameraInfo", "(ILjava/lang/Object;)Z");
+    gDisplayOrientation = env->GetStaticMethodID(gInterceptClass, "onDisplayOrientation", "(Ljava/lang/Object;I)V");
     clearException(env);
 
     jclass cameraClass = env->FindClass("android/hardware/Camera");

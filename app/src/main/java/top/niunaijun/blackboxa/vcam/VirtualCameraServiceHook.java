@@ -841,6 +841,14 @@ public final class VirtualCameraServiceHook {
                     if (renderer != null) {
                         streamRenderers.add(renderer);
                     }
+                    Log.i("VCAM_OPEN", "path=Camera2.stream surface cameraId=" + cameraId
+                            + " streamId=" + streamId
+                            + " size=" + size[0] + "x" + size[1]
+                            + " format=" + surfaceFormat
+                            + " imageReader=" + (surfaceFormat == android.graphics.ImageFormat.YUV_420_888
+                            || surfaceFormat == android.graphics.ImageFormat.NV21
+                            || surfaceFormat == android.graphics.ImageFormat.YV12)
+                            + " directSurface=" + directSurfaceRegistered);
                     Log.i(TAG, "Virtual camera surface format=" + surfaceFormat
                         + " size=" + size[0] + "x" + size[1]
                         + " package=" + packageName

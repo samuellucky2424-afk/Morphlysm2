@@ -156,6 +156,7 @@ public final class SharedFrameStore {
                 target.delete();
             }
             boolean renamed = tmp.renameTo(target);
+            SharedFramePathResolver.shareWithClone(target);
             if (shouldLogFrameWrite()) {
                 SharedFramePathResolver.logFileState(
                         "producer_frame_written slot=" + slotId + " width=" + width + " height=" + height

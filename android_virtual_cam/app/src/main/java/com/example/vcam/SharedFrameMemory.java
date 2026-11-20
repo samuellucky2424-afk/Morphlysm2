@@ -307,6 +307,7 @@ public final class SharedFrameMemory {
                     raf.setLength(totalBytes);
                 }
             }
+            SharedFramePathResolver.shareWithClone(file);
         } catch (Throwable ignored) {
         }
     }

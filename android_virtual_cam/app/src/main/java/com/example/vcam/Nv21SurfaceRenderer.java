@@ -51,7 +51,10 @@ public final class Nv21SurfaceRenderer {
         this.surfaceFormat = surfaceFormat;
         int safeWidth = Math.max(2, requestedWidth);
         int safeHeight = Math.max(2, requestedHeight);
-        int renderWidth = Math.min(MAX_RENDER_WIDTH, safeWidth);
+        boolean fullResolution = surfaceFormat == ImageFormat.YUV_420_888
+                || surfaceFormat == ImageFormat.NV21
+                || surfaceFormat == ImageFormat.YV12;
+        int renderWidth = fullResolution ? safeWidth : Math.min(MAX_RENDER_WIDTH, safeWidth);
         if ((renderWidth & 1) == 1) {
             renderWidth--;
         }
@@ -206,8 +209,7 @@ public final class Nv21SurfaceRenderer {
 
         lastRenderedCounter = frame.counter;
         boolean mustUseImageWriter = isYuvSurface();
-        boolean shouldProbeImageWriter = mustUseImageWriter || surfaceFormat == FORMAT_UNKNOWN;
-        if (shouldProbeImageWriter && writeLatestImage(nv21, width, height)) {
+        if (mustUseImageWriter && writeLatestImage(nv21, width, height)) {
             return;
         }
         if (mustUseImageWriter) {
@@ -215,6 +217,10 @@ public final class Nv21SurfaceRenderer {
                 Log.w(TAG, "mustUseImageWriter_but_failed label=" + label
                         + " retryIn=" + (IMAGE_WRITER_RETRY_INTERVAL - imageWriterFailedCount) + " frames");
             }
+            return;
+        }
+        if (!surface.isValid()) {
+            running = false;
             return;
         }
         Bitmap bitmap = Nv21Converter.nv21ToBitmap(nv21, width, height);
@@ -235,9 +241,15 @@ public final class Nv21SurfaceRenderer {
                         + " canvas=" + canvas.getWidth() + "x" + canvas.getHeight()
                         + " frame=" + width + "x" + height);
             }
+        } catch (IllegalStateException released) {
+            running = false;
+            Log.w(TAG, "surface_released label=" + label);
         } finally {
             if (canvas != null) {
-                surface.unlockCanvasAndPost(canvas);
+                try {
+                    surface.unlockCanvasAndPost(canvas);
+                } catch (Throwable ignored) {
+                }
             }
             bitmap.recycle();
         }
