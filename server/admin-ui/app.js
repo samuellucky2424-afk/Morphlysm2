@@ -118,10 +118,10 @@ P.releases = async () => {
 };
 P.users = async () => {
   const d = await api('/users?q=' + encodeURIComponent(state.search)); state.users = d.users;
-  return `<div class="head"><div><h1>Users</h1><div class="sub">${fmt(d.users.length)} accounts · add or remove credits, enable or disable</div></div></div>
+  return `<div class="head"><div><h1>Users</h1><div class="sub">${fmt(d.users.length)} accounts · search above, then Adjust credits to add or remove a balance</div></div></div>
   ${table(['User', 'Credits', 'Used', 'Plan', 'Referral', 'Signed up', 'Last active', 'Status', ''], d.users.map(u => [who(u.email, u.name || u.id.slice(0, 10)), `<b>${fmt(u.balance)}</b>`, fmt(u.used),
     u.plan ? esc(u.plan) : '<span class="mono">free</span>', `<span class="mono">${esc(u.referral_code)}</span>${u.referred_by ? `<br><small style="color:#8a8a8f">by ${esc(u.referred_by)}</small>` : ''}`, date(u.created_at), ago(u.last_active), pill(u.status),
-    `<button class="btn s" data-credit="${esc(u.id)}">Credits</button> <button class="btn s" data-status="${esc(u.id)}" data-to="${u.status === 'active' ? 'suspended' : 'active'}">${u.status === 'active' ? 'Disable' : 'Enable'}</button>`]))}`;
+    `<button class="btn s" data-credit="${esc(u.id)}">Adjust credits</button> <button class="btn s" data-status="${esc(u.id)}" data-to="${u.status === 'active' ? 'suspended' : 'active'}">${u.status === 'active' ? 'Disable' : 'Enable'}</button>`]))}`;
 };
 P.purchases = async () => {
   const d = await api('/purchases'), t = d.totals; state.cur = d.purchases[0]?.currency || state.cur;
@@ -204,9 +204,22 @@ function bind() {
 }
 function creditModal(u) {
   const m = document.createElement('div'); m.className = 'modal';
-  m.innerHTML = `<div class="card"><h3>Adjust credits</h3>${who(u.email, `Balance ${fmt(u.balance)} credits`)}<label class="sub">Amount (negative to remove)<input class="f" id="cd" type="number" value="1000"></label><label class="sub">Reason<input class="f" id="cr" placeholder="Support top-up"></label><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="cx">Cancel</button><button class="btn p" id="cs">Apply</button></div></div>`;
+  m.innerHTML = `<div class="card"><h3>Add or correct credits</h3>${who(u.email, `Current balance ${fmt(u.balance)} credits`)}
+  <label class="sub">Amount<input class="f" id="cd" type="number" min="1" step="1" value="1000" inputmode="numeric" required></label>
+  <label class="sub">Reason<input class="f" id="cr" maxlength="200" placeholder="Support top-up, refund, or correction" required></label>
+  <div id="ce"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" id="cx" type="button">Cancel</button><button class="btn" id="csub" type="button">Remove credits</button><button class="btn p" id="cadd" type="button">Add credits</button></div></div>`;
   document.body.append(m); $('#cx', m).onclick = () => m.remove();
-  $('#cs', m).onclick = async () => {try {const r = await api('/users/credits', {method: 'POST', body: {uid: u.id, delta: Number($('#cd', m).value), reason: $('#cr', m).value, idempotencyKey: crypto.randomUUID()}}); toast(`New balance ${fmt(r.balance)}`); m.remove(); go('users');} catch (e) {toast(e.message);}};
+  const send = sign => async () => {
+    const amount = Number($('#cd', m).value), reason = $('#cr', m).value.trim();
+    if (!Number.isInteger(amount) || amount < 1 || amount > 10000000) {$('#ce', m).innerHTML = '<div class="err">Enter a whole number of credits from 1 to 10000000.</div>'; return;}
+    if (!reason) {$('#ce', m).innerHTML = '<div class="err">A reason is required.</div>'; return;}
+    try {
+      const r = await api('/users/credits', {method: 'POST', body: {uid: u.id, delta: sign * amount, reason, idempotencyKey: crypto.randomUUID()}});
+      toast(`Balance ${fmt(r.balance_before)} → ${fmt(r.balance)}`); m.remove(); go('users');
+    } catch (e) {$('#ce', m).innerHTML = `<div class="err">${esc(e.message)}</div>`;}
+  };
+  $('#cadd', m).onclick = send(1); $('#csub', m).onclick = send(-1);
 }
 function paint(html) {if (html != null) $('#content').innerHTML = html;}
 async function go(page) {
