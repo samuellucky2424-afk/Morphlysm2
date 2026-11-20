@@ -481,29 +481,7 @@ public class IPackageManagerProxy extends BinderInvocationStub {
     public static class SimpleAudioPermissionHook extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            String permission = (String) args[0];
-            String packageName = (String) args[1];
-            
-            
-            if (isAudioPermission(permission)) {
-                Slog.d(TAG, "SimpleAudioPermissionHook: Granting audio permission: " + permission + " to " + packageName);
-                return PackageManager.PERMISSION_GRANTED;
-            }
-
-            
-            if (isStorageOrMediaPermission(permission)) {
-                Slog.d(TAG, "SimpleAudioPermissionHook: Granting storage/media permission: " + permission + " to " + packageName);
-                return PackageManager.PERMISSION_GRANTED;
-            }
-            
-            
-            if (isNotificationOrXiaomiPermission(permission)) {
-                Slog.d(TAG, "SimpleAudioPermissionHook: Granting notification/Xiaomi permission: " + permission + " to " + packageName);
-                return PackageManager.PERMISSION_GRANTED;
-            }
-            
-            
-            return method.invoke(who, args);
+            return checkHostPermission(who, method, args);
         }
     }
 
@@ -511,29 +489,7 @@ public class IPackageManagerProxy extends BinderInvocationStub {
     public static class CheckSelfPermission extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            String permission = (String) args[0];
-            String packageName = (String) args[1];
-            
-            
-            if (isAudioPermission(permission)) {
-                Slog.d(TAG, "CheckSelfPermission: Granting audio permission: " + permission + " to " + packageName);
-                return PackageManager.PERMISSION_GRANTED;
-            }
-
-            
-            if (isStorageOrMediaPermission(permission)) {
-                Slog.d(TAG, "CheckSelfPermission: Granting storage/media permission: " + permission + " to " + packageName);
-                return PackageManager.PERMISSION_GRANTED;
-            }
-            
-            
-            if (isNotificationOrXiaomiPermission(permission)) {
-                Slog.d(TAG, "CheckSelfPermission: Granting notification/Xiaomi permission: " + permission + " to " + packageName);
-                return PackageManager.PERMISSION_GRANTED;
-            }
-            
-            
-            return method.invoke(who, args);
+            return checkHostPermission(who, method, args);
         }
     }
 
@@ -571,15 +527,30 @@ public class IPackageManagerProxy extends BinderInvocationStub {
     public static class RequestPermissions extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            String[] permissions = (String[]) args[0];
-            String packageName = (String) args[1];
-            
-            
-            
-            if (permissions != null) {
-                Slog.d(TAG, "RequestPermissions: Allowing permission request flow for: " + java.util.Arrays.toString(permissions));
+            if (!(args[0] instanceof String[])) {
+                normalizePermissionArgs(args);
+                return method.invoke(who, args);
             }
-            
+            String[] permissions = (String[]) args[0];
+            java.util.List<String> stillNeeded = new java.util.ArrayList<>();
+            if (permissions != null) {
+                for (String permission : permissions) {
+                    if (permission == null || !isRequestableRuntimePermission(permission)) {
+                        continue;
+                    }
+                    if (hostHasPermission(who, permission)) {
+                        continue;
+                    }
+                    stillNeeded.add(permission);
+                }
+            }
+            if (stillNeeded.isEmpty()) {
+                Slog.d(TAG, "RequestPermissions: nothing left to ask; host already granted " + java.util.Arrays.toString(permissions));
+                return method.getReturnType() == Void.TYPE ? null : 0;
+            }
+            args[0] = stillNeeded.toArray(new String[0]);
+            normalizePermissionArgs(args);
+            Slog.d(TAG, "RequestPermissions: asking only " + stillNeeded);
             return method.invoke(who, args);
         }
     }
@@ -595,6 +566,97 @@ public class IPackageManagerProxy extends BinderInvocationStub {
     }
 
     
+    private static Object checkHostPermission(Object packageManager, Method method, Object[] args) throws Throwable {
+        String permission = args.length > 0 && args[0] instanceof String ? (String) args[0] : null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && isLegacyStoragePermission(permission)) {
+            return PackageManager.PERMISSION_GRANTED;
+        }
+        Object[] asHost = args.clone();
+        normalizePermissionArgs(asHost);
+        try {
+            Object result = method.invoke(packageManager, asHost);
+            if (result instanceof Integer && (Integer) result == PackageManager.PERMISSION_GRANTED) {
+                return result;
+            }
+            if (isAudioPermission(permission) || isStorageOrMediaPermission(permission) || isNotificationOrXiaomiPermission(permission)) {
+                if (hostHasPermission(packageManager, permission)) {
+                    return PackageManager.PERMISSION_GRANTED;
+                }
+            }
+            return result;
+        } catch (Throwable error) {
+            if (hostHasPermission(packageManager, permission)) {
+                return PackageManager.PERMISSION_GRANTED;
+            }
+            throw error;
+        }
+    }
+
+    private static void normalizePermissionArgs(Object[] args) {
+        String hostPkg = BlackBoxCore.getHostPkg();
+        for (int i = 1; i < args.length; i++) {
+            if (args[i] instanceof String && ((String) args[i]).contains(".")) {
+                args[i] = hostPkg;
+                break;
+            }
+        }
+        for (int i = 0; i < args.length; i++) {
+            if (args[i] instanceof Integer && (Integer) args[i] < 0) {
+                args[i] = 0;
+            }
+        }
+    }
+
+    private static boolean hostHasPermission(Object packageManager, String permission) {
+        if (permission == null) {
+            return false;
+        }
+        String hostPkg = BlackBoxCore.getHostPkg();
+        for (Method method : packageManager.getClass().getMethods()) {
+            if (!"checkPermission".equals(method.getName())) {
+                continue;
+            }
+            Class<?>[] parameters = method.getParameterTypes();
+            if (parameters.length < 2 || parameters[0] != String.class || parameters[1] != String.class) {
+                continue;
+            }
+            Object[] call = new Object[parameters.length];
+            call[0] = permission;
+            call[1] = hostPkg;
+            for (int i = 2; i < parameters.length; i++) {
+                if (parameters[i] == int.class) {
+                    call[i] = 0;
+                } else if (parameters[i] == long.class) {
+                    call[i] = 0L;
+                }
+            }
+            try {
+                Object result = method.invoke(packageManager, call);
+                if (result instanceof Integer) {
+                    return (Integer) result == PackageManager.PERMISSION_GRANTED;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return false;
+    }
+
+    private static boolean isRequestableRuntimePermission(String permission) {
+        if (isLegacyStoragePermission(permission) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return false;
+        }
+        return !permission.equals(android.Manifest.permission.SYSTEM_ALERT_WINDOW)
+                && !permission.equals(android.Manifest.permission.MANAGE_EXTERNAL_STORAGE)
+                && !permission.equals(android.Manifest.permission.WRITE_SETTINGS)
+                && !permission.equals(android.Manifest.permission.REQUEST_INSTALL_PACKAGES)
+                && !permission.equals("android.permission.PACKAGE_USAGE_STATS");
+    }
+
+    private static boolean isLegacyStoragePermission(String permission) {
+        return android.Manifest.permission.READ_EXTERNAL_STORAGE.equals(permission)
+                || android.Manifest.permission.WRITE_EXTERNAL_STORAGE.equals(permission);
+    }
+
     private static boolean isStorageOrMediaPermission(String permission) {
         if (permission == null) return false;
         

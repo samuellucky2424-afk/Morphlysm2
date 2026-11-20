@@ -64,10 +64,8 @@ class MainActivity : LoadingActivity() {
             initToolbarSubTitle()
 
             
-            checkStoragePermission()
-
-            
-            checkVpnPermission()
+            // Runtime permissions are requested when a feature needs them.
+            // All-files access and the VPN consent screen are not launch requirements.
 
             try {
                 BlackBoxCore.get().onAfterMainActivityOnCreate(this)

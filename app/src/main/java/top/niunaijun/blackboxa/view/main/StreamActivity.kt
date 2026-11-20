@@ -47,6 +47,8 @@ class StreamActivity : BaseActivity() {
     private val BACKEND_BASE_URL = BuildConfig.BACKEND_BASE_URL.trimEnd('/')
     private val DECART_REALTIME_MODEL = "x2.1"
     private val REQUEST_DECART_PERMISSIONS = 2202
+    private val PERMISSION_PREFS = "morphly_permission_prompts"
+    private val OVERLAY_DISMISSED = "overlay_dismissed"
     private val networkExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private var selectedFaceImageUri: Uri? = null
     private var isFullscreenCamera = false
@@ -800,6 +802,12 @@ class StreamActivity : BaseActivity() {
         binding.textureViewUserCam.visibility = View.VISIBLE
 
         if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (!androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.CAMERA)
+                    && getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE).getBoolean("camera_asked", false)) {
+                showCameraFallback()
+                return
+            }
+            getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE).edit().putBoolean("camera_asked", true).apply()
             androidx.core.app.ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.CAMERA), 101)
             return
         }
@@ -1321,6 +1329,20 @@ class StreamActivity : BaseActivity() {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isNotEmpty()) {
+            val permanentlyDenied = missing.any {
+                !ActivityCompat.shouldShowRequestPermissionRationale(this, it)
+                        && getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE).getBoolean("live_$it", false)
+            }
+            if (permanentlyDenied) {
+                Toast.makeText(this, "Camera and microphone are turned off. Enable them in App settings.", Toast.LENGTH_LONG).show()
+                startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                })
+                return false
+            }
+            getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE).edit().apply {
+                missing.forEach { putBoolean("live_$it", true) }
+            }.apply()
             ActivityCompat.requestPermissions(this, missing.toTypedArray(), REQUEST_DECART_PERMISSIONS)
             return false
         }
@@ -1495,18 +1517,25 @@ class StreamActivity : BaseActivity() {
 
     private fun showMiniWindowPermissionNotice() {
         if (StreamSessionController.hasOverlayPermission(this)) {
+            getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE).edit().putBoolean(OVERLAY_DISMISSED, false).apply()
             StreamSessionController.showMiniWindow(this)
             binding.tvAiOutputStatus.text = "Live output is feeding the virtual camera. Open cloned WhatsApp to use it."
+            return
+        }
+        val prefs = getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE)
+        if (prefs.getBoolean(OVERLAY_DISMISSED, false)) {
             return
         }
 
         android.app.AlertDialog.Builder(this)
             .setTitle("Mini window permission")
-            .setMessage("Allow Display over other apps so live output can stay visible while cloned WhatsApp uses the virtual camera.")
+            .setMessage("Allow Display over other apps so live output can stay visible while cloned WhatsApp uses the virtual camera. This is separate from camera and microphone access.")
             .setPositiveButton("OPEN SETTINGS") { _, _ ->
                 startActivity(StreamSessionController.overlayPermissionIntent(this))
             }
-            .setNegativeButton("LATER", null)
+            .setNegativeButton("LATER") { _, _ ->
+                prefs.edit().putBoolean(OVERLAY_DISMISSED, true).apply()
+            }
             .show()
     }
 
