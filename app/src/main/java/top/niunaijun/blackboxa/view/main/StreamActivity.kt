@@ -23,6 +23,7 @@ import org.json.JSONObject
 import top.niunaijun.blackboxa.BuildConfig
 import top.niunaijun.blackboxa.R
 import top.niunaijun.blackboxa.databinding.ActivityStreamBinding
+import top.niunaijun.blackboxa.data.AppUpdater
 import top.niunaijun.blackboxa.data.XmaxRealtimeBridge
 import top.niunaijun.blackboxa.data.ViduRealtimeBridge
 import top.niunaijun.blackboxa.data.StreamAuthManager
@@ -371,15 +372,19 @@ class StreamActivity : BaseActivity() {
                 if (latestCode <= installed) return@execute
                 val mandatory = json.optInt("minVersionCode", 0) > installed
                 val latestName = json.optString("latestVersion", "")
-                val url = json.optString("downloadUrl", "https://luckyweb.cloud").ifBlank { "https://luckyweb.cloud" }
-                runOnUiThread { if (!isFinishing && !isDestroyed) showUpdateDialog(latestName, url, mandatory) }
+                val url = json.optString("apkUrl", json.optString("downloadUrl", ""))
+                val sha256 = json.optString("sha256", "")
+                val size = json.optLong("size", 0L)
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) showUpdateDialog(latestName, url, sha256, size, mandatory)
+                }
             } catch (e: Exception) {
                 Log.w(TAG_STREAM_LIFECYCLE, "app_version_check_failed", e)
             }
         }
     }
 
-    private fun showUpdateDialog(latestName: String, url: String, mandatory: Boolean) {
+    private fun showUpdateDialog(latestName: String, url: String, sha256: String, size: Long, mandatory: Boolean) {
         val dp = resources.displayMetrics.density
         val red = android.graphics.Color.parseColor("#E53935")
         val box = android.widget.LinearLayout(this).apply {
@@ -403,9 +408,34 @@ class StreamActivity : BaseActivity() {
             text = "UPDATE"; setTextColor(android.graphics.Color.WHITE)
             backgroundTintList = android.content.res.ColorStateList.valueOf(red); cornerRadius = (8 * dp).toInt()
             setOnClickListener {
-                try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                catch (e: Exception) { Toast.makeText(this@StreamActivity, "Open $url in your browser", Toast.LENGTH_LONG).show() }
-                if (!mandatory) dialog.dismiss()
+                isEnabled = false
+                text = "CHECKING…"
+                networkExecutor.execute {
+                    try {
+                        if (!url.endsWith(".apk", ignoreCase = true) && !url.contains("/releases/download/")) {
+                            throw IllegalStateException("No signed APK was published for this update")
+                        }
+                        val result = AppUpdater.downloadVerified(this@StreamActivity, url, sha256, size)
+                        runOnUiThread {
+                            if (isFinishing || isDestroyed) return@runOnUiThread
+                            if (result.sameSignature) {
+                                AppUpdater.openInstaller(this@StreamActivity, result.installerUri)
+                                if (!mandatory) dialog.dismiss()
+                            } else {
+                                dialog.dismiss()
+                                showSignatureMismatchDialog(result.installedCert, result.updateCert)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG_STREAM_LIFECYCLE, "app_update_rejected", e)
+                        runOnUiThread {
+                            if (isFinishing || isDestroyed) return@runOnUiThread
+                            isEnabled = true
+                            text = "UPDATE"
+                            Toast.makeText(this@StreamActivity, e.message ?: "Update file could not be verified", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
             }
         }
         box.addView(update, android.widget.LinearLayout.LayoutParams(-1, (52 * dp).toInt()))
@@ -420,6 +450,23 @@ class StreamActivity : BaseActivity() {
         dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
         dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.86).toInt(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
         dialog.show()
+    }
+
+    private fun showSignatureMismatchDialog(installedCert: String?, updateCert: String?) {
+        val installed = installedCert?.take(16) ?: "this install"
+        val update = updateCert?.take(16) ?: "the update"
+        android.app.AlertDialog.Builder(this)
+                .setTitle("Uninstall this build first")
+                .setMessage(
+                        "This copy of Morphly is signed with a different key ($installed…) than the release update ($update…). " +
+                                "Android will not replace one with the other. A checked copy was saved as Morphly-verified.apk in Downloads. " +
+                                "Uninstall this build, then open that file."
+                )
+                .setPositiveButton("Uninstall") { _, _ ->
+                    AppUpdater.requestUninstall(this)
+                }
+                .setNegativeButton("Later", null)
+                .show()
     }
 
     private fun showDashboardState() {

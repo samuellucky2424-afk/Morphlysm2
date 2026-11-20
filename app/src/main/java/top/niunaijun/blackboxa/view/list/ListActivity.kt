@@ -99,7 +99,6 @@ class ListActivity : BaseActivity() {
                 filterApp("")
                 if (it.isNotEmpty()) {
                     viewBinding.stateView.showContent()
-                    viewModel.previewInstalledList()
                 } else {
                     viewBinding.stateView.showEmpty()
                 }

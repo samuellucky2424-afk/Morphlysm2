@@ -281,6 +281,10 @@ class MainActivity : LoadingActivity() {
 
     private fun initViewPager() {
         try {
+            if (BlackBoxCore.get().users.isEmpty()) {
+                runCatching { BlackBoxCore.get().createUser(0) }
+                        .onFailure { Log.e(TAG, "Could not create clone slot 0: ${it.message}") }
+            }
             val userList = BlackBoxCore.get().users
             userList.forEach { fragmentList.add(AppsFragment.newInstance(it.id)) }
 

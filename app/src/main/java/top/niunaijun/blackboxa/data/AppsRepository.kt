@@ -1,7 +1,10 @@
 package top.niunaijun.blackboxa.data
 
+import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import android.webkit.URLUtil
 import androidx.lifecycle.MutableLiveData
@@ -80,54 +83,77 @@ class AppsRepository {
 
     fun previewInstallList() {
         try {
-            synchronized(mInstalledList) {
-                val installedApplications: List<ApplicationInfo> =
-                        BlackBoxCore.getPackageManager().getInstalledApplications(0)
-                val installedList = mutableListOf<AppInfo>()
-
-                for (installedApplication in installedApplications) {
-                    try {
-                        val file = File(installedApplication.sourceDir)
-
-                        if ((installedApplication.flags and ApplicationInfo.FLAG_SYSTEM) != 0)
-                                continue
-
-                        if (!AbiUtils.isSupport(file)) continue
-
-                        
-                        if (BlackBoxCore.get().isBlackBoxApp(installedApplication.packageName)) {
-                            Log.d(
-                                    TAG,
-                                    "Filtering out BlackBox app: ${installedApplication.packageName}"
-                            )
-                            continue
-                        }
-
-                        val isXpModule = false
-
-                        val info =
-                                AppInfo(
-                                        safeLoadAppLabel(installedApplication),
-                                        safeLoadAppIcon(
-                                                installedApplication
-                                        ), 
-                                        installedApplication.packageName,
-                                        installedApplication.sourceDir,
-                                        isXpModule
-                                )
-                        installedList.add(info)
-                    } catch (e: Exception) {
-                        Log.e(
-                                TAG,
-                                "Error processing app ${installedApplication.packageName}: ${e.message}"
-                        )
+            val packageManager = BlackBoxCore.getPackageManager()
+            val hostPackage = BlackBoxCore.getHostPkg()
+            val launchable = queryLaunchableApps(packageManager)
+            Log.d(TAG, "previewInstallList: launchable=${launchable.size} host=$hostPackage")
+            val installedList = mutableListOf<AppInfo>()
+            val seen = HashSet<String>()
+            for (installedApplication in launchable) {
+                try {
+                    val packageName = installedApplication.packageName ?: continue
+                    if (!seen.add(packageName)) continue
+                    if (packageName == hostPackage || BlackBoxCore.get().isBlackBoxApp(packageName)) {
+                        continue
                     }
+                    val sourceDir = installedApplication.sourceDir
+                    if (!sourceDir.isNullOrBlank() && !AbiUtils.isSupport(File(sourceDir))) {
+                        Log.d(TAG, "previewInstallList: skip unsupported abi $packageName")
+                        continue
+                    }
+                    installedList.add(
+                            AppInfo(
+                                    safeLoadAppLabel(installedApplication),
+                                    safeLoadAppIcon(installedApplication),
+                                    packageName,
+                                    sourceDir ?: "",
+                                    false
+                            )
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error processing app ${installedApplication.packageName}: ${e.message}")
                 }
-                this.mInstalledList.clear()
-                this.mInstalledList.addAll(installedList)
             }
+            synchronized(mInstalledList) {
+                mInstalledList.clear()
+                mInstalledList.addAll(installedList)
+            }
+            Log.d(TAG, "previewInstallList: showing ${installedList.size} host apps")
         } catch (e: Exception) {
             Log.e(TAG, "Error in previewInstallList: ${e.message}")
+        }
+    }
+
+    private fun queryLaunchableApps(packageManager: PackageManager): List<ApplicationInfo> {
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val resolved = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.queryIntentActivities(
+                        launcher,
+                        PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
+                )
+            } else {
+                packageManager.queryIntentActivities(launcher, PackageManager.MATCH_ALL)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "queryIntentActivities failed: ${e.message}")
+            emptyList()
+        }
+        val fromLauncher = resolved.mapNotNull { it.activityInfo?.applicationInfo }
+        if (fromLauncher.size > 1) return fromLauncher
+        Log.w(TAG, "launcher query returned ${fromLauncher.size}; falling back to installed applications")
+        return try {
+            val installed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.getInstalledApplications(
+                        PackageManager.ApplicationInfoFlags.of(PackageManager.MATCH_ALL.toLong())
+                )
+            } else {
+                packageManager.getInstalledApplications(PackageManager.MATCH_ALL)
+            }
+            installed.filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
+        } catch (e: Exception) {
+            Log.e(TAG, "getInstalledApplications failed: ${e.message}")
+            fromLauncher
         }
     }
 

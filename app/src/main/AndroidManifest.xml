@@ -26,6 +26,14 @@
         android:maxSdkVersion="29" />
 
 
+    <!-- Every launchable app stays visible on Android 11+ even if QUERY_ALL_PACKAGES is ignored. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".app.App"
         android:allowBackup="false"
