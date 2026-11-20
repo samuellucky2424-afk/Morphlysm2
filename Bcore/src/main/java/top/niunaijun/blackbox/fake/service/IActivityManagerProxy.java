@@ -818,26 +818,16 @@ public class IActivityManagerProxy extends ClassInvocationStub {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             MethodParameterUtils.replaceLastUid(args);
-            String permission = (String) args[0];
-            if (permission.equals(Manifest.permission.ACCOUNT_MANAGER)
-                    || permission.equals(Manifest.permission.SEND_SMS)) {
-                return PackageManager.PERMISSION_GRANTED;
-            }
-            
-            
-            if (isAudioPermission(permission)) {
-                Slog.d(TAG, "ActivityManager checkPermission: Granting audio permission: " + permission);
-                return PackageManager.PERMISSION_GRANTED;
-            }
-
-            
-            if (isStorageOrMediaPermission(permission)) {
-                Slog.d(TAG, "ActivityManager checkPermission: Granting storage/media permission: " + permission);
-                return PackageManager.PERMISSION_GRANTED;
-            }
-            
-            return method.invoke(who, args);
+            return GuestPermissionPolicy.onCheck("ActivityManager." + method.getName(), who, method, args);
         }
+    }
+
+    @ProxyMethod("checkPermissionForDevice")
+    public static class checkPermissionForDevice extends checkPermission {
+    }
+
+    @ProxyMethod("checkUidPermission")
+    public static class checkUidPermission extends checkPermission {
     }
 
     

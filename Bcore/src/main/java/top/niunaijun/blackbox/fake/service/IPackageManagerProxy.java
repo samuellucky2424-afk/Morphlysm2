@@ -46,9 +46,19 @@ public class IPackageManagerProxy extends BinderInvocationStub {
         super(BRActivityThread.get().sPackageManager().asBinder());
     }
 
+    private static volatile Object sRawPackageManager;
+
+    static Object rawPackageManager() {
+        return sRawPackageManager;
+    }
+
     @Override
     protected Object getWho() {
-        return BRActivityThread.get().sPackageManager();
+        Object packageManager = BRActivityThread.get().sPackageManager();
+        if (sRawPackageManager == null && packageManager != null) {
+            sRawPackageManager = packageManager;
+        }
+        return packageManager;
     }
 
     @Override
@@ -498,27 +508,11 @@ public class IPackageManagerProxy extends BinderInvocationStub {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             String permission = (String) args[0];
-            String packageName = (String) args[1];
-            
-            
-            if (isAudioPermission(permission)) {
-                Slog.d(TAG, "ShouldShowRequestPermissionRationale: Not showing rationale for audio permission: " + permission);
+            if (GuestPermissionPolicy.grantsToGuest(permission)) {
+                Slog.i(GuestPermissionPolicy.TAG, "PackageManager.shouldShowRequestPermissionRationale permission="
+                        + permission + " -> false");
                 return false;
             }
-
-            
-            if (isStorageOrMediaPermission(permission)) {
-                Slog.d(TAG, "ShouldShowRequestPermissionRationale: Not showing rationale for storage/media permission: " + permission);
-                return false;
-            }
-            
-            
-            if (isNotificationOrXiaomiPermission(permission)) {
-                Slog.d(TAG, "ShouldShowRequestPermissionRationale: Not showing rationale for notification/Xiaomi permission: " + permission);
-                return false;
-            }
-            
-            
             return method.invoke(who, args);
         }
     }
@@ -538,7 +532,7 @@ public class IPackageManagerProxy extends BinderInvocationStub {
                     if (permission == null || !isRequestableRuntimePermission(permission)) {
                         continue;
                     }
-                    if (hostHasPermission(who, permission)) {
+                    if (GuestPermissionPolicy.grantsToGuest(permission)) {
                         continue;
                     }
                     stillNeeded.add(permission);
@@ -567,29 +561,7 @@ public class IPackageManagerProxy extends BinderInvocationStub {
 
     
     private static Object checkHostPermission(Object packageManager, Method method, Object[] args) throws Throwable {
-        String permission = args.length > 0 && args[0] instanceof String ? (String) args[0] : null;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && isLegacyStoragePermission(permission)) {
-            return PackageManager.PERMISSION_GRANTED;
-        }
-        Object[] asHost = args.clone();
-        normalizePermissionArgs(asHost);
-        try {
-            Object result = method.invoke(packageManager, asHost);
-            if (result instanceof Integer && (Integer) result == PackageManager.PERMISSION_GRANTED) {
-                return result;
-            }
-            if (isAudioPermission(permission) || isStorageOrMediaPermission(permission) || isNotificationOrXiaomiPermission(permission)) {
-                if (hostHasPermission(packageManager, permission)) {
-                    return PackageManager.PERMISSION_GRANTED;
-                }
-            }
-            return result;
-        } catch (Throwable error) {
-            if (hostHasPermission(packageManager, permission)) {
-                return PackageManager.PERMISSION_GRANTED;
-            }
-            throw error;
-        }
+        return GuestPermissionPolicy.onCheck("PackageManager." + method.getName(), packageManager, method, args);
     }
 
     private static void normalizePermissionArgs(Object[] args) {

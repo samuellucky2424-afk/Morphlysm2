@@ -2,15 +2,17 @@ package top.niunaijun.blackbox.fake.service;
 
 import android.content.pm.PackageManager;
 
+import java.lang.reflect.Method;
+
 import black.android.app.BRActivityThread;
-import black.android.app.BRContextImpl;
 import black.android.os.BRServiceManager;
 import black.android.permission.BRIPermissionManagerStub;
-import top.niunaijun.blackbox.BlackBoxCore;
 import top.niunaijun.blackbox.fake.hook.BinderInvocationStub;
+import top.niunaijun.blackbox.fake.hook.MethodHook;
+import top.niunaijun.blackbox.fake.hook.ProxyMethod;
+import top.niunaijun.blackbox.fake.hook.ProxyMethods;
 import top.niunaijun.blackbox.fake.service.base.PkgMethodProxy;
 import top.niunaijun.blackbox.fake.service.base.ValueMethodProxy;
-import top.niunaijun.blackbox.utils.Reflector;
 import top.niunaijun.blackbox.utils.compat.BuildCompat;
 
 
@@ -60,4 +62,36 @@ public class IPermissionManagerProxy extends BinderInvocationStub {
         return false;
     }
 
+    @ProxyMethod("checkPermission")
+    @ProxyMethods({
+            "checkPermissionForDevice",
+            "checkPermissionForPreflight",
+            "checkPermissionForDataDelivery",
+            "checkPermissionForStartDataDelivery"
+    })
+    public static class CheckPermission extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            return GuestPermissionPolicy.onCheck("PermissionManager." + method.getName(), who, method, args);
+        }
+    }
+
+    @ProxyMethod("checkUidPermission")
+    public static class CheckUidPermission extends CheckPermission {
+    }
+
+    @ProxyMethod("shouldShowRequestPermissionRationale")
+    public static class ShouldShowRationale extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            String permission = GuestPermissionPolicy.findPermission(args);
+            if (GuestPermissionPolicy.grantsToGuest(permission)) {
+                android.util.Log.i(GuestPermissionPolicy.TAG,
+                        "PermissionManager.shouldShowRequestPermissionRationale permission="
+                                + permission + " -> false");
+                return false;
+            }
+            return method.invoke(who, args);
+        }
+    }
 }
