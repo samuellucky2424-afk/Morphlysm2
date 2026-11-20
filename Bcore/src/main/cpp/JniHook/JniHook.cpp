@@ -134,6 +134,35 @@ void JniHook::HookJniFun(JNIEnv *env, jobject java_method, void *new_fun,
     HookJniFun(env, class_name, method_name, sign, new_fun, orig_fun, is_static);
 }
 
+bool JniHook::HookReflected(JNIEnv *env, jclass clazz, jobject java_method, const char *method_name,
+                           const char *sign, void *new_fun, void **orig_fun) {
+    if (clazz == nullptr || java_method == nullptr || method_name == nullptr || sign == nullptr || orig_fun == nullptr) {
+        return false;
+    }
+    if (HookEnv.art_method_native_offset == 0) {
+        return false;
+    }
+    jmethodID method = env->FromReflectedMethod(java_method);
+    if (method == nullptr) {
+        env->ExceptionClear();
+        return false;
+    }
+    auto artMethod = reinterpret_cast<uintptr_t *>(GetArtMethod(env, clazz, method));
+    if (!CheckFlags(artMethod)) {
+        return false;
+    }
+    *orig_fun = reinterpret_cast<void *>(artMethod[HookEnv.art_method_native_offset]);
+    JNINativeMethod gMethods[] = {
+            {method_name, sign, new_fun},
+    };
+    if (env->RegisterNatives(clazz, gMethods, 1) < 0) {
+        env->ExceptionClear();
+        *orig_fun = nullptr;
+        return false;
+    }
+    return true;
+}
+
 void
 JniHook::HookJniFun(JNIEnv *env, const char *class_name, const char *method_name, const char *sign,
                     void *new_fun, void **orig_fun, bool is_static) {
@@ -190,6 +219,8 @@ __attribute__((section (".mytext")))  JNICALL void set_method_accessible
         (JNIEnv *env, jclass obj, jclass clazz, jobject method) {
     jmethodID methodId = env->FromReflectedMethod(method);
     char *art_method = static_cast<char *>(GetArtMethod(env, clazz, methodId));
+    ClearAccessFlag(art_method, kAccPrivate);
+    ClearAccessFlag(art_method, kAccProtected);
     AddAccessFlag(art_method, kAccPublic);
     if (HookEnv.api_level >= __ANDROID_API_Q__) {
         AddAccessFlag(art_method, kAccPublicApi);

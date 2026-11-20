@@ -41,6 +41,7 @@ Utils/AntiDetection.cpp \
 Hook/VMClassLoaderHook.cpp \
 Hook/UnixFileSystemHook.cpp \
 Hook/BinderHook.cpp \
+Hook/Camera1Hook.cpp \
 Hook/BaseHook.cpp \
 JniHook/JniHook.cpp
 
