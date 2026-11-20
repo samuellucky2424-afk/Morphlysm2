@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -20,6 +21,41 @@ import java.security.MessageDigest
  * being left to the system "package appears to be invalid" dialog.
  */
 object AppUpdater {
+    private const val RELEASES_LATEST =
+            "https://api.github.com/repos/samuellucky2424-afk/Morphlysm2/releases/latest"
+
+    data class ReleaseFile(val url: String, val sha256: String, val size: Long)
+
+    /** Prefer the backend payload, and read the public GitHub release when it still points at a website. */
+    fun resolveRelease(apkUrl: String, sha256: String, size: Long): ReleaseFile {
+        if (apkUrl.contains("/releases/download/") && sha256.isNotBlank()) {
+            return ReleaseFile(apkUrl, sha256.trim().lowercase(), size)
+        }
+        val connection = URL(RELEASES_LATEST).openConnection() as HttpURLConnection
+        connection.setRequestProperty("Accept", "application/vnd.github+json")
+        connection.setRequestProperty("User-Agent", "morphly-android")
+        connection.connectTimeout = 15_000
+        connection.readTimeout = 15_000
+        try {
+            if (connection.responseCode !in 200..299) {
+                throw IllegalStateException("Could not read the published release (${connection.responseCode})")
+            }
+            val json = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            val assets = json.optJSONArray("assets") ?: throw IllegalStateException("Published release has no files")
+            for (i in 0 until assets.length()) {
+                val asset = assets.optJSONObject(i) ?: continue
+                if (asset.optString("name") != "Morphly.apk") continue
+                val url = asset.optString("browser_download_url")
+                val digest = asset.optString("digest").removePrefix("sha256:").lowercase()
+                if (url.isBlank() || digest.isBlank()) break
+                return ReleaseFile(url, digest, asset.optLong("size", 0L))
+            }
+            throw IllegalStateException("Published release has no Morphly.apk")
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     data class Result(
             val file: File,
             val installerUri: Uri,

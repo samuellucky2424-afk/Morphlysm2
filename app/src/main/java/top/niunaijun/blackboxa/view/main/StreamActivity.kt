@@ -412,10 +412,13 @@ class StreamActivity : BaseActivity() {
                 text = "CHECKING…"
                 networkExecutor.execute {
                     try {
-                        if (!url.endsWith(".apk", ignoreCase = true) && !url.contains("/releases/download/")) {
-                            throw IllegalStateException("No signed APK was published for this update")
-                        }
-                        val result = AppUpdater.downloadVerified(this@StreamActivity, url, sha256, size)
+                        val release = AppUpdater.resolveRelease(url, sha256, size)
+                        val result = AppUpdater.downloadVerified(
+                                this@StreamActivity,
+                                release.url,
+                                release.sha256,
+                                release.size
+                        )
                         runOnUiThread {
                             if (isFinishing || isDestroyed) return@runOnUiThread
                             if (result.sameSignature) {
