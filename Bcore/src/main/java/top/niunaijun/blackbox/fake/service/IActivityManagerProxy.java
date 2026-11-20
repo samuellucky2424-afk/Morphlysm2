@@ -30,6 +30,7 @@ import black.android.content.pm.BRUserInfo;
 import black.android.util.BRSingleton;
 import top.niunaijun.blackbox.BlackBoxCore;
 import top.niunaijun.blackbox.app.BActivityThread;
+import top.niunaijun.blackbox.core.GmsCore;
 import top.niunaijun.blackbox.core.env.AppSystemEnv;
 import top.niunaijun.blackbox.entity.AppConfig;
 import top.niunaijun.blackbox.entity.am.RunningAppProcessInfo;
@@ -240,6 +241,9 @@ public class IActivityManagerProxy extends ClassInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             Intent intent = (Intent) args[1];
             String resolvedType = (String) args[2];
+            if (isHostGoogleIntent(intent)) {
+                return method.invoke(who, args);
+            }
             ResolveInfo resolveInfo = BlackBoxCore.getBPackageManager().resolveService(intent, 0, resolvedType, BActivityThread.getUserId());
             if (resolveInfo == null) {
                 return method.invoke(who, args);
@@ -367,6 +371,9 @@ public class IActivityManagerProxy extends ClassInvocationStub {
                 Slog.w(TAG, "BindServiceCommon: Intent is null, proceeding with original call");
                 return method.invoke(who, args);
             }
+            if (isHostGoogleIntent(intent)) {
+                return method.invoke(who, args);
+            }
 
             
 
@@ -413,6 +420,21 @@ public class IActivityManagerProxy extends ClassInvocationStub {
             Slog.e(TAG, "BindServiceCommon: Unexpected error", e);
             return method.invoke(who, args);
         }
+    }
+
+    private static boolean isHostGoogleIntent(Intent intent) {
+        if (intent == null) {
+            return false;
+        }
+        String packageName = intent.getPackage();
+        if (packageName == null && intent.getComponent() != null) {
+            packageName = intent.getComponent().getPackageName();
+        }
+        if (GmsCore.isGoogleAppOrService(packageName)) {
+            return true;
+        }
+        String action = intent.getAction();
+        return action != null && action.contains("com.google.android.gms");
     }
 
     private static int getFlagsIndex(Object[] args) {
