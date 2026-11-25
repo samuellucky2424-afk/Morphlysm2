@@ -100,11 +100,11 @@ jobs:
           VNAME: ${{ steps.ver.outputs.name }}
           VCODE: ${{ steps.ver.outputs.code }}
         run: |
-          cat > notes.md << EOF
-Android 16 support for Samsung phones, fixes for cloning apps and Google Play services, permission prompts that stay granted, and the virtual camera working in WhatsApp video calls.
-
-versionCode: $VCODE
-sha256: $(sha256sum Morphly.apk | awk '{print $1}')
-EOF
+          {
+            echo "Android 16 support for Samsung phones, fixes for cloning apps and Google Play services, permission prompts that stay granted, and the virtual camera working in WhatsApp video calls."
+            echo
+            echo "versionCode: $VCODE"
+            echo "sha256: $(sha256sum Morphly.apk | awk '{print $1}')"
+          } > notes.md
           gh release create "v$VNAME" "Morphly-v$VNAME.apk" Morphly.apk \
             --title "Morphly v$VNAME" --notes-file notes.md --target "$GITHUB_SHA" --latest --draft=false --prerelease=false
