@@ -46,14 +46,19 @@ async function fromFirestore() {
     ...(v.size ? {size: Number(v.size)} : {})};
 }
 
-export async function appVersionRoute(req, res) {
-  res.setHeader('Cache-Control', 'public, max-age=60');
+export async function getAppVersion() {
   if (!cache.value || Date.now() - cache.at > TTL_MS) {
     let value = null;
     try { value = await fromGithub(); } catch (e) { console.warn('app-version github failed:', e.message); }
     if (!value) { try { value = await fromFirestore(); } catch (e) { console.warn('app-version firestore failed:', e.message); } }
     if (value) cache = {at: Date.now(), value};
   }
-  if (!cache.value) return res.status(503).json({error: 'Version info unavailable'});
-  return res.status(200).json(cache.value);
+  return cache.value || null;
+}
+
+export async function appVersionRoute(req, res) {
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  const value = await getAppVersion();
+  if (!value) return res.status(503).json({error: 'Version info unavailable'});
+  return res.status(200).json(value);
 }

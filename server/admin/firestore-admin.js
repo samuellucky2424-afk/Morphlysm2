@@ -6,6 +6,7 @@
 // State-changing calls also need the X-Morphly-Admin header and a same-origin Origin (CSRF).
 import {createHash} from 'node:crypto';
 import {firebaseRuntime, firebaseAuthRequest} from '../shared/firebase-runtime.js';
+import {getAppVersion} from '../shared/app-version.js';
 import {ensureFirebaseDefaults} from '../shared/firebase.js';
 import {cleanString, clientIp} from '../shared/http.js';
 import {recordError} from '../shared/error-log.js';
@@ -21,6 +22,7 @@ export const COOKIE = '__Host-morphly_admin';
 const SESSION_MS = 8 * 3600 * 1000;
 const MIN_PACKAGE_PRICE = () => Math.max(1, Number(process.env.MIN_PACKAGE_PRICE || 100));
 const GENERIC_LOGIN = 'Invalid email or password';
+export const MAX_CREDIT_ADJUSTMENT = 10000000;
 
 export function isAdminClaims(claims) {
   const email = String(claims?.email || '').toLowerCase();
@@ -139,6 +141,8 @@ async function overview(req) {
   const now = Date.now(), today = dayKey(now), paid = payments.filter(verified);
   const usage = ledger.filter(l => l.entry_type === 'usage');
   const {first, repeat} = buyerStats(payments);
+  let release = null;
+  try { release = await getAppVersion(); } catch { release = null; }
   const activeIds = new Set(sessions.filter(s => now - ms(s.createdAt || s.created_at) < 7 * DAY).map(s => s.user_id));
   const prevWindow = r => {const t = ms(r); return t > now - 2 * days * DAY && t <= now - days * DAY;};
   const inWindow = r => ms(r) > now - days * DAY;
@@ -169,7 +173,18 @@ async function overview(req) {
     recent_signups: users.sort((a, b) => ms(b.created_at) - ms(a.created_at)).slice(0, 6)
       .map(u => ({id: u.id, email: u.email, name: u.name, created_at: u.created_at})),
     recent_purchases: paid.sort((a, b) => ms(b.verified_at) - ms(a.verified_at)).slice(0, 6),
+    release,
   };
+}
+
+async function releases() {
+  const current = await getAppVersion();
+  let firestore = null;
+  try {
+    const doc = await firebaseRuntime().db.collection('app_setting_sm').doc('app_version').get();
+    firestore = doc.exists ? (doc.data()?.value || null) : null;
+  } catch { firestore = null; }
+  return {current: current || null, firestore, downloadUrl: current?.downloadUrl || process.env.APP_DOWNLOAD_URL || 'https://luckyweb.cloud'};
 }
 
 async function users(req) {
@@ -187,24 +202,52 @@ async function users(req) {
       created_at: u.created_at, last_active: last.get(u.id) ? new Date(last.get(u.id)).toISOString() : (u.updated_at || null)}))};
 }
 
-async function adjustCredits(req, admin) {
-  const uid = cleanString(req.body?.uid, 128), delta = Number(req.body?.delta), reason = cleanString(req.body?.reason, 200);
-  if (!uid || !Number.isSafeInteger(delta) || delta === 0 || Math.abs(delta) > 10000000) fail('A user and a non-zero whole credit amount are required');
-  const {db} = firebaseRuntime();
-  const key = cleanString(req.body?.idempotencyKey, 80) || `${Date.now()}`;
+export function parseCreditAdjustment(body) {
+  const uid = cleanString(body?.uid, 128);
+  const delta = Number(body?.delta);
+  const reason = cleanString(body?.reason, 200);
+  if (!uid) fail('A user is required');
+  if (!Number.isSafeInteger(delta) || delta === 0 || Math.abs(delta) > MAX_CREDIT_ADJUSTMENT) {
+    fail(`Amount must be a non-zero whole number of credits, at most ${MAX_CREDIT_ADJUSTMENT}`);
+  }
+  if (!reason) fail('A reason is required');
+  return {uid, delta, reason, key: cleanString(body?.idempotencyKey, 80) || `${Date.now()}`};
+}
+
+// Adds or removes credits on wallet_sm, which is the balance the Android app reads.
+// The wallet write, ledger receipt, and admin_audit_sm entry commit in one transaction.
+export async function applyCreditAdjustment(db, admin, body, req = {headers: {}}) {
+  const {uid, delta, reason, key} = parseCreditAdjustment(body);
   const receipt = db.collection('wallet_ledger_sm').doc(createHash('sha256').update(`admin:${uid}:${key}`).digest('hex'));
-  const balance = await db.runTransaction(async tx => {
-    const ref = db.collection('wallet_sm').doc(uid), [wallet, existing] = await Promise.all([tx.get(ref), tx.get(receipt)]);
-    if (existing.exists) return wallet.data()?.balance;
-    const next = Number(wallet.data()?.balance || 0) + delta;
+  const auditRef = db.collection('admin_audit_sm').doc();
+  const result = await db.runTransaction(async tx => {
+    const userRef = db.collection('user_sm').doc(uid);
+    const walletRef = db.collection('wallet_sm').doc(uid);
+    const [user, wallet, existing] = await Promise.all([tx.get(userRef), tx.get(walletRef), tx.get(receipt)]);
+    if (!user.exists) fail('User not found', 404);
+    if (existing.exists) {
+      const prior = existing.data() || {};
+      const after = Number(prior.balance_after ?? wallet.data()?.balance ?? 0);
+      const before = prior.balance_before == null ? after - Number(prior.delta || 0) : Number(prior.balance_before);
+      return {balance: after, balance_before: before, balance_after: after, idempotent: true};
+    }
+    const before = Number(wallet.data()?.balance || 0);
+    const next = before + delta;
     if (next < 0) fail('Balance cannot go below zero');
-    if (wallet.exists) tx.update(ref, {balance: next, updated_at: iso()});
-    else tx.set(ref, {id: uid, user_id: uid, balance: next, used: 0, created_at: iso(), updated_at: iso()});
-    tx.create(receipt, {user_id: uid, delta, balance_after: next, entry_type: 'admin_adjustment', reason, actor_email: admin.email, created_at: iso()});
-    return next;
+    if (wallet.exists) tx.update(walletRef, {balance: next, updated_at: iso()});
+    else tx.set(walletRef, {id: uid, user_id: uid, balance: next, used: 0, created_at: iso(), updated_at: iso()});
+    const when = iso();
+    tx.create(receipt, {user_id: uid, delta, balance_before: before, balance_after: next, entry_type: 'admin_adjustment', reason, actor_email: admin.email, created_at: when});
+    tx.create(auditRef, {actor_email: admin?.email || null, actor_uid: admin?.uid || null, action: 'credits.adjust', entity: uid,
+      data: {delta, reason, balance_before: before, balance_after: next, user_email: user.data()?.email || null},
+      ip: clientIp(req), user_agent: cleanString(req.headers?.['user-agent'], 200) || null, created_at: when, createdAt: Date.now()});
+    return {balance: next, balance_before: before, balance_after: next, idempotent: false};
   });
-  const logged = await audit(admin, 'credits.adjust', uid, {delta, reason}, req);
-  return {success: true, balance, audit_logged: logged};
+  return {success: true, audit_logged: true, ...result};
+}
+
+async function adjustCredits(req, admin) {
+  return applyCreditAdjustment(firebaseRuntime().db, admin, req.body, req);
 }
 
 async function setStatus(req, admin) {
@@ -337,7 +380,7 @@ async function auditLog(req) {
 }
 
 const ROUTES = {
-  'GET /overview': overview, 'GET /users': users, 'POST /users/credits': adjustCredits, 'POST /users/status': setStatus,
+  'GET /overview': overview, 'GET /releases': releases, 'GET /users': users, 'POST /users/credits': adjustCredits, 'POST /users/status': setStatus,
   'GET /purchases': purchases, 'GET /performance': performance, 'GET /errors': errors, 'DELETE /errors': errors,
   'GET /referrals': referrals, 'GET /packages': packages, 'POST /packages': packages, 'GET /settings': settings, 'POST /settings': settings,
   'GET /audit': auditLog,
