@@ -61,7 +61,10 @@ public class GmsCore {
             }
             InstallResult installResult = blackBoxCore.installPackageAsUser(packageName, userId);
             if (!installResult.success) {
-                return installResult;
+                boolean required = GMS_PKG.equals(packageName) || GSF_PKG.equals(packageName) || VENDING_PKG.equals(packageName);
+                if (required) {
+                    return installResult;
+                }
             }
         }
         return new InstallResult();
@@ -81,11 +84,10 @@ public class GmsCore {
         googleApps.addAll(GOOGLE_APP);
 
         InstallResult installResult = installPackages(googleApps, userId);
-        if (!installResult.success) {
-            uninstallGApps(userId);
+        if (!installResult.success && !isInstalledGoogleService(userId)) {
             return installResult;
         }
-        return installResult;
+        return installResult.success ? installResult : new InstallResult();
     }
 
     public static void uninstallGApps(int userId) {

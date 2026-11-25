@@ -36,7 +36,32 @@ public final class SharedFramePathResolver {
 
     public static File getFrameDirectory(Context context) {
         File filesDir = resolveFilesDir(context);
-        return new File(filesDir, FRAME_DIR_NAME);
+        File directory = new File(filesDir, FRAME_DIR_NAME);
+        shareWithClone(directory);
+        return directory;
+    }
+
+    public static void shareWithClone(File file) {
+        if (file == null) {
+            return;
+        }
+        try {
+            if (file.isDirectory() || file.getParentFile() != null) {
+                File directory = file.isDirectory() ? file : file.getParentFile();
+                if (directory != null) {
+                    // The clone process is not the host uid. The frame slot has to be readable there.
+                    directory.mkdirs();
+                    directory.setReadable(true, false);
+                    directory.setWritable(true, false);
+                    directory.setExecutable(true, false);
+                }
+            }
+            if (file.isFile() || file.exists()) {
+                file.setReadable(true, false);
+                file.setWritable(true, false);
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     public static Context resolveHostContext(Context fallback) {

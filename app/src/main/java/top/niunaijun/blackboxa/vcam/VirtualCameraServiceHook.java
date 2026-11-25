@@ -48,6 +48,7 @@ public final class VirtualCameraServiceHook {
     private static volatile boolean rehookLoopStarted;
     private static int nextCameraSessionId;
     private static final Map<String, Long> cameraKeepAliveUntil = new HashMap<>();
+    private static volatile boolean cameraIdsSeeded;
 
     private VirtualCameraServiceHook() {
     }
@@ -80,7 +81,6 @@ public final class VirtualCameraServiceHook {
                 Log.w(TAG, "CameraManagerGlobal.get returned null for " + packageName);
                 return;
             }
-            seedCameraIds(global, packageName);
 
             Field serviceField = findField(global.getClass(), "mCameraService");
             IBinder serviceBinder = loadCameraServiceBinder();
@@ -88,6 +88,7 @@ public final class VirtualCameraServiceHook {
             if (isVirtualCameraProxy(currentService)) {
                 return;
             }
+            seedCameraIds(global, packageName);
             Object baseService = unwrapBaseService(currentService);
             if (baseService == null) {
                 baseService = loadCameraServiceFromServiceManager(serviceBinder);
@@ -105,7 +106,8 @@ public final class VirtualCameraServiceHook {
             );
             serviceField.set(global, proxy);
             replaceServiceManagerCache(serviceBinder, (IInterface) proxy);
-            Log.i(TAG, "Installed Camera2 virtual service hook for " + packageName + "/" + processName);
+            Log.i(TAG, "path=Camera2.service_hook_installed package=" + packageName
+                    + " process=" + processName);
             logCallProbe(packageName, processName, 0, "service_hook_installed", "context=" + safeContextPackage(context));
             startRehookLoop(context, packageName, processName);
         } catch (Throwable throwable) {
@@ -119,10 +121,14 @@ public final class VirtualCameraServiceHook {
             Field deviceStatusField = findField(global.getClass(), "mDeviceStatus");
             Object deviceStatus = deviceStatusField.get(global);
             if (deviceStatus instanceof Map) {
+                if (cameraIdsSeeded) {
+                    return;
+                }
                 Map<Object, Object> map = (Map<Object, Object>) deviceStatus;
                 Object previousBack = map.put("0", 1);
                 Object previousFront = map.put("1", 1);
-                Log.i(TAG, "Seeded CameraManager device status for " + packageName
+                cameraIdsSeeded = true;
+                Log.i(TAG, "Seeded CameraManager device status for package=" + packageName
                         + " size=" + map.size()
                         + " previous0=" + previousBack
                         + " previous1=" + previousFront);
@@ -139,7 +145,7 @@ public final class VirtualCameraServiceHook {
         rehookLoopStarted = true;
         Context appContext = context == null ? null : context.getApplicationContext();
         Thread thread = new Thread(() -> {
-            for (int i = 0; i < 12; i++) {
+            for (int i = 0; i < 4; i++) {
                 try {
                     Thread.sleep(500L);
                     install(appContext, packageName, processName);
@@ -212,6 +218,25 @@ public final class VirtualCameraServiceHook {
             }
         }
         return service;
+    }
+
+    private static Object emptyInterface(Class<?> returnType) {
+        if (returnType == null || !returnType.isInterface()) {
+            return null;
+        }
+        return Proxy.newProxyInstance(
+                returnType.getClassLoader(),
+                new Class[]{returnType},
+                (proxy, method, args) -> {
+                    if (isObjectMethod(method.getName(), args)) {
+                        return handleObjectMethod(proxy, method.getName(), args);
+                    }
+                    if ("asBinder".equals(method.getName())) {
+                        return new Binder();
+                    }
+                    return defaultValue(method.getReturnType());
+                }
+        );
     }
 
     private static boolean isVirtualCameraProxy(Object service) {
@@ -397,26 +422,45 @@ public final class VirtualCameraServiceHook {
             if ("connectDevice".equals(methodName)) {
                 String cameraId = findCameraId(args);
                 boolean live = VirtualCameraBridge.hasLiveSource(VirtualCameraBridge.DEFAULT_SLOT);
-                int sessionId = nextCameraSessionId();
-                Log.i(TAG, "connectDevice package=" + packageName
+                Log.i("VCAM_OPEN", "path=Camera2.connectDevice package=" + packageName
                         + " process=" + processName
                         + " cameraId=" + cameraId
-                        + " live=" + live
-                        + " return=" + method.getReturnType().getName());
+                        + " live=" + live);
+                if (!live) {
+                    Log.i("VCAM_OPEN", "path=Camera2.connectDevice real_fallback package=" + packageName
+                            + " cameraId=" + cameraId);
+                    return method.invoke(baseService, args);
+                }
+                int sessionId = nextCameraSessionId();
                 logCallProbe(packageName, processName, sessionId, "connectDevice",
                         "cameraId=" + cameraId
-                                + " live=" + live
+                                + " live=true"
                                 + " return=" + method.getReturnType().getName()
                                 + " args=" + argsSummary(args));
                 markCameraActive(packageName, processName, "connectDevice");
-                Log.i(TAG, "Serving virtual Camera2 device to " + packageName + " cameraId=" + cameraId);
+                Log.i("VCAM_OPEN", "path=Camera2.connectDevice intercepted package=" + packageName
+                        + " cameraId=" + cameraId
+                        + " session=" + sessionId);
                 return VirtualCameraDeviceUser.create(method.getReturnType(), context, packageName, processName, cameraId, sessionId);
             }
             if ("connect".equals(methodName) || "connectLegacy".equals(methodName)) {
-                Log.w(TAG, "Camera service used legacy path " + methodName
-                        + " for " + packageName
-                        + "; delegating until Camera1 virtual proxy is available");
-                logCallProbe(packageName, processName, 0, methodName, "legacyPath=true args=" + argsSummary(args));
+                boolean live = VirtualCameraBridge.hasLiveSource(VirtualCameraBridge.DEFAULT_SLOT);
+                String cameraId = findCameraId(args);
+                Log.i("VCAM_OPEN", "path=Camera1." + methodName + " package=" + packageName
+                        + " process=" + processName
+                        + " cameraId=" + cameraId
+                        + " live=" + live
+                        + " args=" + argsSummary(args));
+                if (!live) {
+                    Log.i("VCAM_OPEN", "path=Camera1." + methodName + " real_fallback package=" + packageName
+                            + " cameraId=" + cameraId);
+                } else {
+                    markCameraActive(packageName, processName, methodName);
+                    Log.i("VCAM_OPEN", "path=Camera1." + methodName + " intercepted package=" + packageName
+                            + " cameraId=" + cameraId);
+                    Object blocked = emptyInterface(method.getReturnType());
+                    return blocked != null ? blocked : defaultValue(method.getReturnType());
+                }
             }
             try {
                 return method.invoke(baseService, args);
@@ -797,6 +841,14 @@ public final class VirtualCameraServiceHook {
                     if (renderer != null) {
                         streamRenderers.add(renderer);
                     }
+                    Log.i("VCAM_OPEN", "path=Camera2.stream surface cameraId=" + cameraId
+                            + " streamId=" + streamId
+                            + " size=" + size[0] + "x" + size[1]
+                            + " format=" + surfaceFormat
+                            + " imageReader=" + (surfaceFormat == android.graphics.ImageFormat.YUV_420_888
+                            || surfaceFormat == android.graphics.ImageFormat.NV21
+                            || surfaceFormat == android.graphics.ImageFormat.YV12)
+                            + " directSurface=" + directSurfaceRegistered);
                     Log.i(TAG, "Virtual camera surface format=" + surfaceFormat
                         + " size=" + size[0] + "x" + size[1]
                         + " package=" + packageName

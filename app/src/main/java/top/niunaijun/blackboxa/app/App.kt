@@ -6,6 +6,7 @@ import android.content.Context
 import android.util.Log
 import top.niunaijun.blackbox.BlackBoxCore
 import top.niunaijun.blackbox.utils.HostCompat
+import top.niunaijun.blackboxa.util.Android16Compat
 
 
 class App : Application() {
@@ -73,6 +74,7 @@ class App : Application() {
     override fun onCreate() {
         try {
             super.onCreate()
+            Android16Compat.install(this)
             if (HostCompat.isNativeEngineUnsupported()) return
             AppManager.doOnCreate(mContext)
         } catch (e: Exception) {

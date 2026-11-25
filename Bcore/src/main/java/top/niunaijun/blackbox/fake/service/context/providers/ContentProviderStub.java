@@ -63,9 +63,10 @@ public class ContentProviderStub extends ClassInvocationStub implements BContent
                     if (arg instanceof String) {
                         String strArg = (String) arg;
                         
-                        if (!isSystemProviderAuthority(strArg)) {
-                            
-                            args[i] = mAppPkg;
+                        if (isCallingPackage(strArg)) {
+                            // MediaStore checks the calling package against the process uid.
+                            // The uid belongs to Morphly, which holds the photo and audio grants.
+                            args[i] = BlackBoxCore.getHostPkg();
                         }
                     }
                 }
@@ -143,6 +144,20 @@ public class ContentProviderStub extends ClassInvocationStub implements BContent
             default:
                 return null; 
         }
+    }
+
+    private boolean isCallingPackage(String value) {
+        if (value == null || isSystemProviderAuthority(value)) {
+            return false;
+        }
+        if (value.equals(mAppPkg)) {
+            return true;
+        }
+        if (value.indexOf(' ') >= 0 || value.indexOf('/') >= 0 || value.indexOf('=') >= 0
+                || value.indexOf('?') >= 0 || value.indexOf(',') >= 0) {
+            return false;
+        }
+        return value.indexOf('.') > 0;
     }
 
     private boolean isSystemProviderAuthority(String authority) {

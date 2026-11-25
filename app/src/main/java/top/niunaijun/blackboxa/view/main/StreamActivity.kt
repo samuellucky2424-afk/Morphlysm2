@@ -23,6 +23,7 @@ import org.json.JSONObject
 import top.niunaijun.blackboxa.BuildConfig
 import top.niunaijun.blackboxa.R
 import top.niunaijun.blackboxa.databinding.ActivityStreamBinding
+import top.niunaijun.blackboxa.data.AppUpdater
 import top.niunaijun.blackboxa.data.XmaxRealtimeBridge
 import top.niunaijun.blackboxa.data.ViduRealtimeBridge
 import top.niunaijun.blackboxa.data.StreamAuthManager
@@ -46,6 +47,8 @@ class StreamActivity : BaseActivity() {
     private val BACKEND_BASE_URL = BuildConfig.BACKEND_BASE_URL.trimEnd('/')
     private val DECART_REALTIME_MODEL = "x2.1"
     private val REQUEST_DECART_PERMISSIONS = 2202
+    private val PERMISSION_PREFS = "morphly_permission_prompts"
+    private val OVERLAY_DISMISSED = "overlay_dismissed"
     private val networkExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private var selectedFaceImageUri: Uri? = null
     private var isFullscreenCamera = false
@@ -371,15 +374,19 @@ class StreamActivity : BaseActivity() {
                 if (latestCode <= installed) return@execute
                 val mandatory = json.optInt("minVersionCode", 0) > installed
                 val latestName = json.optString("latestVersion", "")
-                val url = json.optString("downloadUrl", "https://luckyweb.cloud").ifBlank { "https://luckyweb.cloud" }
-                runOnUiThread { if (!isFinishing && !isDestroyed) showUpdateDialog(latestName, url, mandatory) }
+                val url = json.optString("apkUrl", json.optString("downloadUrl", ""))
+                val sha256 = json.optString("sha256", "")
+                val size = json.optLong("size", 0L)
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) showUpdateDialog(latestName, url, sha256, size, mandatory)
+                }
             } catch (e: Exception) {
                 Log.w(TAG_STREAM_LIFECYCLE, "app_version_check_failed", e)
             }
         }
     }
 
-    private fun showUpdateDialog(latestName: String, url: String, mandatory: Boolean) {
+    private fun showUpdateDialog(latestName: String, url: String, sha256: String, size: Long, mandatory: Boolean) {
         val dp = resources.displayMetrics.density
         val red = android.graphics.Color.parseColor("#E53935")
         val box = android.widget.LinearLayout(this).apply {
@@ -403,9 +410,37 @@ class StreamActivity : BaseActivity() {
             text = "UPDATE"; setTextColor(android.graphics.Color.WHITE)
             backgroundTintList = android.content.res.ColorStateList.valueOf(red); cornerRadius = (8 * dp).toInt()
             setOnClickListener {
-                try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                catch (e: Exception) { Toast.makeText(this@StreamActivity, "Open $url in your browser", Toast.LENGTH_LONG).show() }
-                if (!mandatory) dialog.dismiss()
+                isEnabled = false
+                text = "CHECKING…"
+                networkExecutor.execute {
+                    try {
+                        val release = AppUpdater.resolveRelease(url, sha256, size)
+                        val result = AppUpdater.downloadVerified(
+                                this@StreamActivity,
+                                release.url,
+                                release.sha256,
+                                release.size
+                        )
+                        runOnUiThread {
+                            if (isFinishing || isDestroyed) return@runOnUiThread
+                            if (result.sameSignature) {
+                                AppUpdater.openInstaller(this@StreamActivity, result.installerUri)
+                                if (!mandatory) dialog.dismiss()
+                            } else {
+                                dialog.dismiss()
+                                showSignatureMismatchDialog(result.installedCert, result.updateCert)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG_STREAM_LIFECYCLE, "app_update_rejected", e)
+                        runOnUiThread {
+                            if (isFinishing || isDestroyed) return@runOnUiThread
+                            isEnabled = true
+                            text = "UPDATE"
+                            Toast.makeText(this@StreamActivity, e.message ?: "Update file could not be verified", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
             }
         }
         box.addView(update, android.widget.LinearLayout.LayoutParams(-1, (52 * dp).toInt()))
@@ -420,6 +455,23 @@ class StreamActivity : BaseActivity() {
         dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
         dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.86).toInt(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
         dialog.show()
+    }
+
+    private fun showSignatureMismatchDialog(installedCert: String?, updateCert: String?) {
+        val installed = installedCert?.take(16) ?: "this install"
+        val update = updateCert?.take(16) ?: "the update"
+        android.app.AlertDialog.Builder(this)
+                .setTitle("Uninstall this build first")
+                .setMessage(
+                        "This copy of Morphly is signed with a different key ($installed…) than the release update ($update…). " +
+                                "Android will not replace one with the other. A checked copy was saved as Morphly-verified.apk in Downloads. " +
+                                "Uninstall this build, then open that file."
+                )
+                .setPositiveButton("Uninstall") { _, _ ->
+                    AppUpdater.requestUninstall(this)
+                }
+                .setNegativeButton("Later", null)
+                .show()
     }
 
     private fun showDashboardState() {
@@ -750,6 +802,12 @@ class StreamActivity : BaseActivity() {
         binding.textureViewUserCam.visibility = View.VISIBLE
 
         if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (!androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.CAMERA)
+                    && getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE).getBoolean("camera_asked", false)) {
+                showCameraFallback()
+                return
+            }
+            getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE).edit().putBoolean("camera_asked", true).apply()
             androidx.core.app.ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.CAMERA), 101)
             return
         }
@@ -1271,6 +1329,20 @@ class StreamActivity : BaseActivity() {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isNotEmpty()) {
+            val permanentlyDenied = missing.any {
+                !ActivityCompat.shouldShowRequestPermissionRationale(this, it)
+                        && getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE).getBoolean("live_$it", false)
+            }
+            if (permanentlyDenied) {
+                Toast.makeText(this, "Camera and microphone are turned off. Enable them in App settings.", Toast.LENGTH_LONG).show()
+                startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                })
+                return false
+            }
+            getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE).edit().apply {
+                missing.forEach { putBoolean("live_$it", true) }
+            }.apply()
             ActivityCompat.requestPermissions(this, missing.toTypedArray(), REQUEST_DECART_PERMISSIONS)
             return false
         }
@@ -1445,18 +1517,25 @@ class StreamActivity : BaseActivity() {
 
     private fun showMiniWindowPermissionNotice() {
         if (StreamSessionController.hasOverlayPermission(this)) {
+            getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE).edit().putBoolean(OVERLAY_DISMISSED, false).apply()
             StreamSessionController.showMiniWindow(this)
             binding.tvAiOutputStatus.text = "Live output is feeding the virtual camera. Open cloned WhatsApp to use it."
+            return
+        }
+        val prefs = getSharedPreferences(PERMISSION_PREFS, MODE_PRIVATE)
+        if (prefs.getBoolean(OVERLAY_DISMISSED, false)) {
             return
         }
 
         android.app.AlertDialog.Builder(this)
             .setTitle("Mini window permission")
-            .setMessage("Allow Display over other apps so live output can stay visible while cloned WhatsApp uses the virtual camera.")
+            .setMessage("Allow Display over other apps so live output can stay visible while cloned WhatsApp uses the virtual camera. This is separate from camera and microphone access.")
             .setPositiveButton("OPEN SETTINGS") { _, _ ->
                 startActivity(StreamSessionController.overlayPermissionIntent(this))
             }
-            .setNegativeButton("LATER", null)
+            .setNegativeButton("LATER") { _, _ ->
+                prefs.edit().putBoolean(OVERLAY_DISMISSED, true).apply()
+            }
             .show()
     }
 

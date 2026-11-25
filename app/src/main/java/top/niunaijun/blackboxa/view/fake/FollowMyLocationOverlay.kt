@@ -2,8 +2,10 @@ package top.niunaijun.blackboxa.view.fake
 
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.view.inputmethod.InputMethodManager
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.preference.PreferenceManager
@@ -81,10 +83,11 @@ class FollowMyLocationOverlay : AppCompatActivity() {
 
         mapController.setCenter(startPoint)
         binding.map.setTileSource(TileSourceFactory.MAPNIK)
-    }
-
-    override fun onBackPressed() {
-        finishWithResult(startPoint)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finishWithResult(startPoint)
+            }
+        })
     }
 
     override fun onResume() {
@@ -110,18 +113,15 @@ class FollowMyLocationOverlay : AppCompatActivity() {
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        val permissionsToRequest = ArrayList<String>()
-        var i = 0
-        while (i < grantResults.size) {
-            permissionsToRequest.add(permissions[i])
-            i++
+        val denied = permissions.filterIndexed { index, _ ->
+            grantResults.getOrNull(index) != android.content.pm.PackageManager.PERMISSION_GRANTED
         }
-        if (permissionsToRequest.size > 0) {
-            ActivityCompat.requestPermissions(
-                this,
-                permissionsToRequest.toTypedArray(),
-                REQUEST_PERMISSIONS_REQUEST_CODE
-            )
+        if (denied.isEmpty()) return
+        val permanentlyDenied = denied.any { !ActivityCompat.shouldShowRequestPermissionRationale(this, it) }
+        if (permanentlyDenied) {
+            startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = android.net.Uri.fromParts("package", packageName, null)
+            })
         }
     }
 

@@ -134,6 +134,35 @@ void JniHook::HookJniFun(JNIEnv *env, jobject java_method, void *new_fun,
     HookJniFun(env, class_name, method_name, sign, new_fun, orig_fun, is_static);
 }
 
+bool JniHook::HookReflected(JNIEnv *env, jclass clazz, jobject java_method, const char *method_name,
+                           const char *sign, void *new_fun, void **orig_fun) {
+    if (clazz == nullptr || java_method == nullptr || method_name == nullptr || sign == nullptr || orig_fun == nullptr) {
+        return false;
+    }
+    if (HookEnv.art_method_native_offset == 0) {
+        return false;
+    }
+    jmethodID method = env->FromReflectedMethod(java_method);
+    if (method == nullptr) {
+        env->ExceptionClear();
+        return false;
+    }
+    auto artMethod = reinterpret_cast<uintptr_t *>(GetArtMethod(env, clazz, method));
+    if (!CheckFlags(artMethod)) {
+        return false;
+    }
+    *orig_fun = reinterpret_cast<void *>(artMethod[HookEnv.art_method_native_offset]);
+    JNINativeMethod gMethods[] = {
+            {method_name, sign, new_fun},
+    };
+    if (env->RegisterNatives(clazz, gMethods, 1) < 0) {
+        env->ExceptionClear();
+        *orig_fun = nullptr;
+        return false;
+    }
+    return true;
+}
+
 void
 JniHook::HookJniFun(JNIEnv *env, const char *class_name, const char *method_name, const char *sign,
                     void *new_fun, void **orig_fun, bool is_static) {
@@ -190,6 +219,8 @@ __attribute__((section (".mytext")))  JNICALL void set_method_accessible
         (JNIEnv *env, jclass obj, jclass clazz, jobject method) {
     jmethodID methodId = env->FromReflectedMethod(method);
     char *art_method = static_cast<char *>(GetArtMethod(env, clazz, methodId));
+    ClearAccessFlag(art_method, kAccPrivate);
+    ClearAccessFlag(art_method, kAccProtected);
     AddAccessFlag(art_method, kAccPublic);
     if (HookEnv.api_level >= __ANDROID_API_Q__) {
         AddAccessFlag(art_method, kAccPublicApi);
@@ -219,6 +250,17 @@ void registerNative(JNIEnv *env) {
     }
 }
 
+static bool DeclaredFlagsMatch(uint32_t actual, uint32_t expected) {
+    // Android 16/17 set extra runtime bits on ArtMethod::access_flags_
+    // (nterp fast-path, critical-native, and newer high bits). Matching the
+    // whole word walks into the next ArtMethod and corrupts the flag offset.
+    constexpr uint32_t kStableMask =
+            kAccPublic | kAccPrivate | kAccProtected | kAccStatic | kAccFinal |
+            kAccSynchronized | kAccNative | kAccAbstract | kAccSynthetic |
+            kAccPublicApi | kAccCorePlatformApi;
+    return (actual & kStableMask) == (expected & kStableMask);
+}
+
 void JniHook::InitJniHook(JNIEnv *env, int api_level) {
     registerNative(env);
     HookEnv.api_level = api_level;
@@ -243,14 +285,18 @@ void JniHook::InitJniHook(JNIEnv *env, int api_level) {
     int i = 0;
     
     auto artMethod = reinterpret_cast<uintptr_t *>(nativeOffset);
-    for (i = 0; i < HookEnv.art_method_size; ++i) {
+    bool foundNative = false;
+    size_t nativeSlots = HookEnv.art_method_size / sizeof(uintptr_t);
+    for (i = 0; i < nativeSlots; ++i) {
         if (reinterpret_cast<void *>(artMethod[i]) == native_offset) {
             HookEnv.art_method_native_offset = i;
+            foundNative = true;
             break;
         }
     }
-    if(i == HookEnv.art_method_size){
+    if (!foundNative) {
         ALOGE("init jni hook error. art_method_native_offset not found!");
+        HookEnv.art_method_native_offset = 0;
         return;
     }
 
@@ -267,16 +313,19 @@ void JniHook::InitJniHook(JNIEnv *env, int api_level) {
     }
 
     char *start = reinterpret_cast<char *>(artMethod);
-    for (i = 1; i < HookEnv.art_method_size; ++i) {
+    bool foundFlags = false;
+    for (i = 1; i * sizeof(uint32_t) < HookEnv.art_method_size; ++i) {
         auto value = *(uint32_t *) (start + i * sizeof(uint32_t));
 
-        if (value == flags) {
+        if (DeclaredFlagsMatch(value, flags)) {
             HookEnv.art_method_flags_offset = i * sizeof(uint32_t);
+            foundFlags = true;
             break;
         }
     }
-    if(i == HookEnv.art_method_size){
+    if (!foundFlags) {
         ALOGE("init jni hook error. art_method_flags_offset not found!");
+        HookEnv.art_method_native_offset = 0;
         return;
     }
 
@@ -288,15 +337,18 @@ void JniHook::InitJniHook(JNIEnv *env, int api_level) {
         flags = flags | kAccPublicApi;
     }
     char *fieldStart = reinterpret_cast<char *>(nativeOffsetField);
-    for (i = 1; i < HookEnv.art_field_size; ++i) {
-        auto value = *(int32_t *) (fieldStart + i * sizeof(int32_t));
-        if (value == flags) {
+    bool foundFieldFlags = false;
+    for (i = 1; i * sizeof(uint32_t) < HookEnv.art_field_size; ++i) {
+        auto value = *(uint32_t *) (fieldStart + i * sizeof(uint32_t));
+        if (DeclaredFlagsMatch(value, flags)) {
             HookEnv.art_field_flags_offset = i * sizeof(int32_t);
+            foundFieldFlags = true;
             break;
         }
     }
-    if(i == HookEnv.art_field_size){
+    if (!foundFieldFlags) {
         ALOGE("init jni hook error. art_field_flags_offset not found!");
+        HookEnv.art_method_native_offset = 0;
         return;
     }
 

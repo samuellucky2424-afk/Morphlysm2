@@ -68,17 +68,16 @@ public class SystemProviderStub extends ClassInvocationStub implements BContentP
         
         
         if (args != null && args.length > 0) {
-            Object arg = args[0];
-            if (arg instanceof String) {
-                String authority = (String) arg;
-                
-                if (!isSystemProviderAuthority(authority)) {
-                    args[0] = BlackBoxCore.getHostPkg();
-                }
-            } else if (arg != null) {
-                Class<?> attrSourceClass = BRAttributionSource.getRealClass();
-                
-                if (attrSourceClass != null && arg.getClass().getName().equals(attrSourceClass.getName())) {
+            Class<?> attrSourceClass = BRAttributionSource.getRealClass();
+            for (int i = 0; i < args.length; i++) {
+                Object arg = args[i];
+                if (arg instanceof String) {
+                    String value = (String) arg;
+                    if (i == 0 && !isSystemProviderAuthority(value)) {
+                        args[i] = BlackBoxCore.getHostPkg();
+                    }
+                } else if (arg != null && attrSourceClass != null
+                        && arg.getClass().getName().equals(attrSourceClass.getName())) {
                     ContextCompat.fixAttributionSourceState(arg, BlackBoxCore.getHostUid());
                 }
             }

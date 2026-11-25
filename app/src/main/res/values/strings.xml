@@ -61,12 +61,13 @@
     <string name="disable_flag_secure">Disable Flag Secure</string>
     <string name="disable_flag_secure_summary">Allow screenshots and screen recording in apps</string>
     <string name="gms_manager">GMS Manager</string>
-    <string name="jump_gms">Go to Gms Manager</string>
-    <string name="enable_gms">Enable Service</string>
-    <string name="enable_gms_hint">Opening Google services can make youtube and other software that strongly rely on Google play services run normally.</string>
+    <string name="jump_gms">Link this phone\'s Google Play services into a clone slot</string>
+    <string name="enable_gms">Enable Google services</string>
+    <string name="enable_gms_hint">This links the Google Play services already installed on your phone into this clone slot. Open the cloned app again afterwards. You do not need to clone it again.</string>
     <string name="disable_gms">Disable Service</string>
     <string name="disable_gms_hint">Clear the current Google service environment? Google service data will be cleared.</string>
     <string name="no_gms">Currently, there is no Google service environment on mobile phones.</string>
+    <string name="menu_gms">Google services</string>
     <string name="menu_stream">Morphly stream</string>
     <string name="menu_privacy_policy">privacy policy</string>
     <string name="menu_contact">contact</string>
