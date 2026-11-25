@@ -3,6 +3,7 @@ name: Android release
 on:
   push:
     branches: [main]
+    tags: ['v1.*']
     paths:
       - 'app/**'
       - 'Bcore/**'
@@ -33,11 +34,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Next patch number = number of existing v1.0.* releases (starts at 0).
-          N=$(gh release list -R "$GITHUB_REPOSITORY" -L 1000 --json tagName -q '[.[].tagName | select(startswith("v1.0."))] | length')
-          echo "name=1.0.$N" >> "$GITHUB_OUTPUT"
-          # Above the last hand-built versionCode (402) so every CI build is an upgrade.
-          echo "code=$(( 1000 + N ))" >> "$GITHUB_OUTPUT"
+          # The in-app updater compares this versionCode with the installed build.
+          # v1.0.8 shipped as versionCode 1008, so the next public build is 1009 / 1.0.9.
+          CODE=$(sed -n 's/.*versionCode *= *\([0-9][0-9]*\).*/\1/p' build.gradle | head -1)
+          NAME=$(sed -n 's/.*versionName *= *"\([^"]*\)".*/\1/p' build.gradle | head -1)
+          if [ -z "$CODE" ] || [ -z "$NAME" ]; then
+            echo "::error::versionCode or versionName missing from build.gradle"
+            exit 1
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          if gh release view "v$NAME" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release v$NAME already exists; skipping another publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/setup-java@v4
         with:
@@ -46,11 +58,13 @@ jobs:
           cache: gradle
 
       - name: Install NDK
+        if: steps.ver.outputs.skip != 'true'
         run: |
           SDKM=$(ls -d $ANDROID_HOME/cmdline-tools/*/bin | tail -1)/sdkmanager
           yes | "$SDKM" "ndk;28.2.13676358" > /dev/null
 
       - name: Restore signing keystore
+        if: steps.ver.outputs.skip != 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
@@ -58,6 +72,7 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/morphly-release.p12"
 
       - name: Build release APK
+        if: steps.ver.outputs.skip != 'true'
         env:
           MORPHLY_KEYSTORE_FILE: ${{ runner.temp }}/morphly-release.p12
           MORPHLY_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -78,12 +93,18 @@ jobs:
           "$APKSIGNER" verify --verbose --print-certs Morphly.apk
 
       - name: Publish GitHub release
+        if: steps.ver.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
           VNAME: ${{ steps.ver.outputs.name }}
           VCODE: ${{ steps.ver.outputs.code }}
         run: |
-          printf '%s\n\nversionCode: %s\nsha256: %s\n' "${COMMIT_MSG:-Manual build}" "$VCODE" "$(sha256sum Morphly.apk | awk '{print $1}')" > notes.md
+          cat > notes.md << EOF
+Android 16 support for Samsung phones, fixes for cloning apps and Google Play services, permission prompts that stay granted, and the virtual camera working in WhatsApp video calls.
+
+versionCode: $VCODE
+sha256: $(sha256sum Morphly.apk | awk '{print $1}')
+EOF
           gh release create "v$VNAME" "Morphly-v$VNAME.apk" Morphly.apk \
             --title "Morphly v$VNAME" --notes-file notes.md --target "$GITHUB_SHA" --latest --draft=false --prerelease=false
