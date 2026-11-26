@@ -78,23 +78,50 @@ public final class GoogleIdentityContext extends ContextWrapper {
     }
 
     static boolean callerNeedsHostIdentity() {
+        if (android.os.Build.VERSION.SDK_INT >= 34) {
+            try {
+                if (GoogleIdentityStack.needsHost()) {
+                    return true;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
         StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-        int limit = Math.min(stack.length, 30);
+        int limit = Math.min(stack.length, 40);
         for (int i = 0; i < limit; i++) {
             String name = stack[i].getClassName();
-            if (name == null) {
-                continue;
-            }
-            if (name.startsWith("com.google.android.gms")
-                    || name.startsWith("com.google.android.finsky")
-                    || name.startsWith("com.google.android.play")
-                    || name.startsWith("com.google.firebase")
-                    || name.startsWith("com.android.billingclient")
-                    || name.startsWith("com.android.vending")
-                    || name.contains("dynamite")) {
+            if (isGoogleCallerName(name)) {
                 return true;
             }
         }
         return false;
+    }
+
+    static boolean isGoogleCallerName(String name) {
+        if (name == null) {
+            return false;
+        }
+        return name.startsWith("com.google.android.gms")
+                || name.startsWith("com.google.android.finsky")
+                || name.startsWith("com.google.android.play")
+                || name.startsWith("com.google.firebase")
+                || name.startsWith("com.android.billingclient")
+                || name.startsWith("com.android.vending")
+                || name.contains("dynamite")
+                || name.contains("measurement");
+    }
+
+    static boolean isGoogleCallerLoader(String loaderName) {
+        if (loaderName == null) {
+            return false;
+        }
+        return loaderName.contains("com.google.android.gms")
+                || loaderName.contains("dynamite")
+                || loaderName.contains("com.google.firebase")
+                || loaderName.contains("com.google.android.play")
+                || loaderName.contains("com.android.billingclient")
+                || loaderName.contains("com.android.vending")
+                || loaderName.contains("com.google.android.finsky")
+                || loaderName.contains("measurementdynamite");
     }
 }

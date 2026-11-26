@@ -120,22 +120,81 @@ public final class VirtualCameraServiceHook {
         try {
             Field deviceStatusField = findField(global.getClass(), "mDeviceStatus");
             Object deviceStatus = deviceStatusField.get(global);
-            if (deviceStatus instanceof Map) {
-                if (cameraIdsSeeded) {
-                    return;
+            if (!(deviceStatus instanceof Map)) {
+                return;
+            }
+            Map<Object, Object> map = (Map<Object, Object>) deviceStatus;
+            // Android 16 keys this map by DeviceCameraInfo. A String key makes
+            // registerAvailabilityCallback throw ClassCastException.
+            java.util.List<Object> stringKeys = new java.util.ArrayList<>();
+            Class<?> deviceInfoClass = null;
+            for (Object key : map.keySet()) {
+                if (key instanceof String) {
+                    stringKeys.add(key);
+                } else if (key != null && "DeviceCameraInfo".equals(key.getClass().getSimpleName())) {
+                    deviceInfoClass = key.getClass();
                 }
-                Map<Object, Object> map = (Map<Object, Object>) deviceStatus;
-                Object previousBack = map.put("0", 1);
-                Object previousFront = map.put("1", 1);
+            }
+            for (Object key : stringKeys) {
+                map.remove(key);
+            }
+            if (deviceInfoClass == null) {
+                for (Class<?> nested : global.getClass().getDeclaredClasses()) {
+                    if ("DeviceCameraInfo".equals(nested.getSimpleName())) {
+                        deviceInfoClass = nested;
+                        break;
+                    }
+                }
+            }
+            if (deviceInfoClass != null) {
+                boolean addedBack = putDeviceCamera(map, deviceInfoClass, "0");
+                boolean addedFront = putDeviceCamera(map, deviceInfoClass, "1");
                 cameraIdsSeeded = true;
                 Log.i(TAG, "Seeded CameraManager device status for package=" + packageName
-                        + " size=" + map.size()
-                        + " previous0=" + previousBack
-                        + " previous1=" + previousFront);
+                        + " type=DeviceCameraInfo size=" + map.size()
+                        + " removedStrings=" + stringKeys.size()
+                        + " added0=" + addedBack
+                        + " added1=" + addedFront);
+                return;
             }
+            if (cameraIdsSeeded) {
+                return;
+            }
+            map.put("0", 1);
+            map.put("1", 1);
+            cameraIdsSeeded = true;
+            Log.i(TAG, "Seeded CameraManager device status for package=" + packageName
+                    + " type=String size=" + map.size());
         } catch (Throwable throwable) {
             Log.w(TAG, "Unable to seed CameraManager device status for " + packageName, throwable);
         }
+    }
+
+    private static boolean putDeviceCamera(Map<Object, Object> map, Class<?> deviceInfoClass, String cameraId)
+            throws ReflectiveOperationException {
+        for (Object key : map.keySet()) {
+            if (key == null || !deviceInfoClass.isInstance(key)) {
+                continue;
+            }
+            Field cameraIdField = findField(key.getClass(), "mCameraId");
+            if (cameraId.equals(cameraIdField.get(key))) {
+                return false;
+            }
+        }
+        java.lang.reflect.Constructor<?> constructor = null;
+        for (java.lang.reflect.Constructor<?> candidate : deviceInfoClass.getDeclaredConstructors()) {
+            Class<?>[] parameters = candidate.getParameterTypes();
+            if (parameters.length == 2 && parameters[0] == String.class && parameters[1] == int.class) {
+                constructor = candidate;
+                break;
+            }
+        }
+        if (constructor == null) {
+            throw new NoSuchMethodException("DeviceCameraInfo(String,int)");
+        }
+        constructor.setAccessible(true);
+        map.put(constructor.newInstance(cameraId, 0), 1);
+        return true;
     }
 
     private static void startRehookLoop(Context context, String packageName, String processName) {
