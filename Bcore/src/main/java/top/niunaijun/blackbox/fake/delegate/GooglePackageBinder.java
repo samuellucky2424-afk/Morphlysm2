@@ -7,6 +7,8 @@ import android.os.RemoteException;
 
 import java.io.FileDescriptor;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import top.niunaijun.blackbox.BlackBoxCore;
 import top.niunaijun.blackbox.app.BActivityThread;
@@ -24,6 +26,44 @@ public final class GooglePackageBinder implements IBinder {
 
     private GooglePackageBinder(IBinder delegate) {
         this.delegate = delegate;
+    }
+
+    private static final Map<IBinder, String> DESCRIPTORS = new WeakHashMap<>();
+
+    /**
+     * Called from the BinderProxy.transact hook so every Play services call is
+     * rewritten, including ones that never pass through our service-connection wrapper.
+     */
+    public static Parcel rewriteIfGoogle(IBinder binder, Parcel data) {
+        if (binder == null || data == null || !isGoogleBinder(binder)) {
+            return null;
+        }
+        return rewriteGuestPackage(data);
+    }
+
+    private static boolean isGoogleBinder(IBinder binder) {
+        String descriptor;
+        synchronized (DESCRIPTORS) {
+            descriptor = DESCRIPTORS.get(binder);
+        }
+        if (descriptor == null) {
+            try {
+                descriptor = binder.getInterfaceDescriptor();
+            } catch (Throwable throwable) {
+                descriptor = "";
+            }
+            if (descriptor == null) {
+                descriptor = "";
+            }
+            synchronized (DESCRIPTORS) {
+                DESCRIPTORS.put(binder, descriptor);
+            }
+        }
+        return descriptor.contains("com.google.android.gms")
+                || descriptor.contains("IGmsServiceBroker")
+                || descriptor.contains("com.google.android.finsky")
+                || descriptor.contains("com.android.vending")
+                || descriptor.contains("com.google.android.play");
     }
 
     public static IBinder wrap(IBinder binder) {
