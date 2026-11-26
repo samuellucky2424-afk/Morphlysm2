@@ -17,10 +17,12 @@ public class ServiceConnectionDelegate extends IServiceConnection.Stub {
     private static final Map<IBinder, ServiceConnectionDelegate> sServiceConnectDelegate = new HashMap<>();
     private final IServiceConnection mConn;
     private final ComponentName mComponentName;
+    private final boolean mRewriteGooglePackage;
 
-    private ServiceConnectionDelegate(IServiceConnection mConn, ComponentName targetComponent) {
+    private ServiceConnectionDelegate(IServiceConnection mConn, ComponentName targetComponent, boolean rewriteGooglePackage) {
         this.mConn = mConn;
         this.mComponentName = targetComponent;
+        this.mRewriteGooglePackage = rewriteGooglePackage;
     }
 
     public static ServiceConnectionDelegate getDelegate(IBinder iBinder) {
@@ -28,6 +30,10 @@ public class ServiceConnectionDelegate extends IServiceConnection.Stub {
     }
 
     public static IServiceConnection createProxy(IServiceConnection base, Intent intent) {
+        return createProxy(base, intent, false);
+    }
+
+    public static IServiceConnection createProxy(IServiceConnection base, Intent intent, boolean rewriteGooglePackage) {
         final IBinder iBinder = base.asBinder();
         ServiceConnectionDelegate delegate = sServiceConnectDelegate.get(iBinder);
         if (delegate == null) {
@@ -42,7 +48,7 @@ public class ServiceConnectionDelegate extends IServiceConnection.Stub {
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-            delegate = new ServiceConnectionDelegate(base, intent.getComponent());
+            delegate = new ServiceConnectionDelegate(base, intent == null ? null : intent.getComponent(), rewriteGooglePackage);
             sServiceConnectDelegate.put(iBinder, delegate);
         }
         return delegate;
@@ -54,10 +60,11 @@ public class ServiceConnectionDelegate extends IServiceConnection.Stub {
     }
 
     public void connected(ComponentName name, IBinder service, boolean dead) throws RemoteException {
+        IBinder delivered = mRewriteGooglePackage ? GooglePackageBinder.wrap(service) : service;
         if (BuildCompat.isOreo()) {
-            BRIServiceConnectionO.get(mConn).connected(mComponentName, service, dead);
+            BRIServiceConnectionO.get(mConn).connected(mComponentName, delivered, dead);
         } else {
-            mConn.connected(name, service);
+            mConn.connected(name, delivered);
         }
     }
 }

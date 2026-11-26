@@ -40,7 +40,16 @@ public class BJobManagerService extends IBJobManagerService.Stub implements ISys
         intent.setComponent(componentName);
         ResolveInfo resolveInfo = BPackageManagerService.get().resolveService(intent, PackageManager.GET_META_DATA, null, userId);
         if (resolveInfo == null) {
-            return info;
+            ProcessRecord caller = BProcessManagerService.get().findProcessByPid(Binder.getCallingPid());
+            if (caller == null) {
+                return info;
+            }
+            ServiceInfo fallback = new ServiceInfo();
+            fallback.packageName = componentName.getPackageName();
+            fallback.name = componentName.getClassName();
+            fallback.processName = caller.processName;
+            fallback.applicationInfo = caller.info;
+            return scheduleJob(caller, info, fallback);
         }
         ServiceInfo serviceInfo = resolveInfo.serviceInfo;
         ProcessRecord processRecord = BProcessManagerService.get().findProcessRecord(serviceInfo.packageName, serviceInfo.processName, userId);

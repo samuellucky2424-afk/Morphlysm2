@@ -377,6 +377,9 @@ public class IActivityManagerProxy extends ClassInvocationStub {
                     args[callingPackageIndex] = BlackBoxCore.getHostPkg();
                 }
                 rewriteGoogleCaller(args);
+                if (connection != null) {
+                    args[4] = ServiceConnectionDelegate.createProxy(connection, intent, true);
+                }
                 return method.invoke(who, args);
             }
 
