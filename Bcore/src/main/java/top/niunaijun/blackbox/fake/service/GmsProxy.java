@@ -61,19 +61,23 @@ public class GmsProxy extends BinderInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             try {
                 
-                if (args != null && args.length > 0) {
-                    String callingPackage = (String) args[0];
-                    if ("com.google.android.gms".equals(callingPackage)) {
-                        
-                        args[0] = BlackBoxCore.getHostPkg();
-                        Slog.d(TAG, "GmsProxy: Fixed calling package from com.google.android.gms to " + BlackBoxCore.getHostPkg());
+                String host = BlackBoxCore.getHostPkg();
+                String guest = top.niunaijun.blackbox.app.BActivityThread.getAppPackageName();
+                if (args != null) {
+                    for (int i = 0; i < args.length; i++) {
+                        if (args[i] instanceof String) {
+                            String value = (String) args[i];
+                            if ((guest != null && guest.equals(value)) || "com.google.android.gms".equals(value)) {
+                                args[i] = host;
+                                Slog.i(TAG, "GmsProxy: calling package " + value + " -> " + host);
+                            }
+                        }
                     }
                 }
                 return method.invoke(who, args);
             } catch (Exception e) {
                 Slog.e(TAG, "GmsProxy: Error in getService", e);
-                
-                return null;
+                throw e;
             }
         }
     }
