@@ -107,6 +107,9 @@ public final class GoogleIdentityContext extends ContextWrapper {
                 || name.startsWith("com.google.firebase")
                 || name.startsWith("com.android.billingclient")
                 || name.startsWith("com.android.vending")
+                || name.startsWith("org.chromium")
+                || name.startsWith("android.webkit")
+                || name.startsWith("com.android.webview")
                 || name.contains("dynamite")
                 || name.contains("measurement");
     }
@@ -122,6 +125,8 @@ public final class GoogleIdentityContext extends ContextWrapper {
                 || loaderName.contains("com.android.billingclient")
                 || loaderName.contains("com.android.vending")
                 || loaderName.contains("com.google.android.finsky")
-                || loaderName.contains("measurementdynamite");
+                || loaderName.contains("measurementdynamite")
+                || loaderName.contains("chromium")
+                || loaderName.contains("webview");
     }
 }

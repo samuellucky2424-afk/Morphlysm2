@@ -77,6 +77,11 @@ public final class GuestPermissionPolicy {
         if (permission == null) {
             return false;
         }
+        if (isNormalNetworkPermission(permission)) {
+            // WebView turns a denied INTERNET check into net::ERR_CACHE_MISS.
+            // These are install-time permissions the host already holds.
+            return true;
+        }
         if (isLegacyStorage(permission)) {
             // Guests that still target Android 12 request the old storage permission.
             // On API 33+ the host grant is photos, video, audio, or the partial photo picker.
@@ -136,6 +141,15 @@ public final class GuestPermissionPolicy {
         data.putExtra("android.content.pm.extra.REQUEST_PERMISSIONS_NAMES", permissions);
         data.putExtra("android.content.pm.extra.REQUEST_PERMISSIONS_RESULTS", results);
         return new Instrumentation.ActivityResult(Activity.RESULT_OK, data);
+    }
+
+    private static boolean isNormalNetworkPermission(String permission) {
+        return Manifest.permission.INTERNET.equals(permission)
+                || Manifest.permission.ACCESS_NETWORK_STATE.equals(permission)
+                || Manifest.permission.ACCESS_WIFI_STATE.equals(permission)
+                || Manifest.permission.CHANGE_NETWORK_STATE.equals(permission)
+                || Manifest.permission.CHANGE_WIFI_STATE.equals(permission)
+                || Manifest.permission.WAKE_LOCK.equals(permission);
     }
 
     public static boolean isLegacyStorage(String permission) {

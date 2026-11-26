@@ -100,7 +100,7 @@ public final class GooglePackageBinder implements IBinder {
         } catch (Throwable throwable) {
             return null;
         }
-        byte[] replaced = replaceString16(raw, guest, host);
+        byte[] replaced = replacePackageStrings(raw, guest, host);
         if (replaced == null) {
             return null;
         }
@@ -112,38 +112,75 @@ public final class GooglePackageBinder implements IBinder {
         return out;
     }
 
-    private static byte[] replaceString16(byte[] raw, String guest, String host) {
-        byte[] guestChars = guest.getBytes(StandardCharsets.UTF_16LE);
-        byte[] hostChars = host.getBytes(StandardCharsets.UTF_16LE);
-        int guestSpan = padded(4 + guestChars.length);
-        boolean found = false;
-        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream(raw.length + 64);
-        int index = 0;
-        while (index < raw.length) {
-            if ((index % 4) == 0 && matches(raw, index, guest.length(), guestChars)) {
-                writeInt(out, host.length());
-                out.write(hostChars, 0, hostChars.length);
-                int pad = padded(4 + hostChars.length) - 4 - hostChars.length;
-                for (int i = 0; i < pad; i++) {
-                    out.write(0);
-                }
-                index += guestSpan;
-                found = true;
-            } else {
-                out.write(raw[index]);
-                index++;
+    /**
+     * Play services writes the package with a length prefix and a size field in
+     * front of it. Replacing com.tinder with the longer host name without
+     * updating those sizes makes the parser keep reading com.tinder.
+     */
+    private static byte[] replacePackageStrings(byte[] raw, String guest, String host) {
+        byte[] guest16 = guest.getBytes(StandardCharsets.UTF_16LE);
+        byte[] host16 = host.getBytes(StandardCharsets.UTF_16LE);
+        byte[] guest8 = guest.getBytes(StandardCharsets.UTF_8);
+        byte[] host8 = host.getBytes(StandardCharsets.UTF_8);
+        int span16 = padded(4 + guest16.length);
+        int span8 = 4 + padded(guest8.length + 1);
+        java.util.List<int[]> matches = new java.util.ArrayList<>();
+        for (int index = 0; index + 4 <= raw.length; index += 4) {
+            if (matches16(raw, index, guest.length(), guest16, span16)) {
+                matches.add(new int[]{index, 16});
+            } else if (matches8(raw, index, guest8, span8)) {
+                matches.add(new int[]{index, 8});
             }
         }
-        return found ? out.toByteArray() : null;
+        if (matches.isEmpty()) {
+            return null;
+        }
+        byte[] buf = raw;
+        for (int i = matches.size() - 1; i >= 0; i--) {
+            int index = matches.get(i)[0];
+            if (matches.get(i)[1] == 16) {
+                buf = splice(buf, index, span16, string16(host, host16));
+            } else {
+                buf = splice(buf, index, span8, string8(host8));
+            }
+        }
+        return buf;
     }
 
-    private static boolean matches(byte[] raw, int offset, int charCount, byte[] chars) {
-        int span = padded(4 + chars.length);
-        if (offset < 0 || offset + span > raw.length) {
-            return false;
+    private static byte[] splice(byte[] buf, int index, int oldSpan, byte[] replacement) {
+        int delta = replacement.length - oldSpan;
+        for (int position = index - 4; position >= 0; position -= 4) {
+            int size = readInt(buf, position);
+            int coverEnd = position + 4 + size;
+            if (size > 0 && size < 65536 && (size % 4) == 0
+                    && position + 4 <= index && coverEnd >= index + oldSpan) {
+                writeIntInPlace(buf, position, size + delta);
+            }
         }
-        int length = readInt(raw, offset);
-        if (length != charCount) {
+        byte[] out = new byte[buf.length + delta];
+        System.arraycopy(buf, 0, out, 0, index);
+        System.arraycopy(replacement, 0, out, index, replacement.length);
+        System.arraycopy(buf, index + oldSpan, out, index + replacement.length, buf.length - index - oldSpan);
+        return out;
+    }
+
+    private static byte[] string16(String host, byte[] hostChars) {
+        byte[] out = new byte[padded(4 + hostChars.length)];
+        writeIntInPlace(out, 0, host.length());
+        System.arraycopy(hostChars, 0, out, 4, hostChars.length);
+        return out;
+    }
+
+    private static byte[] string8(byte[] hostChars) {
+        int payload = padded(hostChars.length + 1);
+        byte[] out = new byte[4 + payload];
+        writeIntInPlace(out, 0, hostChars.length);
+        System.arraycopy(hostChars, 0, out, 4, hostChars.length);
+        return out;
+    }
+
+    private static boolean matches16(byte[] raw, int offset, int charCount, byte[] chars, int span) {
+        if (offset < 0 || offset + span > raw.length || readInt(raw, offset) != charCount) {
             return false;
         }
         for (int i = 0; i < chars.length; i++) {
@@ -152,6 +189,26 @@ public final class GooglePackageBinder implements IBinder {
             }
         }
         for (int i = 4 + chars.length; i < span; i++) {
+            if (raw[offset + i] != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean matches8(byte[] raw, int offset, byte[] chars, int span) {
+        if (offset < 0 || offset + span > raw.length || readInt(raw, offset) != chars.length) {
+            return false;
+        }
+        for (int i = 0; i < chars.length; i++) {
+            if (raw[offset + 4 + i] != chars[i]) {
+                return false;
+            }
+        }
+        if (raw[offset + 4 + chars.length] != 0) {
+            return false;
+        }
+        for (int i = 4 + chars.length + 1; i < span; i++) {
             if (raw[offset + i] != 0) {
                 return false;
             }
@@ -170,11 +227,11 @@ public final class GooglePackageBinder implements IBinder {
                 | ((raw[offset + 3] & 0xff) << 24);
     }
 
-    private static void writeInt(java.io.ByteArrayOutputStream out, int value) {
-        out.write(value & 0xff);
-        out.write((value >> 8) & 0xff);
-        out.write((value >> 16) & 0xff);
-        out.write((value >> 24) & 0xff);
+    private static void writeIntInPlace(byte[] raw, int offset, int value) {
+        raw[offset] = (byte) (value & 0xff);
+        raw[offset + 1] = (byte) ((value >> 8) & 0xff);
+        raw[offset + 2] = (byte) ((value >> 16) & 0xff);
+        raw[offset + 3] = (byte) ((value >> 24) & 0xff);
     }
 
     @Override
