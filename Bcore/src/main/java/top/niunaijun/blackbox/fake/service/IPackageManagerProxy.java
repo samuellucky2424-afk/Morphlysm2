@@ -433,11 +433,25 @@ public class IPackageManagerProxy extends BinderInvocationStub {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             int uid = (Integer) args[0];
-            if (uid == BlackBoxCore.getHostUid()) {
+            boolean hostUid = uid == BlackBoxCore.getHostUid();
+            if (hostUid) {
                 args[0] = BActivityThread.getBUid();
                 uid = (int) args[0];
             }
             String[] packagesForUid = BlackBoxCore.getBPackageManager().getPackagesForUid(uid);
+            if (hostUid) {
+                // Play services checks the name against the packages that own this
+                // process uid. The uid is Morphly's, so the host package must be included.
+                String host = BlackBoxCore.getHostPkg();
+                java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
+                if (host != null) {
+                    names.add(host);
+                }
+                if (packagesForUid != null) {
+                    java.util.Collections.addAll(names, packagesForUid);
+                }
+                packagesForUid = names.toArray(new String[0]);
+            }
             Slog.d(TAG, args[0] + " , " + BActivityThread.getAppProcessName() + " GetPackagesForUid: " + Arrays.toString(packagesForUid));
             return packagesForUid;
         }

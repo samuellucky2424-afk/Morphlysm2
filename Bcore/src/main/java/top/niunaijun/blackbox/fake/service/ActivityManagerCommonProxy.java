@@ -12,6 +12,7 @@ import java.io.File;
 import java.lang.reflect.Method;
 
 import top.niunaijun.blackbox.BlackBoxCore;
+import top.niunaijun.blackbox.core.GmsCore;
 import top.niunaijun.blackbox.app.BActivityThread;
 import top.niunaijun.blackbox.fake.hook.MethodHook;
 import top.niunaijun.blackbox.fake.hook.ProxyMethod;
@@ -36,6 +37,11 @@ public class ActivityManagerCommonProxy {
             Intent intent = getIntent(args);
             Slog.d(TAG, "Hook in : " + intent);
             assert intent != null;
+            if (isRealGoogleIntent(intent)) {
+                // Play Billing and Play services must run as the real host app.
+                // A cloned Play Store activity never finishes and leaves Telegram stuck.
+                return method.invoke(who, args);
+            }
             
             
             if (intent.getParcelableExtra("_B_|_target_") != null) {
@@ -108,6 +114,23 @@ public class ActivityManagerCommonProxy {
                     StartActivityCompat.getFlags(args),
                     StartActivityCompat.getOptions(args));
             return 0;
+        }
+
+        private static boolean isRealGoogleIntent(Intent intent) {
+            if (intent == null) {
+                return false;
+            }
+            String packageName = intent.getPackage();
+            if (packageName == null && intent.getComponent() != null) {
+                packageName = intent.getComponent().getPackageName();
+            }
+            if (GmsCore.isGoogleAppOrService(packageName)) {
+                return true;
+            }
+            String action = intent.getAction();
+            return action != null && (action.contains("com.android.vending.billing")
+                    || action.contains("com.google.android.gms")
+                    || action.contains("com.android.billingclient"));
         }
 
         private Intent getIntent(Object[] args) {

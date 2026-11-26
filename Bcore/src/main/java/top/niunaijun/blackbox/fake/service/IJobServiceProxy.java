@@ -1,14 +1,17 @@
 package top.niunaijun.blackbox.fake.service;
 
 import android.app.job.JobInfo;
+import android.content.ComponentName;
 import android.content.Context;
 import android.os.IBinder;
 
 import java.lang.reflect.Method;
 
+import black.android.app.job.BRJobInfo;
 import black.android.app.job.BRIJobSchedulerStub;
 import black.android.os.BRServiceManager;
 import top.niunaijun.blackbox.BlackBoxCore;
+import top.niunaijun.blackbox.proxy.ProxyManifest;
 import top.niunaijun.blackbox.app.BActivityThread;
 import top.niunaijun.blackbox.fake.hook.BinderInvocationStub;
 import top.niunaijun.blackbox.fake.hook.MethodHook;
@@ -46,35 +49,12 @@ public class IJobServiceProxy extends BinderInvocationStub {
                     return 0; 
                 }
                 
-                if (args[0] == null) {
-                    Slog.w(TAG, "Schedule: args[0] is null, returning RESULT_FAILURE");
-                    return 0; 
-                }
-                
-                if (!(args[0] instanceof JobInfo)) {
+                if (!proxyJobArguments(args)) {
                     Slog.w(TAG, "Schedule: args[0] is not JobInfo: " + args[0].getClass().getSimpleName());
                     
                     return handleNonJobInfoSchedule(who, method, args);
                 }
-                
-                JobInfo jobInfo = (JobInfo) args[0];
-                Slog.d(TAG, "Schedule: Processing JobInfo for package: " + jobInfo.getService().getPackageName());
-                
-                
-                try {
-                    JobInfo proxyJobInfo = BlackBoxCore.getBJobManager().schedule(jobInfo);
-                    if (proxyJobInfo != null) {
-                        args[0] = proxyJobInfo;
-                        Slog.d(TAG, "Schedule: Successfully created proxy JobInfo");
-                        return method.invoke(who, args);
-                    }
-                } catch (Exception e) {
-                    Slog.w(TAG, "Schedule: BlackBox job manager failed, trying system fallback", e);
-                }
-                
-                
-                return scheduleWithUIDSpoofing(who, method, args, jobInfo);
-                
+                return method.invoke(who, args);
             } catch (Exception e) {
                 Slog.e(TAG, "Schedule: Error processing job", e);
                 
@@ -222,35 +202,12 @@ public class IJobServiceProxy extends BinderInvocationStub {
                     return 0; 
                 }
                 
-                if (args[0] == null) {
-                    Slog.w(TAG, "Enqueue: args[0] is null, returning RESULT_FAILURE");
-                    return 0; 
-                }
-                
-                if (!(args[0] instanceof JobInfo)) {
+                if (!proxyJobArguments(args)) {
                     Slog.w(TAG, "Enqueue: args[0] is not JobInfo: " + args[0].getClass().getSimpleName());
                     
                     return handleNonJobInfoEnqueue(who, method, args);
                 }
-                
-                JobInfo jobInfo = (JobInfo) args[0];
-                Slog.d(TAG, "Enqueue: Processing JobInfo for package: " + jobInfo.getService().getPackageName());
-                
-                
-                try {
-                    JobInfo proxyJobInfo = BlackBoxCore.getBJobManager().schedule(jobInfo);
-                    if (proxyJobInfo != null) {
-                        args[0] = proxyJobInfo;
-                        Slog.d(TAG, "Enqueue: Successfully created proxy JobInfo");
-                        return method.invoke(who, args);
-                    }
-                } catch (Exception e) {
-                    Slog.w(TAG, "Enqueue: BlackBox job manager failed, trying system fallback", e);
-                }
-                
-                
-                return enqueueWithUIDSpoofing(who, method, args, jobInfo);
-                
+                return method.invoke(who, args);
             } catch (Exception e) {
                 Slog.e(TAG, "Enqueue: Error processing job", e);
                 
@@ -350,6 +307,49 @@ public class IJobServiceProxy extends BinderInvocationStub {
             
             return false;
         }
+    }
+
+    /**
+     * Android 16 passes a namespace string before the JobInfo. The service
+     * component has to name the host, because the process uid belongs to Morphly.
+     */
+    static boolean proxyJobArguments(Object[] args) {
+        if (args == null) {
+            return false;
+        }
+        String host = BlackBoxCore.getHostPkg();
+        String guest = BActivityThread.getAppPackageName();
+        int jobIndex = -1;
+        for (int i = 0; i < args.length; i++) {
+            if (args[i] instanceof JobInfo) {
+                jobIndex = i;
+            } else if (args[i] instanceof String && guest != null && guest.equals(args[i])) {
+                args[i] = host;
+            }
+        }
+        if (jobIndex < 0) {
+            return false;
+        }
+        JobInfo jobInfo = (JobInfo) args[jobIndex];
+        JobInfo proxied = jobInfo;
+        try {
+            JobInfo scheduled = BlackBoxCore.getBJobManager().schedule(jobInfo);
+            if (scheduled != null) {
+                proxied = scheduled;
+            }
+        } catch (Throwable throwable) {
+            Slog.w(TAG, "Job proxy failed", throwable);
+        }
+        if (proxied.getService() != null && host != null && !host.equals(proxied.getService().getPackageName())) {
+            int bpid = BActivityThread.getAppPid();
+            if (bpid >= 0) {
+                BRJobInfo.get(proxied)._set_service(new ComponentName(host, ProxyManifest.getProxyJobService(bpid)));
+            }
+        }
+        args[jobIndex] = proxied;
+        Slog.d(TAG, "Job service " + (jobInfo.getService() == null ? "null" : jobInfo.getService().getPackageName())
+                + " -> " + proxied.getService());
+        return true;
     }
 
     @Override

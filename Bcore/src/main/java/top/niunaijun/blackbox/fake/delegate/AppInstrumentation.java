@@ -238,7 +238,29 @@ public final class AppInstrumentation extends BaseInstrumentationDelegate implem
     @Override
     public void callActivityOnCreate(Activity activity, Bundle icicle) {
         checkActivity(activity);
+        logCaptcha("onCreate", activity);
         super.callActivityOnCreate(activity, icicle);
+    }
+
+    @Override
+    public void callActivityOnDestroy(Activity activity) {
+        logCaptcha("onDestroy", activity);
+        super.callActivityOnDestroy(activity);
+    }
+
+    private static void logCaptcha(String event, Activity activity) {
+        if (activity == null) {
+            return;
+        }
+        String name = activity.getClass().getName();
+        if (!name.contains("Captcha") && !name.contains("captcha")) {
+            return;
+        }
+        android.content.Intent intent = activity.getIntent();
+        android.os.Bundle extras = intent == null ? null : intent.getExtras();
+        Log.i("VCAM_TINDER", event + " " + name
+                + " extras=" + (extras == null ? "none" : extras.keySet())
+                , new Throwable(event));
     }
 
     @Override

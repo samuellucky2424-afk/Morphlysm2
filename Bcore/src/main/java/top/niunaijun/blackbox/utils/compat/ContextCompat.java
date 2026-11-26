@@ -32,6 +32,7 @@ public class ContextCompat {
 
     public static void fix(Context context) {
         try {
+            Context original = context;
             
             if (context == null) {
                 Slog.w(TAG, "Context is null, skipping ContextCompat.fix");
@@ -78,6 +79,7 @@ public class ContextCompat {
                     Slog.w(TAG, "Failed to fix attribution source state: " + e.getMessage());
                 }
             }
+            GoogleIdentityContext.install(original);
         } catch (Exception e) {
             Slog.e(TAG, "Error in ContextCompat.fix: " + e.getMessage());
             e.printStackTrace();

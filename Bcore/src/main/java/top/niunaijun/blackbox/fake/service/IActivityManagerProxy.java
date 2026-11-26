@@ -242,6 +242,7 @@ public class IActivityManagerProxy extends ClassInvocationStub {
             Intent intent = (Intent) args[1];
             String resolvedType = (String) args[2];
             if (isHostGoogleIntent(intent)) {
+                rewriteGoogleCaller(args);
                 return method.invoke(who, args);
             }
             ResolveInfo resolveInfo = BlackBoxCore.getBPackageManager().resolveService(intent, 0, resolvedType, BActivityThread.getUserId());
@@ -372,6 +373,13 @@ public class IActivityManagerProxy extends ClassInvocationStub {
                 return method.invoke(who, args);
             }
             if (isHostGoogleIntent(intent)) {
+                if (callingPackageIndex >= 0 && callingPackageIndex < args.length) {
+                    args[callingPackageIndex] = BlackBoxCore.getHostPkg();
+                }
+                rewriteGoogleCaller(args);
+                if (connection != null) {
+                    args[4] = ServiceConnectionDelegate.createProxy(connection, intent, true);
+                }
                 return method.invoke(who, args);
             }
 
@@ -419,6 +427,43 @@ public class IActivityManagerProxy extends ClassInvocationStub {
         } catch (Exception e) {
             Slog.e(TAG, "BindServiceCommon: Unexpected error", e);
             return method.invoke(who, args);
+        }
+    }
+
+    private static void rewriteGoogleCaller(Object[] args) {
+        if (args == null) {
+            return;
+        }
+        String host = BlackBoxCore.getHostPkg();
+        String guest = BActivityThread.getAppPackageName();
+        for (int i = 0; i < args.length; i++) {
+            if (args[i] instanceof String && guest != null && guest.equals(args[i])) {
+                args[i] = host;
+            } else if (args[i] != null) {
+                rewriteRequestPackage(args[i], host, guest);
+            }
+        }
+    }
+
+    private static void rewriteRequestPackage(Object request, String host, String guest) {
+        String type = request.getClass().getName();
+        if (!type.contains("GetServiceRequest") && !type.contains("billing") && !type.contains("gms")) {
+            return;
+        }
+        String[] fields = {"packageName", "callingPackage", "mPackageName"};
+        for (String name : fields) {
+            try {
+                java.lang.reflect.Field field = request.getClass().getDeclaredField(name);
+                if (field.getType() != String.class) {
+                    continue;
+                }
+                field.setAccessible(true);
+                Object value = field.get(request);
+                if (guest != null && guest.equals(value)) {
+                    field.set(request, host);
+                }
+            } catch (Throwable ignored) {
+            }
         }
     }
 
