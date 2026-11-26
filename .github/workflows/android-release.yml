@@ -2,7 +2,7 @@ name: Android release
 
 on:
   push:
-    branches: [main]
+    branches: [main, cursor/clone-gms-billing-9535]
     tags: ['v1.*']
     paths:
       - 'app/**'
@@ -50,13 +50,18 @@ jobs:
           fi
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
-          if [ "${{ inputs.artifact_only }}" = "true" ]; then
+          # This feature branch builds a signed APK for one phone. It must not
+          # publish a release or move the latest tag, even if the version is new.
+          if [ "${{ inputs.artifact_only }}" = "true" ] || [ "$GITHUB_REF" = "refs/heads/cursor/clone-gms-billing-9535" ]; then
             echo "Artifact-only build of v$NAME ($CODE). No release will be published."
+            echo "artifact_only=true" >> "$GITHUB_OUTPUT"
             echo "skip=false" >> "$GITHUB_OUTPUT"
           elif gh release view "v$NAME" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release v$NAME already exists; skipping another publish."
+            echo "artifact_only=false" >> "$GITHUB_OUTPUT"
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
+            echo "artifact_only=false" >> "$GITHUB_OUTPUT"
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -103,7 +108,7 @@ jobs:
           sha256sum Morphly.apk
 
       - name: Upload signed APK artifact
-        if: steps.ver.outputs.skip != 'true' && github.event.inputs.artifact_only == 'true'
+        if: steps.ver.outputs.skip != 'true' && steps.ver.outputs.artifact_only == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: morphly-tinder-tg-fix-release
@@ -112,7 +117,7 @@ jobs:
           retention-days: 14
 
       - name: Publish GitHub release
-        if: steps.ver.outputs.skip != 'true' && github.event.inputs.artifact_only != 'true'
+        if: steps.ver.outputs.skip != 'true' && steps.ver.outputs.artifact_only != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
