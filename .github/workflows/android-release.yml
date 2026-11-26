@@ -14,9 +14,15 @@ on:
       - 'gradle.properties'
       - '.github/workflows/android-release.yml'
   workflow_dispatch:
+    inputs:
+      artifact_only:
+        description: 'Sign a release APK and upload it as an artifact. Do not publish or replace a GitHub release.'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: android-release
@@ -44,7 +50,10 @@ jobs:
           fi
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
-          if gh release view "v$NAME" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          if [ "${{ inputs.artifact_only }}" = "true" ]; then
+            echo "Artifact-only build of v$NAME ($CODE). No release will be published."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif gh release view "v$NAME" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release v$NAME already exists; skipping another publish."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
@@ -91,9 +100,19 @@ jobs:
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort | tail -1)
           if [ -z "$APKSIGNER" ]; then echo "::error::apksigner not found"; exit 1; fi
           "$APKSIGNER" verify --verbose --print-certs Morphly.apk
+          sha256sum Morphly.apk
+
+      - name: Upload signed APK artifact
+        if: steps.ver.outputs.skip != 'true' && github.event.inputs.artifact_only == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: morphly-tinder-tg-fix-release
+          path: Morphly.apk
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Publish GitHub release
-        if: steps.ver.outputs.skip != 'true'
+        if: steps.ver.outputs.skip != 'true' && github.event.inputs.artifact_only != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
